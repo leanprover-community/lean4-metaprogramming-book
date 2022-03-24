@@ -36,14 +36,9 @@ say that, in Lean, the metal-level is _reflected_ to the object-level.
 Since the objects defined in the meta-level are not the ones we're most
 interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
-our `Expr` recursion function is well founded. But in Lean, you get an error if
-you try to write a recursive function whose termination is not proven.
-
-Lean relaxes these constraints with trust levels. You can add `unsafe` or
-`partial` keywords to your declaration to flag that you don't care about
-soundness for this function. Most of the time in Lean 4, you can write your
-metaprogramming code without these keywords though, only use them as a last
-resort.
+our `Expr` recursion function is well founded. Thus, we can use the `partial`
+keyword if we're convinced that our function terminates. In the worst case
+scenario, our custom elaboration loops but the kernel is not reached.
 
 Let's see some exemple use cases of metaprogramming in Lean.
 
@@ -58,20 +53,19 @@ Suppose we want to build a helper command `#assertType` which tells whether a
 given term is of a certain type. The usage will be:
 
 `#assertType <term> : <type>`
-
-Let's also make it print out "success" or "failure" accordingly.
 -/
 
-open Lean.Elab.Command Lean.Elab.Term in
 elab "#assertType " termStx:term " : " typeStx:term : command =>
+  open Lean.Elab Command Term in
   liftTermElabM `assertTypeCmd
     try
-      let tp ← elabTerm termStx none
-      let tm ← elabTermEnsuringType typeStx tp
-      dbg_trace "success"
-    catch | _ => dbg_trace "failure"
+      let tp ← elabType typeStx
+      let tm ← elabTermEnsuringType termStx tp
+      synthesizeSyntheticMVarsNoPostponing
+      logInfo "success"
+    catch | _ => throwError "failure"
 
-#assertType 5 : Nat  -- success
+#assertType 5  : Nat -- success
 #assertType [] : Nat -- failure
 
 /-! We started by using `elab` to define a `command` syntax, which, when parsed
@@ -79,15 +73,20 @@ by the compiler, will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
 use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
-`elabTerm` and `elabTermEnsuringType` in order to build expressions out of the
-syntax nodes `termStx` and `typeStx`.
+`elabType` and `elabTermEnsuringType` in order to build expressions out of the
+syntax nodes `typeStx` and `termStx`.
 
 First we elaborate the expected type `tp : Expr` and then we use it to elaborate
 the term `tm : Expr`, which should have the type `tp` otherwise an error will be
 thrown.
 
-If no error is thrown then the elaboration succeeded and we use `dbg_trace` to
-output that message. If, instead, we catch some error, we just print `failure`.
+We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
+elaborate metavariables right away. Without that line, `#assertType 5  : ?_`
+would result in `success`.
+
+If no error is thrown until now then the elaboration succeeded and we can use
+`logInfo` to output "success". If, instead, some error is caught, then we use
+`throwError` with the appropriate message.
 
 ### Writing our own tactic
 
