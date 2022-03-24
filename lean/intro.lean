@@ -65,17 +65,14 @@ given term is of a certain type. The usage will be:
 Let's also make it print out "success" or "failure" accordingly.
 -/
 
-syntax "#assertType" term " : " term : command
-
 open Lean.Elab.Command Lean.Elab.Term in
-elab_rules : command
-  | `(#assertType $tmStx:term : $tpStx:term) =>
-    liftTermElabM `test do
-      try
-        let tp ← elabTerm tpStx none
-        let tm ← elabTermEnsuringType tmStx tp
-        dbg_trace "success"
-      catch | _ => dbg_trace "failure"
+elab "#assertType " tmStx:term " : " tpStx:term : command =>
+  liftTermElabM `test do
+    try
+      let tp ← elabTerm tpStx none
+      let tm ← elabTermEnsuringType tmStx tp
+      dbg_trace "success"
+    catch | _ => dbg_trace "failure"
 
 #assertType 5 : Nat  -- success
 #assertType [] : Nat -- failure
