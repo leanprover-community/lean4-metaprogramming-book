@@ -1,18 +1,11 @@
 /-!
-# Datatypes
-
-> The pieces of information that Lean uses for metaprogramming
+## Expressions
 
 --todo
-* smart Expr constructors
-* locally nameless representation; `forallTelescope` and friends
-* implicit arguments, app builder (`mkAppM` etc.)
 * matching on expressions
 * normalisation, transparency
 * discrimination trees
 * unification
-
-## Expressions
 
 The Lean type `Expr` is just an inductive datatype that you can look at like
 any other. Let me give a cut down version of the one given in
@@ -23,19 +16,19 @@ where I throw away some details to add back in later.
 namespace Playground
 
 inductive Expr where
-  | bvar    : Nat → Expr                       -- bound variables
-  | fvar    : FVarId → Expr                    -- free variables
-  | mvar    : MVarId → Expr                    -- meta variables
-  | sort    : Level → Expr                     -- Sort
-  | const   : Name → List Level → Expr         -- constants
-  | app     : Expr → Expr → Expr               -- application
-  | lam     : Name → Expr → Expr → Expr        -- lambda abstraction
-  | forallE : Name → Expr → Expr → Expr        -- (dependent) arrow
-  | letE    : Name → Expr → Expr → Expr → Expr -- let expressions
+  | bvar    : Nat → Data → Expr                       -- bound variables
+  | fvar    : FVarId → Data → Expr                    -- free variables
+  | mvar    : MVarId → Data → Expr                    -- meta variables
+  | sort    : Level → Data → Expr                     -- Sort
+  | const   : Name → List Level → Data → Expr         -- constants
+  | app     : Expr → Expr → Data → Expr               -- application
+  | lam     : Name → Expr → Expr → Data → Expr        -- lambda abstraction
+  | forallE : Name → Expr → Expr → Data → Expr        -- (dependent) arrow
+  | letE    : Name → Expr → Expr → Expr → Data → Expr -- let expressions
   -- less essential constructors:
-  | lit     : Literal → Expr                   -- literals
-  | mdata   : MData → Expr → Expr              -- metadata
-  | proj    : Name → Nat → Expr → Expr         -- projection
+  | lit     : Literal → Data → Expr                   -- literals
+  | mdata   : MData → Expr → Data → Expr              -- metadata
+  | proj    : Name → Nat → Expr → Data → Expr         -- projection
 
 end Playground
 
@@ -90,16 +83,16 @@ What is each of these constructors doing?
 ### Expression Data
 
 If you look at the file where `Expr` is defined, you will see that every
-constructor also has a `Data` argument to it that I have omitted above. This
-Data field contains some extra cached information about the expression that is
-useful for speeding up some common operations.
-These are things like; a hash of the `Expr`, whether or not the `Expr` contains
-free variables, metavariables or bound variables and also it is where the
-`BinderInfo` is stored for `forallE` and `lam`.
+constructor also has a `Data` argument to it. This Data field contains some
+extra cached information about the expression that is useful for speeding up
+some common operations. These are things like; a hash of the `Expr`, whether or
+not the `Expr` contains free variables, metavariables or bound variables and
+also it is where the `BinderInfo` is stored for `forallE` and `lam`.
 
 This data param means that you should _never_ construct instances of `Expr`
 directly using the `Expr` constructors but instead use the helper methods
-(`mkLambda`, `mkApp` etc) that compute `Data` for you.
+(`mkLambda`, `mkApp` etc) that compute `Data` for you. We will visit those in
+the future
 
 ## de-Bruijn Indexes
 
@@ -121,74 +114,4 @@ This is why the signature of the `bvar` case is `Nat → Expr` and not
 is __closed__. The process of replacing all instances of an unbound `bvar` with
 an `Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
-
-## Type Universes
-
-To avoid paradoxes (think; "does the type of all types contain itself?"), we
-have an infinite hierarchy of type universes. This is one of the more confusing
-things for newcomers but it can be ignored most of the time.
-
-You can think of a universe level as just a natural number. But remember that
-these numbers are at the meta level. So you can't perform induction on them etc.
-That means that the numbers are used to talk about things within Lean, rather
-than being an object of study itself. Here is a (simplified) definition, given
-in `library/init/meta/level.lean` in the Lean codebase with my comments
-
--/
-
-namespace Playground
-
-inductive Level where
-   -- The zeroth universe. This is also called `Prop`.
-  | zero   : Level
-  -- The successor of the given universe
-  | succ   : Level → Level
-  -- The maximum of the given two universes
-  | max    : Level → Level → Level
-  -- Same as `max`, except that `imax u zero` reduces to `zero`.
-  -- This is used to make sure `(x : α) → t` is a `Prop` if `t` is too.
-  | imax   : Level → Level → Level
-  -- A named parameter universe. Eg, at the beginning of a Lean
-  -- file you would write `universe u`. `u` is a parameter.
-  | param  : Name → Level
-  -- A metavariable, to be explained later.
-  -- It is a placeholder universe that Lean is expected to guess later.
-  | mvar   : MVarId → Level
-
-end Playground
-
-/-!
-
-Universes can be thought of as a tedious-but-necessary bookkeeping exercise to
-stop the paradoxes and Lean does a good job of hiding them from the user in most
-circumstances.
-Because of this, I will try my hardest to omit details about type universes for
-the rest of this document.
-
-## Names
-
-A name is just a list of strings and numbers `string1.3.string2.string3.55`. We
-use a list of strings because then we can have things like `namespaces`. See
-https://leanprover.github.io/lean4/doc/organization.html
--/
-
-namespace Playground
-
-inductive Name where
-  | anonymous : Name             -- the empty name
-  | str : Name → String → Name -- append a string to the name
-  | num : Name → Nat → Name    -- append a number to the name
-
-end Playground
-
-/-! We can use backticks `` ` `` to access names from Lean objects.
-
-* `` `my.name`` is the way to refer to a name. It is essentially a form of
-string quoting; no checks are done besides parsing dots into namespaced names
-* ``` ``some ``` does name resolution at parse time, so it expands to
-`` `option.some``. It will error if the given name doesn't exist.
-
-When you write `namespace x ... end x` in your document, this is the same as
-using `open x` and prepending `x.` to all of your declarations within the
-`namespace/end` block.
 -/

@@ -3,7 +3,7 @@
 Authors: Arthur Paulino, Edward Ayers, Jannis Limperg
 
 * Introduction
-* Datatypes
+* First Datatypes
 * Monad stacks
 * `CoreM`
 * `MetaM`
