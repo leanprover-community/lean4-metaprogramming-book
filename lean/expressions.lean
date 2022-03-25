@@ -168,7 +168,6 @@ def one := mkApp (mkConst ``Nat.succ) z
 def natExpr: Nat → Expr 
 | 0 => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
-#eval natExpr 3 
 
 /-!
 There are many helpers that make defining function applications easier. In the following we use the variant `mkAppN` which allows application with multiple arguments.
