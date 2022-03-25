@@ -3,10 +3,6 @@ import Lean
 /-!
 # Introduction
 
---todo: simple examples of
-* tactic
-* custom elaborator/DSL
-
 ## What does it mean to be in meta?
 
 When we write code in most programming languages such as Python, C, Java or
@@ -88,7 +84,35 @@ If no error is thrown until now then the elaboration succeeded and we can use
 `logInfo` to output "success". If, instead, some error is caught, then we use
 `throwError` with the appropriate message.
 
+### Building a DSL and a syntax for it
+
+--todo
+
 ### Writing our own tactic
 
-### Building a DSL and a syntax for it
+Let's create a tactic that adds a new hypothesis to the context with a given
+name and postpones the need for its proof to the very end. It's going to be
+called `suppose` and is used like this:
+
+`suppose <name> : <type>`
+-/
+
+open Lean Meta Elab Tactic Term in
+elab "suppose " n:ident " : " t:term : tactic => do
+  let n := n.getId
+  let mvarId ← getMainGoal
+  withMVarContext mvarId do
+    let t ← elabType t
+    let p ← mkFreshExprMVar t MetavarKind.syntheticOpaque n
+    let (_, mvarIdNew) ← intro1P (← assert mvarId n t p)
+    replaceMainGoal [p.mvarId!, mvarIdNew]
+  evalTactic $ ← `(tactic|rotate_left)
+
+example : 0 + a = a := by
+  suppose add_comm : 0 + a = a + 0
+  rw [add_comm]; rfl     -- closes the initial main goal
+  rw [Nat.zero_add]; rfl -- proves `add_comm`
+
+/-!
+--todo: briefly explain the tactic implementation above
 -/
