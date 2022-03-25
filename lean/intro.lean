@@ -38,7 +38,7 @@ interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
 our `Expr` recursion function is well founded. Thus, we can use the `partial`
 keyword if we're convinced that our function terminates. In the worst case
-scenario, our custom elaboration loops but the kernel is not reached.
+scenario, our custom elaboration loops but the kernel is not reached/affected.
 
 Let's see some exemple use cases of metaprogramming in Lean.
 
