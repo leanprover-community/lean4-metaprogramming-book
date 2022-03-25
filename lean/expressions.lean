@@ -1,3 +1,4 @@
+import Lean
 /-!
 ## Expressions
 
@@ -12,7 +13,6 @@ any other. Let me give a cut down version of the one given in
 [Lean/Expr.lean](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean)
 where I throw away some details to add back in later.
 -/
-
 namespace Playground
 
 inductive Expr where
@@ -91,8 +91,7 @@ also it is where the `BinderInfo` is stored for `forallE` and `lam`.
 
 This data param means that you should _never_ construct instances of `Expr`
 directly using the `Expr` constructors but instead use the helper methods
-(`mkLambda`, `mkApp` etc) that compute `Data` for you. We will visit those in
-the future
+(`mkLambda`, `mkApp` etc) that compute `Data` for you.
 
 ## de-Bruijn Indexes
 
@@ -115,3 +114,74 @@ is __closed__. The process of replacing all instances of an unbound `bvar` with
 an `Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
 -/
+
+/-!
+## Constructing Expressions
+
+As mentioned above, you should _never_ construct instances of `Expr`
+directly using the `Expr` constructors but instead use the helper methods
+(`mkLambda`, `mkApp` etc) that compute `Data` for you. Indeed, you should usually
+use _smart_ constructors that take care of _hygiene_, _unification_ etc. 
+We describe the smart constructors in the chapter on `MetaM` (as they depend on `MetaM`). Here we give examples and brief descriptions of the basic helpers.
+-/
+
+/-!
+The simplest expressions we can construct are constants. We use `mkConst`
+with argument a name. Below are two examples of this, both giving an expression for
+the natural number `0`. 
+
+The second form (with double backticks) is better, 
+as it resolves the name to a global name, in the process checking that it is valid.
+-/
+open Lean
+def z' := mkConst `Nat.zero
+#eval z'
+
+def z := mkConst ``Nat.zero
+#eval z
+
+/-!
+To illustrate the difference, here are two further examples. The first definition is 
+unsafe as it is not valid without `open Nat` in the context. On the other hand, the second resolves correctly.
+-/
+open Nat
+def z₁ := mkConst `zero
+#eval z₁
+
+def z₂ := mkConst ``zero
+#eval z₂
+
+
+/-!
+The next class of expressions we consider are function applications. These can be 
+built using `mkApp` with the first argument being an expression for the function and the second being an expression for the argument.
+
+Here are two examples. The first is simply a constant applied to another. The second 
+is a recursive definition giving an expression as a function of a natural number.
+-/
+def one := mkApp (mkConst ``Nat.succ) z
+#eval one
+
+def natExpr: Nat → Expr 
+| 0 => z
+| n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
+#eval natExpr 3
+
+/-!
+There are many helpers that make defining function applications easier. In the following we use the variant `mkAppN` which allows application with multiple arguments.
+Note that the expression we get is not simplified. Simplification requires working with `MetaM`, so will be considered in the chapter on `MetaM`.
+-/
+def sumExpr : Nat → Nat → Expr 
+| n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
+#eval sumExpr 2 3
+
+/-!
+We next consider the helper `mkLambda` to construct a simple function, 
+the constant function on natural numbers taking value zero. The argument
+`BinderInfo.default` for the constructor says that the argument is explicit.
+
+More interesting functions are best constructed by using a smart constructor,
+examples of which we will see in the chapter on `MetaM`.
+-/
+def constZero : Expr := 
+  mkLambda `cz BinderInfo.default  (mkConst ``Nat) (mkConst ``Nat.zero)
