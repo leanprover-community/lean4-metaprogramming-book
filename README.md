@@ -1,6 +1,6 @@
 # A Lean 4 Metaprogramming Book
 
-Authors: Arthur Paulino, Edward Ayers, Jannis Limperg
+Authors: Arthur Paulino, Edward Ayers, Jannis Limperg, Siddhartha Gadgil
 
 * Introduction
 * First Datatypes
