@@ -175,7 +175,6 @@ Note that the expression we get is not simplified. Simplification requires worki
 -/
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
-#eval sumExpr 2 3 
 
 /-!
 We next consider the helper `mkLambda` to construct a simple function, 
