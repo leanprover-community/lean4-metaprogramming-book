@@ -1,5 +1,7 @@
+```lean
 import Lean
-/-!
+```
+
 ## Expressions
 
 --todo
@@ -12,7 +14,8 @@ The Lean type `Expr` is just an inductive datatype that you can look at like
 any other. Let me give a cut down version of the one given in
 [Lean/Expr.lean](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean)
 where I throw away some details to add back in later.
--/
+
+```lean
 namespace Playground
 
 inductive Expr where
@@ -31,9 +34,9 @@ inductive Expr where
   | proj    : Name → Nat → Expr → Data → Expr         -- projection
 
 end Playground
+```
 
-/-! We can represent any Lean term using the above definition.
-Multiple arguments are done using _partial application_:
+We can represent any Lean term using the above definition.Multiple arguments are done using _partial application_:
 `f x y ↝ app (app f x) y`.
 
 What is each of these constructors doing?
@@ -112,9 +115,7 @@ This is why the signature of the `bvar` case is `Nat → Expr` and not
 is __closed__. The process of replacing all instances of an unbound `bvar` with
 an `Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
--/
 
-/-!
 ## Constructing Expressions
 
 As mentioned above, you should _never_ construct instances of `Expr` directly
@@ -123,16 +124,14 @@ using the `Expr` constructors but instead use the helper methods (`mkLambda`,
 constructors that take care of _hygiene_, _unification_ etc. We describe the
 smart constructors in the chapter on `MetaM` (as they depend on `MetaM`). Here
 we give examples and brief descriptions of the basic helpers.
--/
 
-/-! The simplest expressions we can construct are constants. We use `mkConst`
-with argument a name. Below are two examples of this, both giving an expression
+The simplest expressions we can construct are constants. We use `mkConst`with argument a name. Below are two examples of this, both giving an expression
 for the natural number `0`. 
 
 The second form (with double backticks) is better, as it resolves the name to a
 global name, in the process checking that it is valid.
--/
 
+```lean
 open Lean
 
 def z' := mkConst `Nat.zero
@@ -140,11 +139,12 @@ def z' := mkConst `Nat.zero
 
 def z := mkConst ``Nat.zero
 #eval z -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
+```
 
-/-! To illustrate the difference, here are two further examples. The first
-definition is unsafe as it is not valid without `open Nat` in the context. On
+To illustrate the difference, here are two further examples. The firstdefinition is unsafe as it is not valid without `open Nat` in the context. On
 the other hand, the second resolves correctly.
--/
+
+```lean
 open Nat
 
 def z₁ := mkConst `zero
@@ -152,43 +152,43 @@ def z₁ := mkConst `zero
 
 def z₂ := mkConst ``zero
 #eval z₂ -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
+```
 
-
-/-! The next class of expressions we consider are function applications. These
-can be built using `mkApp` with the first argument being an expression for the
+The next class of expressions we consider are function applications. Thesecan be built using `mkApp` with the first argument being an expression for the
 function and the second being an expression for the argument.
 
 Here are two examples. The first is simply a constant applied to another. The
 second is a recursive definition giving an expression as a function of a natural
 number.
--/
 
 def one := mkApp (mkConst ``Nat.succ) z
 #eval one /- Lean.Expr.app
   (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
   (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-  (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)) -/
+  (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
+```lean
 def natExpr: Nat → Expr 
 | 0 => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
+```
 
-/-! There are many helpers that make defining function applications easier. In
-the following we use the variant `mkAppN` which allows application with multiple
+There are many helpers that make defining function applications easier. Inthe following we use the variant `mkAppN` which allows application with multiple
 arguments. Note that the expression we get is not simplified. Simplification
 requires working with `MetaM`, so will be considered in the chapter on `MetaM`.
--/
 
+```lean
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
+```
 
-/-! We next consider the helper `mkLambda` to construct a simple function, the
-constant function on natural numbers taking value zero. The argument
+We next consider the helper `mkLambda` to construct a simple function, theconstant function on natural numbers taking value zero. The argument
 `BinderInfo.default` for the constructor says that the argument is explicit.
 
 More interesting functions are best constructed by using a smart constructor,
 examples of which we will see in the chapter on `MetaM`.
--/
 
+```lean
 def constZero : Expr := 
   mkLambda `cz BinderInfo.default  (mkConst ``Nat) (mkConst ``Nat.zero)
+```
