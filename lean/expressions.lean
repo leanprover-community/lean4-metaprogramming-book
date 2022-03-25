@@ -135,10 +135,10 @@ as it resolves the name to a global name, in the process checking that it is val
 -/
 open Lean
 def z' := mkConst `Nat.zero
-#eval z'
+#eval z' -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
 
 def z := mkConst ``Nat.zero
-#eval z
+#eval z -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
 
 /-!
 To illustrate the difference, here are two further examples. The first definition is 
@@ -146,10 +146,10 @@ unsafe as it is not valid without `open Nat` in the context. On the other hand, 
 -/
 open Nat
 def z₁ := mkConst `zero
-#eval z₁
+#eval z₁ -- Lean.Expr.const `zero [] (Expr.mkData 790182631 (bi := Lean.BinderInfo.default))
 
 def z₂ := mkConst ``zero
-#eval z₂
+#eval z₂ -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
 
 
 /-!
@@ -160,12 +160,24 @@ Here are two examples. The first is simply a constant applied to another. The se
 is a recursive definition giving an expression as a function of a natural number.
 -/
 def one := mkApp (mkConst ``Nat.succ) z
-#eval one
+#eval one /- Lean.Expr.app
+  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+  (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+  (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)) -/
 
 def natExpr: Nat → Expr 
 | 0 => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
-#eval natExpr 3
+#eval natExpr 3 /-Lean.Expr.app
+  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+  (Lean.Expr.app
+    (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+    (Lean.Expr.app
+      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+      (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+      (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
+    (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
+  (Expr.mkData 69775753 (approxDepth := 3) (bi := Lean.BinderInfo.default))-/
 
 /-!
 There are many helpers that make defining function applications easier. In the following we use the variant `mkAppN` which allows application with multiple arguments.
@@ -173,7 +185,28 @@ Note that the expression we get is not simplified. Simplification requires worki
 -/
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
-#eval sumExpr 2 3
+#eval sumExpr 2 3 /-Lean.Expr.app
+  (Lean.Expr.app
+    (Lean.Expr.const `Nat.add [] (Expr.mkData 735915843 (bi := Lean.BinderInfo.default)))
+    (Lean.Expr.app
+      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+      (Lean.Expr.app
+        (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+        (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+        (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
+      (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
+    (Expr.mkData 378133977 (approxDepth := 3) (bi := Lean.BinderInfo.default)))
+  (Lean.Expr.app
+    (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+    (Lean.Expr.app
+      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+      (Lean.Expr.app
+        (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+        (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+        (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
+      (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
+    (Expr.mkData 69775753 (approxDepth := 3) (bi := Lean.BinderInfo.default)))
+  (Expr.mkData 3902130567 (approxDepth := 4) (bi := Lean.BinderInfo.default))-/
 
 /-!
 We next consider the helper `mkLambda` to construct a simple function, 

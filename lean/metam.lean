@@ -28,11 +28,20 @@ open Lean Meta
 def natExpr: Nat → Expr 
 | 0 => mkConst ``Nat.zero
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
-#eval natExpr 3
+#eval natExpr 3 /-Lean.Expr.app
+  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+  (Lean.Expr.app
+    (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+    (Lean.Expr.app
+      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+      (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+      (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
+    (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
+  (Expr.mkData 69775753 (approxDepth := 3) (bi := Lean.BinderInfo.default))-/
 
 def sumExpr : Nat → Nat → MetaM Expr 
 | n, m => reduce <| mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
-#eval sumExpr 2 3
+#eval sumExpr 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
 
 /-!
 We next construct a λ-expression for the function `double : Nat → Nat` given by
@@ -51,7 +60,17 @@ The second argument is the body of the λ-expression.
 def double : MetaM Expr := do
   withLocalDecl `n BinderInfo.default (mkConst ``Nat)  fun n =>
     mkLambdaFVars #[n] <| mkAppN (mkConst ``Nat.add) #[n, n] 
-#eval double
+#eval double /-Lean.Expr.lam
+  `n
+  (Lean.Expr.const `Nat [] (Expr.mkData 607656011 (bi := Lean.BinderInfo.default)))
+  (Lean.Expr.app
+    (Lean.Expr.app
+      (Lean.Expr.const `Nat.add [] (Expr.mkData 735915843 (bi := Lean.BinderInfo.default)))
+      (Lean.Expr.bvar 0 (Expr.mkData 4279369707 (looseBVarRange := 1) (bi := Lean.BinderInfo.default)))
+      (Expr.mkData 614625805 (looseBVarRange := 1) (approxDepth := 1) (bi := Lean.BinderInfo.default)))
+    (Lean.Expr.bvar 0 (Expr.mkData 4279369707 (looseBVarRange := 1) (bi := Lean.BinderInfo.default)))
+    (Expr.mkData 1859299759 (looseBVarRange := 1) (approxDepth := 2) (bi := Lean.BinderInfo.default)))
+  (Expr.mkData 2258638065 (approxDepth := 3) (bi := Lean.BinderInfo.default))-/
 
 /-!
 We check that `double` is indeed as claimed by applying it to an expression for `3`.
@@ -60,7 +79,7 @@ def sixExpr : MetaM Expr := do
   let expr := mkApp (← double) (natExpr 3)
   let expr ← reduce expr
   return expr
-#eval sixExpr
+#eval sixExpr -- Lean.Expr.lit (Lean.Literal.natVal 6) (Expr.mkData 393219 (bi := Lean.BinderInfo.default))
 
 /-!
 A powerful feature of lean is its unifier. There is an easy way to use this while
@@ -79,7 +98,7 @@ We test the unification in this definition.
 def egList := [1, 3, 7, 8]
 def egLen : MetaM Expr := 
   lenExp (mkConst ``egList)
-#eval egLen
+#eval egLen --Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
 
 /-!
 Analogous to the construction of λ-expressions, we can construct ∀-expressions 
@@ -102,7 +121,6 @@ def localConstExpr: MetaM Expr := do
       let eqn ←  mkEq lhs rhs
       mkForallFVars #[n] eqn
   mkLambdaFVars #[f] feqn
-#eval localConstExpr
 
 /-!
 As the above definition was rather complicated, it is better to check it.
@@ -111,4 +129,6 @@ to a constant and then check it. We will explain elaborators in a future chapter
 -/
 elab "localConstExpr!" : term => do
   localConstExpr 
-#reduce localConstExpr! -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
+def lcf := localConstExpr! 
+#reduce lcf -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
+#reduce lcf Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
