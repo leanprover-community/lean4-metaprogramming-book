@@ -168,16 +168,7 @@ def one := mkApp (mkConst ``Nat.succ) z
 def natExpr: Nat → Expr 
 | 0 => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
-#eval natExpr 3 /-Lean.Expr.app
-  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-  (Lean.Expr.app
-    (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-    (Lean.Expr.app
-      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-      (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-      (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
-    (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
-  (Expr.mkData 69775753 (approxDepth := 3) (bi := Lean.BinderInfo.default))-/
+#eval natExpr 3 
 
 /-!
 There are many helpers that make defining function applications easier. In the following we use the variant `mkAppN` which allows application with multiple arguments.
@@ -185,28 +176,7 @@ Note that the expression we get is not simplified. Simplification requires worki
 -/
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
-#eval sumExpr 2 3 /-Lean.Expr.app
-  (Lean.Expr.app
-    (Lean.Expr.const `Nat.add [] (Expr.mkData 735915843 (bi := Lean.BinderInfo.default)))
-    (Lean.Expr.app
-      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-      (Lean.Expr.app
-        (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-        (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-        (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
-      (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
-    (Expr.mkData 378133977 (approxDepth := 3) (bi := Lean.BinderInfo.default)))
-  (Lean.Expr.app
-    (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-    (Lean.Expr.app
-      (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-      (Lean.Expr.app
-        (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-        (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-        (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)))
-      (Expr.mkData 4151686609 (approxDepth := 2) (bi := Lean.BinderInfo.default)))
-    (Expr.mkData 69775753 (approxDepth := 3) (bi := Lean.BinderInfo.default)))
-  (Expr.mkData 3902130567 (approxDepth := 4) (bi := Lean.BinderInfo.default))-/
+#eval sumExpr 2 3 
 
 /-!
 We next consider the helper `mkLambda` to construct a simple function, 
