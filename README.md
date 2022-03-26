@@ -17,3 +17,6 @@ Authors: Arthur Paulino, Edward Ayers, Jannis Limperg, Siddhartha Gadgil
 * [Attributes](md/attributes.md)
 * [Options](md/options.md)
 * [Initialization](md/initialization.md)
+
+Sources to extract material from:
+* [Metavariables by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
