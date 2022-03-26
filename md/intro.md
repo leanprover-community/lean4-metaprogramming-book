@@ -100,12 +100,12 @@ called `suppose` and is used like this:
 ```lean
 open Lean Meta Elab Tactic Term in
 elab "suppose " n:ident " : " t:term : tactic => do
-  let n := n.getId
+  let n : Name := n.getId
   let mvarId ← getMainGoal
   withMVarContext mvarId do
     let t ← elabType t
     let p ← mkFreshExprMVar t MetavarKind.syntheticOpaque n
-    let (_, mvarIdNew) ← intro1P (← assert mvarId n t p)
+    let (_, mvarIdNew) ← intro1P $ ← assert mvarId n t p
     replaceMainGoal [p.mvarId!, mvarIdNew]
   evalTactic $ ← `(tactic|rotate_left)
 
@@ -115,4 +115,13 @@ example : 0 + a = a := by
   rw [Nat.zero_add]; rfl -- proves `add_comm`
 ```
 
---todo: briefly explain the tactic implementation above
+We start by storing the main goal in `mvarId` and using it as a parameter of`withMVarContext` to make sure that our elaborations will work with types that
+depend on other variables in the context.
+
+This time we're using `mkFreshExprMVar` to create a metavariable expression for
+the proof of `t`, which we can introduce to the context using `intro1P` and
+`assert`.
+
+To require the proof of the new hypothesis as a goal, we call `replaceMainGoal`
+passing a list with `p.mvarId!` in the head. And then we can use the
+`rotate_left` tactic to move the recently added top goal to the bottom.
