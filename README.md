@@ -3,7 +3,6 @@
 Authors: Arthur Paulino, Edward Ayers, Jannis Limperg, Siddhartha Gadgil
 
 * [Introduction](md/intro.md)
-* [First Datatypes](md/first-datatypes.md)
 * [Expressions](md/expressions.md)
 * [Monad stacks](md/monad-stacks.md)
 * [`CoreM`](md/corem.md)
