@@ -1,4 +1,5 @@
 import Lean
+
 /-!
 # Expressions
 
@@ -9,10 +10,10 @@ import Lean
 * unification
 
 The Lean type `Expr` is just an inductive datatype that you can look at like
-any other. Let me give a cut down version of the one given in
-[Lean/Expr.lean](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean)
-where I throw away some details to add back in later.
+any other. Let's have a look at the definition of
+[`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 -/
+
 namespace Playground
 
 inductive Expr where
@@ -96,6 +97,7 @@ directly using the `Expr` constructors but instead use the helper methods
 Consider the following lambda expression ` (λ f x => f x x) (λ x y => x + y) 5`,
 we have to be very careful when we reduce this, because we get a clash in the
 variable `x`.
+
 To avoid variable name-clash carnage, `Expr`s use a nifty trick called
 __de-Bruijn indexes__. In de-Bruijn indexing, each variable bound by a `lam` or
 a `forallE` is converted into a number `#n`. The number says how many binders up
@@ -111,9 +113,7 @@ This is why the signature of the `bvar` case is `Nat → Expr` and not
 is __closed__. The process of replacing all instances of an unbound `bvar` with
 an `Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
--/
 
-/-!
 ## Constructing Expressions
 
 As mentioned above, you should _never_ construct instances of `Expr` directly
@@ -144,6 +144,7 @@ def z := mkConst ``Nat.zero
 definition is unsafe as it is not valid without `open Nat` in the context. On
 the other hand, the second resolves correctly.
 -/
+
 open Nat
 
 def z₁ := mkConst `zero
@@ -191,49 +192,3 @@ examples of which we will see in the chapter on `MetaM`.
 
 def constZero : Expr := 
   mkLambda `cz BinderInfo.default  (mkConst ``Nat) (mkConst ``Nat.zero)
-
-/-!
-## Other datatypes used
-
---todo
-* FVarId
-* MVarId
-
-### Type Universes
-
-To avoid paradoxes (think; "does the type of all types contain itself?"), we
-have an infinite hierarchy of type universes. This is one of the more confusing
-things for newcomers but it can be ignored most of the time.
-
-You can think of a universe level as just a natural number. But remember that
-these numbers are at the meta level. So you can't perform induction on them etc.
-That means that the numbers are used to talk about things within Lean, rather
-than being an object of study itself. Here is a (simplified) definition, given
-in `library/init/meta/level.lean` in the Lean codebase with my comments.
--/
-
-namespace Playground
-
-inductive Level where
-   -- The zeroth universe. This is also called `Prop`.
-  | zero   : Level
-  -- The successor of the given universe
-  | succ   : Level → Level
-  -- The maximum of the given two universes
-  | max    : Level → Level → Level
-  -- Same as `max`, except that `imax u zero` reduces to `zero`.
-  -- This is used to make sure `(x : α) → t` is a `Prop` if `t` is too.
-  | imax   : Level → Level → Level
-  -- A named parameter universe. Eg, at the beginning of a Lean
-  -- file you would write `universe u`. `u` is a parameter.
-  | param  : Name → Level
-  -- A metavariable, to be explained later.
-  -- It is a placeholder universe that Lean is expected to guess later.
-  | mvar   : MVarId → Level
-
-end Playground
-
-/-! Universes can be thought of as a tedious-but-necessary bookkeeping exercise
-to stop the paradoxes and Lean does a good job of hiding them from the user in
-most circumstances.
--/
