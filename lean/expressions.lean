@@ -167,7 +167,7 @@ def one := mkApp (mkConst ``Nat.succ) z
 -- Lean.Expr.app
 -- (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
 -- (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
--- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)) -/
+-- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
 def natExpr: Nat → Expr 
 | 0 => z

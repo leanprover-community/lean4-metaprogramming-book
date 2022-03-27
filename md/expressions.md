@@ -160,6 +160,7 @@ Here are two examples. The first is simply a constant applied to another. The
 second is a recursive definition giving an expression as a function of a natural
 number.
 
+```lean
 def one := mkApp (mkConst ``Nat.succ) z
 #eval one
 -- Lean.Expr.app
@@ -167,7 +168,6 @@ def one := mkApp (mkConst ``Nat.succ) z
 -- (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
 -- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
-```lean
 def natExpr: Nat → Expr 
 | 0 => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
