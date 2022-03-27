@@ -86,8 +86,117 @@ If no error is thrown until now then the elaboration succeeded and we can use
 
 ### Building a DSL and a syntax for it
 
---todo
+Let's parse a classic grammar, the grammar of arithmetic expressions with
+addition, multiplication, integers, and variables.  In the process, we'll learn
+how to:
 
+1. Convert identifiers such as `x` into strings within a macro.
+2. Add the ability to "escape" the macro context from within the macro. This is useful to interpret identifiers with their _original_ meaning (predefined values)
+   instead of their new meaning within a macro (treat as a symbol).
+
+Let's begin with the simplest thing possible. We'll define an AST, and use operators `+` and `*` to denote
+building an arithmetic AST.
+Here's the AST that we will be parsing:
+-/
+
+inductive Arith : Type where
+  | add : Arith → Arith → Arith -- e + f
+  | mul : Arith → Arith → Arith -- e * f
+  | int : Int → Arith -- constant
+  | symbol : String → Arith -- variable
+
+/-!
+We declare a syntax category to describe the grammar that we will be parsing.
+See that we control the precedence of `+` and `*` by writing `syntax:50` for addition and `syntax:60` for multiplication,
+indicating that multiplication binds tighter than addition (higher the number, tighter the binding).
+This allows us to declare _precedence_ when defining new syntax.
+-/
+
+declare_syntax_cat arith
+syntax num : arith -- int for Arith.int
+syntax str : arith -- strings for Arith.symbol
+syntax:60  arith:60 "+" arith:61 : arith -- Arith.add
+syntax:70 arith:70 "*" arith:71 : arith -- Arith.mul
+syntax "(" arith ")" : arith -- bracketed expressions
+
+/-!
+Further, if we look at `syntax:60  arith:60 "+" arith:61 : arith`, the
+precedence declarations at `arith:60 "+" arith:61` conveys that the left
+argument must have precedence at least `60` or greater, and the right argument
+must have precedence at least`61` or greater.  Note that this forces left
+associativity. To understand this, let's compare two hypothetical parses:
+
+```
+-- syntax:60  arith:60 "+" arith:61 : arith -- Arith.add
+-- a + b + c
+(a:60 + b:61):60 + c
+a + (b:60 + c:61):60
+```
+
+In the parse tree of `a + (b:60 + c:61):60`, we see that the right argument `(b + c)` is given the precedence `60`. However,
+the rule for addition expects the right argument to have a precedence of **at least** 61, as witnessed by the `arith:61` at
+the right-hand-side of `syntax:60 arith:60 "+" arith:61 : arith`. Thus, the rule `syntax:60  arith:60 "+" arith:61 : arith`
+ensures that addition is left associative.
+
+Since addition is declared arguments of precedence `60/61` and multiplication with `70/71`, this causes multiplication to bind
+tighter than addition. Once again, let's compare two hypothetical parses:
+
+```
+-- syntax:60  arith:60 "+" arith:61 : arith -- Arith.add
+-- syntax:70 arith:70 "*" arith:71 : arith -- Arith.mul
+-- a * b + c
+a * (b:60 + c:61):60
+(a:70 * b:71):70 + c
+```
+
+
+While parsing `a * (b + c)`, `(b + c)` is assigned a precedence `60` by the addition rule. However, multiplication expects
+the right argument to have precedence **at least** 71. Thus, this parse is invalid. In contrast, `(a * b) + c` assigns
+a precedence of `70` to `(a * b)`. This is compatible with addition which expects the left argument to have precedence
+**at least `60` ** (`70` is greater than `60`). Thus, the string `a * b + c` is parsed as `(a * b) + c`.
+For more details, please look at the [Lean manual on syntax extensions](../syntax.md#notations-and-precedence).
+
+
+
+
+To go from strings into `Arith`, We define a macro to
+translate the syntax category `arith` into an `Arith` inductive value that
+lives in `term`:
+-/
+
+-- auxiliary notation for translating `arith` into `term`
+syntax "[Arith| " arith "]" : term
+
+
+-- Our macro rules perform the "obvious" translation:
+macro_rules
+  | `([Arith| $s:strLit ]) => `(Arith.symbol $s)
+  | `([Arith| $num:numLit ]) => `(Arith.int $num)
+  | `([Arith| $x:arith + $y:arith ]) => `(Arith.add [Arith| $x] [Arith| $y])
+  | `([Arith| $x:arith * $y:arith ]) => `(Arith.mul [Arith| $x] [Arith| $y])
+  | `([Arith| ($x:arith) ]) => `([Arith| $x ])
+
+
+-- some examples:
+
+#check [Arith| "x" * "y"] -- Arith.mul (Arith.symbol "x") (Arith.symbol "y") : Arith
+#check [Arith| "x" + "y"] --  Arith.add (Arith.symbol "x") (Arith.symbol "y") 
+
+#check [Arith| "x" + 20] --  Arith.add (Arith.symbol "x") (Arith.int 20)
+
+
+
+#check [Arith| "x" + "y" * "z" ] -- precedence
+-- Arith.add (Arith.symbol "x") (Arith.mul (Arith.symbol "y") (Arith.symbol "z"))
+-- 
+#check [Arith| "x" * "y" + "z"] -- precedence
+-- Arith.add (Arith.mul (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
+
+
+#check [Arith| ("x" + "y") * "z"] -- brackets
+-- Arith.mul (Arith.add (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
+
+/-!
 ### Writing our own tactic
 
 Let's create a tactic that adds a new hypothesis to the context with a given
