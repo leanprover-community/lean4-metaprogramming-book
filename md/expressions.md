@@ -5,10 +5,8 @@ import Lean
 # Expressions
 
 --todo
-* matching on expressions
 * normalisation, transparency
 * discrimination trees
-* unification
 
 The Lean type `Expr` is just an inductive datatype that you can look at like
 any other. Let's have a look at the definition of

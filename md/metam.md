@@ -22,10 +22,12 @@ We first consider an example where we use `reduce : Expr → MetaM Expr` toreduc
 seen in the chapter on Expressions.
 
 ```lean
-open Lean Meta 
+open Lean Meta
+
 def natExprM: Nat → MetaM Expr 
 | 0 => return mkConst ``Nat.zero
 | n + 1 => do reduce <| mkApp (mkConst ``Nat.succ) (← natExprM n)
+
 #eval natExprM 3 -- Lean.Expr.lit (Lean.Literal.natVal 3) (Expr.mkData 3538941 (bi := Lean.BinderInfo.default))
 
 def sumExprM : Nat → Nat → MetaM Expr 
@@ -49,8 +51,7 @@ we take λ. The second argument is the body of the λ-expression.
 ```lean
 def doubleM : MetaM Expr := do
   withLocalDecl `n BinderInfo.default (mkConst ``Nat)  fun n =>
-    mkLambdaFVars #[n] <| mkAppN (mkConst ``Nat.add) #[n, n] 
-#eval doubleM
+    mkLambdaFVars #[n] <| mkAppN (mkConst ``Nat.add) #[n, n]
 ```
 
 We check that `double` is indeed as claimed by applying it to an expressionfor `3`.
@@ -60,6 +61,7 @@ def sixExprM : MetaM Expr := do
   let expr := mkApp (← doubleM) (← natExprM 3)
   let expr ← reduce expr
   return expr
+
 #eval sixExprM -- Lean.Expr.lit (Lean.Literal.natVal 6) (Expr.mkData 393219 (bi := Lean.BinderInfo.default))
 ```
 
@@ -82,6 +84,7 @@ def egList := [1, 3, 7, 8]
 
 def egLenM : MetaM Expr := 
   lenExprM (mkConst ``egList)
+
 #eval egLenM --Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
 ```
 
@@ -98,7 +101,7 @@ Formally this is `λ f, ∀ n, f n = f (n + 1)`. We break this into many steps t
 illustrate the different ingredients.
 
 ```lean
-def localConstExprM: MetaM Expr := do
+elab "localConstExpr!" : term => do
   let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
   withLocalDecl `f BinderInfo.default funcType fun f => do
   let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
@@ -106,30 +109,25 @@ def localConstExprM: MetaM Expr := do
     let rhs :=  mkApp f (← mkAppM ``Nat.succ #[n])
     let eqn ←  mkEq lhs rhs
     mkForallFVars #[n] eqn
-  mkLambdaFVars #[f] feqn
-```
-
-As the above definition was rather complicated, it is better to check it.A convenient way to do this is to use an _elaborator_ to assign the expression 
-to a constant and then check it. We will explain elaborators in a future
-chapter.
-
-```lean
-elab "localConstExpr!" : term => do
-  localConstExprM 
+  mkLambdaFVars #[f] feqn 
 
 def lcf : (Nat → Nat) → Prop := localConstExpr! 
 #reduce lcf -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
 #reduce lcf Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
 ```
 
-One can construct _let-expressions_ in a manner similar to λ-expressions. Weuse `withLetDecl` to introduce into the context a let declaration with given
+As the code above was rather complicated, it is better to check it. Aconvenient way to do this is to use an _elaborator_ to assign the expression to
+a constant and then check it. We will explain elaborators in a future chapter.
+
+One can construct _let-expressions_ in a manner similar to λ-expressions. We
+use `withLetDecl` to introduce into the context a let declaration with given
 name, type, value. We apply this to a _continuation_, which is a function with
 variable corresponding to the one defined in the `let` statement. The
 continuation should return an expression relative to the `let` declaration --
 this is done using the `mkLetFVars` function.
 
 ```lean
-def twoM: MetaM Expr := do
+elab "two!" : term => do
   let z := Lean.mkConst `Nat.zero
   let ty := Lean.mkConst `Nat
   withLetDecl `n ty z fun x => do
@@ -138,9 +136,7 @@ def twoM: MetaM Expr := do
     let e <- mkLetFVars #[x] two
     return e
 
-elab "two!" : term => do
-  twoM
-#eval two! -- 2
+#eval (two! : Nat) -- 2
 ```
 
 ## Meta variables
@@ -169,7 +165,7 @@ return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
 indeed when the expression `metaOneM` is assigned to a term, the result is `1`.
 
 ```lean
-def metaOneM : MetaM Expr := do
+elab "one!" : term => do
   let zero := mkConst ``Nat.zero
   let mvar1 ← mkFreshExprMVar (some (mkConst ``Nat)) 
   let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat))
@@ -180,8 +176,6 @@ def metaOneM : MetaM Expr := do
   assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
   return mvar1
 
-elab "one!" : term => do
-  metaOneM
 #eval one! -- 1
 ```
 
@@ -214,5 +208,5 @@ elab "flipEq!" ty:term : term => do
   let e ←  flipEquality ty
   return e
 
-#check fun (n: Nat) => flipEq! (n = 3) -- fun n => 3 = n : Nat → Prop
+#check flipEq! (5 = 3) -- 3 = 5 : Prop
 ```
