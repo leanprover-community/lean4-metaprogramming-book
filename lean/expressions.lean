@@ -153,7 +153,6 @@ def z₁ := mkConst `zero
 def z₂ := mkConst ``zero
 #eval z₂ -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
 
-
 /-! The next class of expressions we consider are function applications. These
 can be built using `mkApp` with the first argument being an expression for the
 function and the second being an expression for the argument.
@@ -164,10 +163,11 @@ number.
 -/
 
 def one := mkApp (mkConst ``Nat.succ) z
-#eval one /- Lean.Expr.app
-  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-  (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-  (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)) -/
+#eval one
+-- Lean.Expr.app
+-- (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+-- (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+-- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default)) -/
 
 def natExpr: Nat → Expr 
 | 0 => z

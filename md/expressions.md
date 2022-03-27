@@ -161,10 +161,11 @@ second is a recursive definition giving an expression as a function of a natural
 number.
 
 def one := mkApp (mkConst ``Nat.succ) z
-#eval one /- Lean.Expr.app
-  (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
-  (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
-  (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
+#eval one
+-- Lean.Expr.app
+-- (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
+-- (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
+-- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
 ```lean
 def natExpr: Nat → Expr 
