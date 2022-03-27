@@ -165,3 +165,31 @@ def metaOneM : MetaM Expr := do
 elab "one!" : term => do
   metaOneM
 #eval one! -- 1
+
+/-!
+## Matching on expressions
+
+Often we wish to construct expressions depending on the nature of other
+expressions. To do this, we can directly match given expressions using the
+inductive nature of `Expr`. However, it is often more convenient to use helpers that
+lean provides to recognize expressions of specific forms.
+
+We consider one such example: given an equality type `lhs = rhs`, we construct
+the type `rhs = lhs`. This is done by matching on the expression using `Expr.eq?`,
+which returns `some (α, lhs, rhs)` if the expression is an equality, with `α` the type of `lhs` (and `rhs`), and `none` otherwise.
+
+Note that the elaborator for testing is a little more complicated than the previous cases. Details of such elaborators will be discussed in a future chapter.
+-/
+def flipEquality (type: Expr): MetaM Expr := do
+  match type.eq? with
+  | some (α, lhs, rhs) =>
+    mkEq rhs lhs
+  | _ => throwError "can only flip equality types"
+
+open Elab Term in
+elab "flipEq!" ty:term : term => do
+    let ty ←  elabType ty
+    let e ←  flipEquality ty
+    return e
+
+#check fun (n: Nat) => flipEq! (n = 3) -- fun n => 3 = n : Nat → Prop
