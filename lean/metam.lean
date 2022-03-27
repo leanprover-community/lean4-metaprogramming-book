@@ -25,13 +25,14 @@ seen in the chapter on Expressions.
 open Lean Meta
 
 def natExprM: Nat → MetaM Expr 
-| 0 => return mkConst ``Nat.zero
-| n + 1 => do reduce <| mkApp (mkConst ``Nat.succ) (← natExprM n)
+  | 0 => return mkConst ``Nat.zero
+  | n + 1 => do reduce <| mkApp (mkConst ``Nat.succ) (← natExprM n)
 
 #eval natExprM 3 -- Lean.Expr.lit (Lean.Literal.natVal 3) (Expr.mkData 3538941 (bi := Lean.BinderInfo.default))
 
-def sumExprM : Nat → Nat → MetaM Expr 
-| n, m => do reduce <| mkAppN (mkConst ``Nat.add) #[← natExprM n, ← natExprM m]
+def sumExprM (n m : Nat) : MetaM Expr := do
+  reduce <| mkAppN (mkConst ``Nat.add) #[← natExprM n, ← natExprM m]
+
 #eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
 
 /-! We next construct a λ-expression for the function `double : Nat → Nat` given
