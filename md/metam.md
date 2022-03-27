@@ -102,10 +102,10 @@ def localConstExprM: MetaM Expr := do
   let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
   withLocalDecl `f BinderInfo.default funcType fun f => do
   let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
-      let lhs := mkApp f n
-      let rhs :=  mkApp f (← mkAppM ``Nat.succ #[n])
-      let eqn ←  mkEq lhs rhs
-      mkForallFVars #[n] eqn
+    let lhs := mkApp f n
+    let rhs :=  mkApp f (← mkAppM ``Nat.succ #[n])
+    let eqn ←  mkEq lhs rhs
+    mkForallFVars #[n] eqn
   mkLambdaFVars #[f] feqn
 ```
 
@@ -210,9 +210,9 @@ def flipEquality (type: Expr): MetaM Expr := do
 
 open Elab Term in
 elab "flipEq!" ty:term : term => do
-    let ty ←  elabType ty
-    let e ←  flipEquality ty
-    return e
+  let ty ←  elabType ty
+  let e ←  flipEquality ty
+  return e
 
 #check fun (n: Nat) => flipEq! (n = 3) -- fun n => 3 = n : Nat → Prop
 ```
