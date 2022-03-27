@@ -119,6 +119,28 @@ def lcf : (Nat → Nat) → Prop := localConstExpr!
 #reduce lcf -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
 #reduce lcf Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
 
+
+/-!
+One can construct _let-expressions_ in a manner similar to λ-expressions. We use 
+`withLetDecl` to introduce into the context a let declaration with given name,
+type, value. We apply this to a _continuation_, which is a function with variable 
+corresponding to the one defined in the `let` statement. The continuation should return 
+an expression relative to the `let` declaration -- this is done using the `mkLetFVars`
+function. 
+-/
+def twoM: MetaM Expr := do
+  let z := Lean.mkConst `Nat.zero
+  let ty := Lean.mkConst `Nat
+  withLetDecl `n ty z fun x => do
+    let one ←  mkAppM ``Nat.succ #[x]
+    let two ← mkAppM ``Nat.add #[one, one]
+    let e <- mkLetFVars #[x] two
+    return e
+
+elab "two!" : term => do
+  twoM
+#eval two! -- 2
+
 /-!
 ## Meta variables
 
