@@ -28,7 +28,7 @@ activities. So for example, one can write their own notation to instantiate a
 term of a certain type and use it right away, on the same file! This concept is
 generally called
 [__reflection__](https://en.wikipedia.org/wiki/Reflective_programming). We can
-say that, in Lean, the metal-level is _reflected_ to the object-level.
+say that, in Lean, the meta-level is _reflected_ to the object-level.
 
 Since the objects defined in the meta-level are not the ones we're most
 interested in proving theorems about, it can sometimes be overly tedious to
@@ -66,7 +66,7 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 #assertType [] : Nat -- failure
 ```
 
-We started by using `elab` to define a `command` syntax, which, when parsedby the compiler, will trigger the incoming computation.
+We started by using `elab` to define a `command` syntax, which, when parsed by the compiler, will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
 use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
@@ -100,7 +100,7 @@ inductive Arith : Type where
   | var : String → Arith        -- variable
 ```
 
-Now we declare a syntax category to describe the grammar that we will beparsing. Notice that we control the precedence of `+` and `*` by writing
+Now we declare a syntax category to describe the grammar that we will be parsing. Notice that we control the precedence of `+` and `*` by writing
 `syntax:75` for multiplication indicating that multiplication binds tighter than
 addition (the higher the number, the tighter the binding). This allows us to
 declare _precedence_ when defining new syntax.
