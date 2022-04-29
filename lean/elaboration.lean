@@ -163,6 +163,11 @@ Furthermore it is also possible to only overload parts of syntax by
 throwing an `unsupportedSyntaxException` in the cases we want the default
 handler to deal with or just letting the `elab` command handle it
 -/
+
+/-
+Note that this is not extending the original #check syntax but adding a new SyntaxKind
+for this specific syntax construct, however it behaves basically the same to the user.
+-/
 elab "#check" "foo" : command => do
   logInfo "Got ya!"
 
