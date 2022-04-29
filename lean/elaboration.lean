@@ -1,5 +1,5 @@
 import Lean
-open Lean Elab Command
+open Lean Elab Command Term
 /-!
 # Elaboration
 --todo
@@ -137,16 +137,16 @@ syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 @[commandElab mycommand1] def mycommand1Impl : CommandElab := fun stx => do -- declare and register the elaborator
   logInfo "Hello World"
 
-#mycommand1
+#mycommand1 -- Hello World
 
 /-!
 You might think that this is a little boiler-platey and it turns out the Lean
 devs did as well so they added a macro for this!
 -/
 elab "#mycommand2" : command =>
-  logInfo "HelloWorld"
+  logInfo "Hello World"
 
-#mycommand2
+#mycommand2 -- Hello World
 
 /-!
 Note that due to the fact that command elaboration supports multiple
@@ -156,7 +156,7 @@ syntax if we want to.
 @[commandElab mycommand1] def myNewImpl : CommandElab := fun stx => do
   logInfo "new!"
 
-#mycommand1
+#mycommand1 -- new!
 
 /-!
 Furthermore it is also possible to only overload parts of syntax by
@@ -168,18 +168,18 @@ handler to deal with or just letting the `elab` command handle it
 Note that this is not extending the original #check syntax but adding a new SyntaxKind
 for this specific syntax construct, however it behaves basically the same to the user.
 -/
-elab "#check" "foo" : command => do
+elab "#check" "mycheck" : command => do
   logInfo "Got ya!"
 
 @[commandElab Lean.Parser.Command.check] def mySpecialCheck : CommandElab := fun stx => do
   if let some str := stx[1].isStrLit? then
-    logInfo s!"Specialy elaborated string literal!: {str} : String"
+    logInfo s!"Specially elaborated string literal!: {str} : String"
   else
     throwUnsupportedSyntax
 
-#check foo
-#check "Hello"
-#check Nat.add
+#check mycheck -- Got ya!
+#check "Hello" -- Specially elaborated string literal!: Hello : String
+#check Nat.add -- Nat.add : Nat → Nat → Nat
 
 /-!
 As a final mini project for this section let's build a command elaborator
@@ -199,12 +199,12 @@ elab "#findCElab " c:command : command => do
     | [] => logInfo s!"There is no elaborators for your syntax, looks like its bad :("
     | _ => logInfo s!"Your syntax may be elaborated by: {elabs.map (fun el => el.declName.toString)}"
 
-#findCElab def lala := 12
-#findCElab abbrev lolo := 12
-#findCElab #check foo -- even our own syntax!
-#findCElab open Hi
-#findCElab namespace Foo
-#findCElab #findCElab open Bar -- even itself!
+#findCElab def lala := 12 -- Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration]
+#findCElab abbrev lolo := 12 -- Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration]
+#findCElab #check foo -- even our own syntax!: Your syntax may be elaborated by: [mySpecialCheck, Lean.Elab.Command.elabCheck]
+#findCElab open Hi -- Your syntax may be elaborated by: [Lean.Elab.Command.elabOpen]
+#findCElab namespace Foo -- Your syntax may be elaborated by: [Lean.Elab.Command.elabNamespace]
+#findCElab #findCElab open Bar -- even itself!: Your syntax may be elaborated by: [«_aux_lean_elaboration___elabRules_command#findCElab__1»]
 
 /-!
 ## Term elaboration
