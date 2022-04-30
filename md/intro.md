@@ -66,7 +66,8 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 #assertType [] : Nat -- failure
 ```
 
-We started by using `elab` to define a `command` syntax, which, when parsed by the compiler, will trigger the incoming computation.
+We started by using `elab` to define a `command` syntax, which, when parsed
+by the compiler, will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
 use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
@@ -100,7 +101,8 @@ inductive Arith : Type where
   | var : String → Arith        -- variable
 ```
 
-Now we declare a syntax category to describe the grammar that we will be parsing. Notice that we control the precedence of `+` and `*` by writing
+Now we declare a syntax category to describe the grammar that we will be
+parsing. Notice that we control the precedence of `+` and `*` by writing
 `syntax:75` for multiplication indicating that multiplication binds tighter than
 addition (the higher the number, the tighter the binding). This allows us to
 declare _precedence_ when defining new syntax.
@@ -169,7 +171,8 @@ example : 0 + a = a := by
   rw [Nat.zero_add]; rfl -- proves `add_comm`
 ```
 
-We start by storing the main goal in `mvarId` and using it as a parameter of`withMVarContext` to make sure that our elaborations will work with types that
+We start by storing the main goal in `mvarId` and using it as a parameter of
+`withMVarContext` to make sure that our elaborations will work with types that
 depend on other variables in the context.
 
 This time we're using `mkFreshExprMVar` to create a metavariable expression for

@@ -51,7 +51,7 @@ we take λ. The second argument is the body of the λ-expression.
 -/
 
 def doubleM : MetaM Expr := do
-  withLocalDecl `n BinderInfo.default (mkConst ``Nat)  fun n =>
+  withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n =>
     mkLambdaFVars #[n] <| mkAppN (mkConst ``Nat.add) #[n, n] 
 
 /-! We check that `double` is indeed as claimed by applying it to an expression
@@ -87,7 +87,7 @@ def egLenM : MetaM Expr :=
 #eval egLenM --Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
 
 /-! Analogous to the construction of λ-expressions, we can construct
-∀-expressions  (i.e., Π-expressions) for types. We simply replace
+∀-expressions (i.e., Π-expressions) for types. We simply replace
 `mkLambdaFVars` with `mkForallFVars`.
 
 A special case of Π-types are function types `A → B`. These can be constructed
@@ -105,8 +105,8 @@ elab "localConstExpr!" : term => do
   withLocalDecl `f BinderInfo.default funcType fun f => do
   let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
     let lhs := mkApp f n
-    let rhs :=  mkApp f (← mkAppM ``Nat.succ #[n])
-    let eqn ←  mkEq lhs rhs
+    let rhs := mkApp f (← mkAppM ``Nat.succ #[n])
+    let eqn ← mkEq lhs rhs
     mkForallFVars #[n] eqn
   mkLambdaFVars #[f] feqn 
 
@@ -130,7 +130,7 @@ elab "two!" : term => do
   let z := Lean.mkConst `Nat.zero
   let ty := Lean.mkConst `Nat
   withLetDecl `n ty z fun x => do
-    let one ←  mkAppM ``Nat.succ #[x]
+    let one ← mkAppM ``Nat.succ #[x]
     let two ← mkAppM ``Nat.add #[one, one]
     let e <- mkLetFVars #[x] two
     return e
@@ -203,8 +203,8 @@ def flipEquality (type: Expr): MetaM Expr := do
 
 open Elab Term in
 elab "flipEq!" ty:term : term => do
-  let ty ←  elabType ty
-  let e ←  flipEquality ty
+  let ty ← elabType ty
+  let e ← flipEquality ty
   return e
 
 #check flipEq! (5 = 3) -- 3 = 5 : Prop
