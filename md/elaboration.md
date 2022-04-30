@@ -313,12 +313,11 @@ this information to complete elaboration.
 
 We can also easily provoke cases where this does not work out, for example:
 
-[Elab.postpone] .add : ?m.5808 → ?m.5809 → ?m.5809
-invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
-  ?m.5808 → ?m.5809 → ?m.5809
-
 ```lean
 #check set_option trace.Elab.postpone true in List.foldr .add
+-- [Elab.postpone] .add : ?m.5808 → ?m.5809 → ?m.5809
+-- invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
+  -- ?m.5808 → ?m.5809 → ?m.5809
 ```
 
 In this case `.add` first postponed its execution, then got called again
@@ -329,19 +328,17 @@ Back in the intro chapter there was an example of a command that mentioned
 some term elaboration, we do now have all the tools necessary to understand
 what it does and implement it ourselves.
 
+```lean
 def assertTypeBackend (termStx : Syntax) (typeStx : Syntax): TermElabM Unit := do
   try
     -- `elabType` is `elabTerm` wrapper, ensuring the result has type `Sort u`
     let type ← elabType typeStx 
     -- `elabTermEnsuringType` is `elabTerm` wrapper, ensuring the result has the desired type
     let term ← elabTermEnsuringType termStx type
-    /-
-      We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
-      elaborate metavariables right away. Without this line, `#assertType 5  : ?_`
-      would result in `success`.
-
-```lean
-synthesizeSyntheticMVarsNoPostponing
+      -- We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
+      -- elaborate metavariables right away. Without this line, `#assertType 5  : ?_`
+      -- would result in `success`.
+    synthesizeSyntheticMVarsNoPostponing
     -- If we didn't error yet everything is fine
     logInfo "success"
   catch | _ => throwError "failure"

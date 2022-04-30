@@ -26,3 +26,7 @@ The markdown files are generated automatically via
 [lean2md](https://github.com/arthurpaulino/lean2md). Thus, if you're going to
 write or fix content for the book, please do so in the original Lean files
 inside the [lean](lean) directory.
+
+**Important**: since `lean2md` is so simple, please avoid using comment sections
+in Lean code blocks with `/- ... -/`. If you want to insert commentaries, do so
+with double dashes `--`.
