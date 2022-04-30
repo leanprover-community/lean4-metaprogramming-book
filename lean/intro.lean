@@ -117,8 +117,8 @@ syntax " ⟪ " arith " ⟫ " : term
 
 -- Our macro rules perform the "obvious" translation:
 macro_rules
-  | `(⟪ $s:strLit ⟫)           => `(Arith.var $s)
-  | `(⟪ $num:numLit ⟫)         => `(Arith.nat $num)
+  | `(⟪ $s:str ⟫)           => `(Arith.var $s)
+  | `(⟪ $num:num ⟫)         => `(Arith.nat $num)
   | `(⟪ $x:arith + $y:arith ⟫) => `(Arith.add ⟪ $x ⟫ ⟪ $y ⟫)
   | `(⟪ $x:arith * $y:arith ⟫) => `(Arith.mul ⟪ $x ⟫ ⟪ $y ⟫)
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
