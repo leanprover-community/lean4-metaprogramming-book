@@ -19,6 +19,8 @@ Setting an option to tell the Lean compiler to do something different
 with your program is quite simple with the `set_option` command:
 
 ```lean
+#check 1 + 1 -- 1 + 1 : Nat
+
 set_option pp.explicit true -- No custom syntax in pretty printing
 
 #check 1 + 1 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) 1 1 : Nat
