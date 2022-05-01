@@ -23,18 +23,54 @@ abbrev MyM (α : Type) := Reader Context (StateM State α)
 
 end Playground1
 /-!
-And this will indeed type check, however we have a very annoying issue:
+And this will indeed type check, however we have a very annoying issue,
+if we attempt to synthesize a `Monad` instance for this via the `#synth` command:
 -/
 namespace Playground1
 
-#synth Monad MyM -- no monad instance :(
+-- failed to synthesize
+--  Monad MyM
+#synth Monad MyM
+
+def test1 : MyM Unit := pure () -- failure, pure requires a monad instance
+def test2 : MyM Unit := do
+  let res ← test1 -- failure, <- syntax requires a monad instance
+  pure res -- same issue as with the pure above
 
 end Playground1
 /-!
-We can fix this by manually declaring the instance and maybe even write functions
-that make `Reader` and `StateM` play nicely together but it would of course
-be much nicer if we could just have all of this done for us automatically,
-this is where monad transformers come in. A monad transformer gives us a way
+We can fix this by manually declaring the instance though:
+-/
+namespace Playground1
+
+instance : Monad MyM where
+  pure x := fun ctx state => (x, state)
+  bind x f := fun ctx state =>
+    let (res, newState) := x ctx state
+    f res ctx newState
+
+end Playground1
+
+/-!
+Now while we can use bind, aka the `<-` Syntax and `pure` now we are still
+missing convenience functions:
+- `Reader` should give us `read` to get the context
+- `StateM` should give us `get` and `set` to get and set the state
+-/
+namespace Playground1
+
+def foo : MyM Unit := do
+  let ctx ← read -- failure because read is not found, the bind syntax works
+  let state ← get -- failure because get is not found, the bind syntax works
+  set state -- failure because set is not found
+  pure () -- pure also works thanks to the monad instance!
+
+end Playground1
+/-!
+Now we could of course write all of these functions ourselves and keep repeating
+ourselves whenever we do this sort of "combining monads" again but it would obviously
+be much nicer if we could just have all of this done for us automatically.
+This is where monad transformers come in. A monad transformer gives us a way
 to combine the effects that certain monads give us (not all monad can be turned into
 a transformer) in a nice way. For these monads specifically there is the `Reader`
 transformer `ReaderT` and the `StateM` transformer `StateT`, let's see how they
@@ -47,35 +83,39 @@ abbrev State := String
 -- `StateM` is defined as `StateM σ α = StateT σ Id α` so the following two are equivalent.
 abbrev MyM  := ReaderT Context (StateT State Id)
 abbrev MyM2  := ReaderT Context (StateM State)
--- This definition makes perfect sense since the `Id` monad has no effect,
--- can you guess the definition of `Reader`?
+-- This definition of `StateM` makes perfect sense since the `Id` monad has no effect,
+-- so combining it with `StateT` will create a monad that has only the state effect.
+-- Can you guess the definition of `Reader` based on `ReaderT`?
 
 #synth Monad MyM -- monad instance!
 #synth Monad MyM2 -- monad instance!
 
 end Playground2
 /-!
-So that's the monad instance for free. An other thing we would want is the
-ability to still easily `read`, `get` and `set`, after all this is the effects
-we just combined, let's see whether our monad transformers allow this:
+So that's the monad instance for free. The other thing that failed above,
+was that we didn't have access to `read`, `get` and `set`, anymore, let's
+see whether our monad transformers allow this:
 -/
 namespace Playground2
 
-def test : MyM String := do
-  let old ← get
-  let new := s!"Number {←read}, String: {old}"
-  set new
-  pure old
+def testReader : MyM String := do
+  let get ← read -- obtain our context
+  pure s!"This is my context: {get}"
 
-def test2 : MyM String := do
-  let _ ← test
-  test
+def testState (add : State) : MyM Unit := do
+  let old ← get
+  set s!"{old} + {add}"
+
+def testStateChange : MyM String := do
+  let _ ← testState "new stuff!"
+  testState "more new stuff!"
+  get
 
 def MyM.run (context : Context) (state : State) (x : MyM α) : α :=
   Prod.fst <$> StateT.run (ReaderT.run x context) state
 
-#eval MyM.run 12 "hello" test -- "hello"
-#eval MyM.run 12 "hello" test2 -- "Number 12, String: hello"
+#eval MyM.run 12 "hello" testReader -- "This is my context: 12"
+#eval MyM.run 12 "hello" testStateChange -- "hello + new stuff! + more new stuff!"
 
 end Playground2
 /-!
@@ -83,7 +123,7 @@ Nice! Everything just seems to work here, if you are interested in how
 Lean does this internally you can check out the infrastructure around:
 - `MonadReader`, `MonadReaderOf` for the `ReaderT` part
 - `MonadState`, `MonadStateOf` for the `StateT` part
-for most applications the idea that our `ReaderT` `StateT` monad stacks
+for most applications the idea that our `ReaderT` `StateT` monad transformers
 just combine nicely out of the box is perfectly fine though.
 
 ### Lifting
@@ -158,16 +198,32 @@ def MyM.run (context : Context) (state : State) (x : MyM α) : Sum α Error :=
 
 end Playground4
 /-!
-There is another monad that implements `MonadExcept`, its the one underlying `IO`, `EIO`.
+What happend here is that `alarm` threw an exception and becuase we didnt
+have any mechanism in place to catch it, the rest of our program didn't get
+executed and the error got propagated up to us. Luckily Lean has some
+nice built-in syntax to catch exceptions (if we want to do so):
+-/
+namespace Playground4
+
+def main2 : MyM String := do
+  try
+    alarm "hi"
+    pure "Success"
+  catch err =>
+    pure s!"Got an error: {err}"
+
+#eval MyM.run 12 13 main2 -- Sum.inl "Got an error: Alarm!: hi"
+
+end Playground4
+/-!
+There exists another monad that implements `MonadExcept`, its the one underlying `IO`, `EIO`.
 `EIO` is basically `IO` but parameterized with an exception type.
 `IO` sets this to the `IO.Error`, a type based on UNIX errno. Unsurprisingly
 `EIO` (and thus `IO`) have the capability to throw exceptions.
 
 Note: `EIO` is in fact based on `EStateM`, this is however not a tutorial on the inner
 workings of `IO` so we will leave it at that.
--/
 
-/-!
 ### `StateRefT`
 `StateT` is implemented as a function that essentialy forwards the state
 from one monadic computation to the next like this: `State -> (Value, State)`.
