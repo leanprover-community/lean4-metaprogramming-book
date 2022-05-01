@@ -49,7 +49,7 @@ as of now it is implemented by:
 - `CommandElabM`
 - `LevelElabM`
 - all monads to which you can lift operations of one of the above (e.g. `MetaM` from `CoreM`)
-Once we have an `Options` object we can query the information via `Options.get`. 
+Once we have an `Options` object we can query the information via `Options.get`.
 To show this let's write a command that prints the value of `pp.explicit`.
 -/
 elab "#getPPExplicit" : command => do
