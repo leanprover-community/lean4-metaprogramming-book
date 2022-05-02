@@ -13,6 +13,7 @@ are 6 kinds of data values:
 - `Nat`
 - `Int`
 - `Syntax`
+
 Setting an option to tell the Lean compiler to do something different
 with your program is quite simple with the `set_option` command:
 -/
@@ -51,6 +52,7 @@ as of now it is implemented by:
 - `CommandElabM`
 - `LevelElabM`
 - all monads to which you can lift operations of one of the above (e.g. `MetaM` from `CoreM`)
+
 Once we have an `Options` object we can query the information via `Options.get`.
 To show this let's write a command that prints the value of `pp.explicit`.
 -/
@@ -81,5 +83,5 @@ register_option book.myGreeting : String := {
 
 /-!
 However we can not just use an option that we just declared in the same file
-it was declared in because of initilization restrictions.
+it was declared in because of initialization restrictions.
 -/
