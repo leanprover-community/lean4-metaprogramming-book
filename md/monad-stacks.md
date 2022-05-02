@@ -9,8 +9,8 @@ Quite often in functional programming with monads one wants to have the power
 of more than one monad available. Specifically in Lean meta programming it
 is a very common pattern that we have some sort of read only input, an
 execution context, available to us, as well as the ability to operate on
-a mutatable state. Both of these issues have monads that can solve them
-seperately already, namely the `Reader` monad for read only input and the
+a mutable state. Both of these issues have monads that can solve them
+separately already, namely the `Reader` monad for read only input and the
 `StateM` monad for the mutable state. Now we can try to just "stack" them
 ontop like this:`
 
@@ -133,6 +133,7 @@ Nice! Everything just seems to work here, if you are interested in how
 Lean does this internally you can check out the infrastructure around:
 - `MonadReader`, `MonadReaderOf` for the `ReaderT` part
 - `MonadState`, `MonadStateOf` for the `StateT` part
+
 for most applications the idea that our `ReaderT` `StateT` monad transformers
 just combine nicely out of the box is perfectly fine though.
 
@@ -210,7 +211,7 @@ def MyM.run (context : Context) (state : State) (x : MyM α) : Sum α Error :=
 end Playground4
 ```
 
-What happend here is that `alarm` threw an exception and becuase we didnt
+What happened here is that `alarm` threw an exception and because we didn't
 have any mechanism in place to catch it, the rest of our program didn't get
 executed and the error got propagated up to us. Luckily Lean has some
 nice built-in syntax to catch exceptions (if we want to do so):
@@ -239,7 +240,7 @@ Note: `EIO` is in fact based on `EStateM`, this is however not a tutorial on the
 workings of `IO` so we will leave it at that.
 
 ### `StateRefT`
-`StateT` is implemented as a function that essentialy forwards the state
+`StateT` is implemented as a function that forwards the state
 from one monadic computation to the next like this: `State -> (Value, State)`.
 Especially when updating the state lots of times this does of course become
 rather inefficient so there is an alternative to it, `StateRefT`. Thanks to
@@ -254,6 +255,7 @@ Right now these are:
 - The `IO` family and stacks built on top of them, that is `IO`, `EIO` and `BaseIO`
 - `EST` and stacks built on top of it, `EST` is a (not reducible) alias to `EStateM`
   (TODO: Figure out why this distinction is made)
+
 For our example we will simply use `IO`.
 
 ```lean

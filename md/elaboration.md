@@ -19,6 +19,7 @@ for example:
 - `def`
 - `inductive`
 - `structure`
+
 but there are also other ones, most notably `#check`, `#eval` and friends.
 
 ### The Monad stack
@@ -83,6 +84,7 @@ so lets take a closer look at its fields:
   to the Lean LSP integration.
 - `traceState` is similar to `messages` but only used for the Lean internal
   `trace` infrastructure.
+
 As explained before there is also some read only `Context` we have access to,
 its fields are not that important but lets take a quick look:
 - `fileName`, quite obviously the name of the file this command is being elaborated in
@@ -114,7 +116,8 @@ actually interested in is `elabCommand`. The way it works is rather simple:
    error to indicate to the user that something is wrong. If no responsible
    elaborator is found the command elaboration is aborted with a `unexpected syntax`
    error message.
-Note that this is just a rough description that doesnt go into the details about things like
+
+Note that this is just a rough description that doesn't go into the details about things like
 `InfoTree` handling, since they are not relevant for a general understanding of what is going on.
 
 ### Making our own
@@ -123,6 +126,7 @@ start into looking to write our own. The steps for this are:
 1. Declaring our Syntax
 2. Declaring the elaborator
 3. Registering the elaborator as responsible for the syntax via `commandElabAttribute`
+
 Lets see how this is done
 
 ```lean
@@ -159,7 +163,7 @@ Furthermore it is also possible to only overload parts of syntax by
 throwing an `unsupportedSyntaxException` in the cases we want the default
 handler to deal with or just letting the `elab` command handle it
 
-Note that this is not extending the original #check syntax but adding a new SyntaxKind
+Note that this is not extending the original #check syntax but adding a new `SyntaxKind`
 for this specific syntax construct, however it behaves basically the same to the user.
 
 ```lean
@@ -222,6 +226,7 @@ note that:
 - a lot of these fields are very feature specific and not too relevant for us
 - require a basic understanding of how term elaboration works in order to understand
   their explanation
+
 so don't worry if you do not understand them yet, it will make sense in a moment.
 The fields of `State` however are not as well documented so let's take a look:
 
@@ -257,7 +262,7 @@ that `CommandElab` was a function from `Syntax` to `CommandElabM Unit` so we
 execute them merely for their effect on the `State`. As you can see this is
 different with `TermElab`. It takes the `Syntax` object to elaborate,
 optionally the expected type of the `Syntax` in form of an `Expr`
-and returns a `TermElabM Expr`, hence we dont execute them merely for their
+and returns a `TermElabM Expr`, hence we don't execute them merely for their
 effect on `State` but also because they return the `Expr` that the `Syntax`
 represents.
 
@@ -267,9 +272,9 @@ the `Syntax` to elaborate an `Option Expr` for the type, a few optional
 arguments that are documented but not too relevant to us, and returns a
 `TermElabM Expr`. The basic idea of term elaboration is also the same as
 command elaboration, expand macros and recurse or run term elaborators
-that have been registerted for the `Syntax` (which might recurse into `elabTerm` again)
+that have been registered for the `Syntax` (which might recurse into `elabTerm` again)
 until we are done. There is however two significant things that set it apart.
-The first is quite obvious, it can run `MetaM` code which is a huge increase in possiblities,
+The first is quite obvious, it can run `MetaM` code which is a huge increase in possibilities,
 the second requires a little more explanation.
 
 #### Postponing and synthetic meta variables
@@ -281,8 +286,9 @@ ones is, that they have a certain way associated that is to be used to solve the
 the `SyntheticMVarKind`, right now there are four of these:
 - `typeClass`, the meta variable should be solved with typeclass synthesis
 - `coe`, the meta variable should be solved via coercion (a special case of typeclass)
-- `tactic`, the meta variable is a tactic term taht should be solved by running the tactic
+- `tactic`, the meta variable is a tactic term that should be solved by running the tactic
 - `postponed`, the ones that are created at `Except.postpone`
+
 Once such a synthetic meta variable is created, the next higher level term elaborator will continue.
 At some point execution of the term elaborator that postponed execution will be resumed,
 in hopes that it can now complete its execution. We can try to see this in
@@ -296,7 +302,7 @@ What happened here is that the elaborator for function applications started
 at `List.foldr` which is a generic function so it created meta variables
 for the implicit type parameters. Then it attempted to elaborate the first argument `.add`.
 
-In case you dont know how `.name` works, the basic idea is that quite
+In case you don't know how `.name` works, the basic idea is that quite
 often (like in this case) Lean should be able to infer the output type
 of a function (in this case `Nat`), the `.name` feature will then simply
 search for a function named `name` in the namespace `Nat`. This is especially
