@@ -8,9 +8,19 @@ import Lean
 * normalisation, transparency
 * discrimination trees
 
-The Lean type `Expr` is just an inductive datatype that you can look at like
-any other. Let's have a look at the definition of
-[`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
+Expressions (terms of type `Expr`) carry the data used to communicate with the
+Lean kernel for core tasks such as type inference and definitional equality
+checks.
+
+In Lean, terms and types are represented by expressions. For instance, let's
+consider `1` of type `Nat`. The type `Nat` is represented as a constant with the
+name "Nat". And then `1` is an application of the function `Nat.succ` to the
+term `Nat.zero`, so all this is represented as an application, given a constant
+named "Nat.succ" and a constant named "Nat.zero".
+
+That example gives us an idea of what we're aiming at: we use expressions to
+represent all lean terms at the meta level. Let's check the precise definition
+of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 
 ```lean
 namespace Playground
@@ -33,10 +43,6 @@ inductive Expr where
 end Playground
 ```
 
-We can represent any Lean term using the above definition.
-Multiple arguments are done using _partial application_:
-`f x y ↝ app (app f x) y`.
-
 What is each of these constructors doing?
 
 - `bvar` is a __bound variable__. For example, the `x` in `fun x => x + 2` or
@@ -57,7 +63,8 @@ What is each of these constructors doing?
   filled at a later point.
 - `sort` is used for `Type u`, `Prop` etc.
 - `const` is a constant that has been defined earlier in the Lean document.
-- `app` is function application.
+- `app` is a function application. Multiple arguments are done using _partial
+  application_: `f x y ↝ app (app f x) y`.
 - `lam n t b` is a lambda expression (`fun ($n : $t) => $b`). The `b` argument
   is called the __body__. Note that you have to give the type of the variable
   you are binding.
