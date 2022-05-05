@@ -1,3 +1,4 @@
+import Lean
 /-! # Syntax
 This chapter is concerned with the means to declare and operate on syntax
 in Lean. Since there are a multitude of ways to operate on it, we will
@@ -237,6 +238,148 @@ syntax "binDoc(" (str ";")? binNumber ")" : term
 
 /-!
 ## Operating on Syntax
-### Matching on Syntax
-### Constructing new Syntax
+As explained above we will not go into detail in this chapter on how to teach
+Lean about the meaning you want to give your syntax, we will however take a look
+at how to write functions that operate on it. Like all things in Lean syntax is
+represented by an inductive type we can operate on, `Lean.Syntax`. It does
+contain quite some information but most of what we are interested we can
+condense this to the following, simplified view:
 -/
+
+namespace Playground2
+
+inductive Syntax where
+  | missing : Syntax
+  | node (kind : Lean.SyntaxNodeKind) (args : Array Syntax) : Syntax
+  | atom : String -> Syntax
+  | ident : Lean.Name -> Syntax
+
+end Playground2
+
+/-!
+Lets go through the definition one constructor at a time:
+- `missing` is used when there is something the Lean compiler cannot parse,
+  it is what allows Lean to have a syntax error in one part of the file but
+  recover from it and understand the rest of it. This also means we pretty
+  much don't care about this constructor.
+- `node` is, as the name suggests a node in the syntax tree, it has a so called
+  `kind : SyntaxNodeKind` where `SyntaxNodeKind` is just a `Lean.Name`. Basically
+  each of our `syntax` declarations receives an automatically generated `SyntaxNodeKind`
+  (we can also explicitly specify the name with `syntax (name := foo) ... : cat`) so
+  we can tell Lean "this function is responsible for processing this specific syntax construct".
+  Furthermore like all nodes in a tree do it has children, in this case in the form of
+  an `Array Syntax`.
+- `atom` represents (with the exception of one) every syntax object that is at the bottom of the
+  hierarchy, for example our operators ` ⊕ ` and ` LXOR ` from above will be represented as
+  atoms.
+- `ident` is the mentioned exception to this rule, the difference between `ident` and `atom`
+  is also quite obvious, an identifier has a `Lean.Name` instead of a `String` that represents is.
+  Why a `Lean.Name` is not just a `String` is related to a concept called macro hygiene
+  that will be discussed in detail in the macro chapter, for now you can consider them
+  basically equivalent.
+
+### Constructing new `Syntax`
+Now that we know how syntax is represented in Lean we could of course write programs that
+generate all of these inductive trees by hand which would be incredibly tedious and is something
+we most definitely want to avoid. Luckily for us there is quite an extensive API hidden inside the
+`Lean.Syntax` namespace we can explore:
+-/
+
+open Lean
+#check Syntax -- Syntax. autocomplete
+
+/-!
+The intersting functions for creating `Syntax` are the `Syntax.mk` ones, they allow us to create
+both very basic `Syntax` objects like `ident`s but also more complex ones like `Syntax.mkApp`
+which we can use to create the `Syntax` object that would amount to applying the function
+from the first argument to the argument list (all given as `Syntax`) in the second one.
+Let's see a few examples:
+-/
+
+-- Name literals are written with this little ` infront of the name
+#eval Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax of `Nat.add 1 1`
+#eval mkNode `«term_+_» #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax for `1 + 1`
+
+-- note that the `«term_+_» is the auto generated SyntaxNodeKind for the + syntax
+
+/-
+If you don't like this way of creating `Syntax` at all you are not alone.
+However there are a few things involved with the machinery of doing this in
+a pretty and correct (the machinery is mostly about the correct part) way
+which will be explained in the macro chapter.
+
+### Matching on `Syntax`
+Just like constructing `Syntax` is an important topic, especially
+with macros, matching on syntax is equally (or in fact even more) interesting.
+Luckily we don't have to match on the inductive type itself either, we can
+instead use so called syntax patterns. They are quite simple, their syntax is just
+``(the syntax i want to match on)`. Let's see one in action:
+-/
+
+def isAdd11 : Syntax → Bool
+  | `(Nat.add 1 1) => true
+  | _ => false
+
+#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+
+/-!
+The next level with matches is to capture variables from the input instead
+of just matching on literals, this is done with a slightly fancier looking syntax:
+-/
+
+def isAdd : Syntax → Option (Syntax × Syntax)
+  | `(Nat.add $x $y) => some (x, y)
+  | _ => none
+
+#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+
+/-!
+Note that `x` and `y` in this example are of type `Syntax` not `Nat`. This is simply
+because we are still at the `Syntax` level, the concept of a type doesn't quite
+exist yet. What we can however do is limit the parsers/categories we want to match on,
+for example if we only want to match on number literals in order to implement some
+constant folding:
+-/
+
+def isLitAdd : Syntax → Option Nat
+  | `(Nat.add $x:num $y:num) => some (x.toNat + y.toNat)
+  | _ => none
+
+#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+
+/-!
+As you can see in the code even though we explicitly matched on the `num`
+parser we still have to explicitly convert `x` and `y` to `Nat` because
+again, we are on `Syntax` level, types do not exist.
+
+One last important note about the ``()` match syntax: In this basic
+form it only works on syntax from the `term` category. If you want to use
+it to match on your own syntax categories you will have to use ``(category| ...)`.
+
+### Mini Project
+As a final mini project for this chapter we will declare the syntax of mini
+arithmetic expression language and a function of type `Syntax → Nat` to evaluate
+it. In the end will be a function , which you should understand
+by the end of the macro chapter, so that you can test the implementation.
+-/
+
+declare_syntax_cat arith
+
+syntax num : arith
+syntax arith "-" arith : arith
+syntax arith "+" arith : arith
+syntax "(" arith ")" : arith
+
+partial def denoteArith : Syntax → Nat
+  | `(arith| $x:num) => x.toNat
+  | `(arith| $x:arith + $y:arith) => denoteArith x + denoteArith y
+  | `(arith| $x:arith - $y:arith) => denoteArith x - denoteArith y
+  | `(arith| ($x:arith)) => denoteArith x
+  | _ => 0
+
+-- You can ignore Elab.TermElabM, what is important for us is that it allows
+-- us to use the ``(arith| (12 + 3) - 4)` notation to construct `Syntax`
+-- instead of only being able to match on it
+#eval show Elab.TermElabM Nat from do -- 11
+  let stx ← `(arith| (12 + 3) - 4)
+  pure $ denoteArith stx
