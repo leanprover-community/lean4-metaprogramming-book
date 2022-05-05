@@ -182,19 +182,28 @@ def natExpr: Nat → Expr
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
 ```
 
-There are many helpers that make defining function applications easier. In
-the following we use the variant `mkAppN` which allows application with multiple
-arguments. Note that the expression we get is not simplified. Simplification
-requires working with `MetaM`, so will be considered in the chapter on `MetaM`.
+Next we use the variant `mkAppN` which allows application with multiple
+arguments.
 
 ```lean
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
 ```
 
-We next consider the helper `mkLambda` to construct a simple function, the
-constant function on natural numbers taking value zero. The argument
+We next consider the helper `mkLambda` to construct a simple function named
+`cz` which takes any natural number and returns `Nat.zero`. The argument
 `BinderInfo.default` for the constructor says that the argument is explicit.
 
-More interesting functions are best constructed by using a smart constructor,
-examples of which we will see in the chapter on `MetaM`.
+```lean
+def constZero : Expr := 
+  mkLambda `cz BinderInfo.default (mkConst ``Nat) (mkConst ``Nat.zero)
+```
+
+As you may have noticed, we didn't show `#eval` outputs for the three last
+function. That's because, as you may have guessed, those resulting expressions
+can grow so large that it's hard to make sense of them.
+
+In the next chapter we shall explore some functions that compute in the `MetaM`
+monad, opening room for more powerful tricks involving expressions. And we will
+start off by visiting `reduce`, a function that can simplify bigger expressions
+such as the ones we'd get from using the functions above.
