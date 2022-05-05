@@ -360,7 +360,7 @@ As you can see in the code even though we explicitly matched on the `num`
 parser we still have to explicitly convert `x` and `y` to `Nat` because
 again, we are on `Syntax` level, types do not exist.
 
-One last important note about the ``()` match syntax: In this basic
+One last important note about the matching on syntax: In this basic
 form it only works on syntax from the `term` category. If you want to use
 it to match on your own syntax categories you will have to use ``(category| ...)`.
 
@@ -387,8 +387,14 @@ partial def denoteArith : Syntax → Nat
 
 -- You can ignore Elab.TermElabM, what is important for us is that it allows
 -- us to use the ``(arith| (12 + 3) - 4)` notation to construct `Syntax`
--- instead of only being able to match on it
-#eval show Elab.TermElabM Nat from do -- 11
+-- instead of only being able to match on it like this.
+def test : Elab.TermElabM Nat := do
   let stx ← `(arith| (12 + 3) - 4)
-  pure $ denoteArith stx
+  pure (denoteArith stx)
+
+#eval test -- 11
 ```
+
+Feel free to play around with this example and extend it in whatever way
+you want to, the next chapters will mostly be about functions that operate
+on `Syntax` in some way.
