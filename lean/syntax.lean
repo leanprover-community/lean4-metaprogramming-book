@@ -11,7 +11,7 @@ commands, for those that are not here is a brief recap:
 -/
 
 -- XOR, denoted \oplus
-infix:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
+infixl:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 
 #eval true ⊕ true -- false
 #eval true ⊕ false -- true
@@ -19,7 +19,7 @@ infix:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 #eval false ⊕ false -- false
 
 -- with `notation`, "left XOR"
-notation:10 l " LXOR " r => (!l && r)
+notation:10 l:10 " LXOR " r:11 => (!l && r)
 
 #eval true LXOR true -- false
 #eval true LXOR false -- false
@@ -27,9 +27,11 @@ notation:10 l " LXOR " r => (!l && r)
 #eval false LXOR false -- false
 
 /-!
-As we can see the `infix` command allows us to declare a notation for
+As we can see the `infixl` command allows us to declare a notation for
 a binary operation that is infix, meaning that the operator is in between
 the operands (as opposed to e.g. before which would be done using the `prefix` command).
+The `l` at the end of `infixl` means that the notation is left associative so `a ⊕ b ⊕ c`
+gets parsed as `(a ⊕ b) ⊕ c` as opposed to `a ⊕ (b ⊕ c)` which would be achieved by `infixr`.
 On the right hand side it expects a function that operates on these two parameters
 and returns some value. The `notation` command on the other hand allows us some more
 freedom, we can just "mention" the parameters right in the syntax definition
@@ -37,7 +39,7 @@ and operate on them on the right hand side. It gets even better though, we can
 in theory create syntax with 0 up to as many parameters as we wish using the
 `notation` command, it is hence also often referred to as "mixfix" notation.
 
-The two unintuitive parts about these two are:
+The three unintuitive parts about these two are:
 - The fact that we are leaving spaces around our operators: " ⊕ ", " XOR ".
   This is so that when Lean pretty prints our syntax later on it also
   uses spaces around the operators, otherwise the syntax would just be presented
@@ -55,6 +57,24 @@ As you can see the Lean interpreter analyzed the first term without parentheses
 like the second instead of the third one. This is because the `⊕` notation
 has higher precedence than `LXOR` (`60 > 10` after all) and is thus evaluated before it.
 This is also how you might implement rules like `*` being evaluated before `+`.
+
+Lastly at the `notation` example there are also these `:precedence` bindings
+at the arguments: `l:10` and `r:11`. This conveys that the left argument must have
+precedence at least 10 or greater, and the right argument must have precedence at 11
+or greater. This this forces left associativity like `infixl` above. To understand this,
+let's compare two hypothetical parses:
+```
+-- a LXOR b LXOR c
+(a:10 LXOR b:11):10 LXOR c
+a LXOR (b:10 LXOR c:11):10
+```
+In the parse tree of `(a:10 LXOR b:11):10 LXOR c`, we see that the right argument `(b LXOR c)`
+is given the precedence 10, because a rule is always given the lowest precedence of any of its
+subrules. However, the rule for `LXOR` expects the right argument to have a precedence of at
+least 11, as witnessed by the r:11 at the right-hand-side of `notation:10 l:10 " LXOR " r:11`.
+Thus this rule ensures that `LXOR` is left associative.
+
+Can you make it right associative?
 
 ### Free form syntax declarations
 With the above `infix` and `notation` commands you can get quite far with
@@ -106,9 +126,6 @@ scoped syntax:50 term " AND " term : term
 end Playground2
 
 /-!
-TODO: Add the explanation on precedence to enforce associativity from
-https://github.com/leanprover/lean4/blob/master/doc/metaprogramming-arith.md
-
 While this does work, it allows arbitrary terms to the left and right of our
 `AND` and `OR` operation. If we want to write a mini language that only accepts
 our boolean language on a syntax level we will have to declare our own
@@ -167,7 +184,7 @@ most notably:
 - `str` for string literals
 - `num` for number literals
 - `ident` for identifiers
-- ... TOOD: better list or link to compiler docs
+- ... TODO: better list or link to compiler docs
 
 Next up we want to declare a parser that understands digits, a binary digit is
 either 0 or 1 so we can write:
@@ -194,7 +211,7 @@ add this to the `term` category:
 
 syntax "bin(" binNumber ")" : term
 #check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
-#check bin() -- fails to parse because `binNumber` is "one or many"
+#check bin() -- fails to parse because `binNumber` is "one or many": expected 'O' or 'Z'
 
 syntax binNumber' := binDigit,* -- note the *
 syntax "emptyBin(" binNumber' ")" : term
