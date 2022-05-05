@@ -183,7 +183,7 @@ as digits directly after each other but we will instead use comma separated ones
 the repetetion feature:
 -/
 
--- the "+" denotes "one or many"
+-- the "+" denotes "one or many", in order to achieve "zero or many" use "*" instead
 -- the "," denotes the separator between the `binDigit`s, if left out the default separator is a space
 syntax binNumber := binDigit,+
 
