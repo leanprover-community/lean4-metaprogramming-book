@@ -88,6 +88,7 @@ categories are:
   for now you can think of it as "the syntax of everything that has a value"
 - `command`, this is the category for top level commands like `#check`, `def` etc.
 - TODO: ...
+
 Let's see this in action:
 -/
 
@@ -320,7 +321,8 @@ def isAdd11 : Syntax → Bool
   | `(Nat.add 1 1) => true
   | _ => false
 
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- true
+#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- false
 
 /-!
 The next level with matches is to capture variables from the input instead
@@ -331,7 +333,9 @@ def isAdd : Syntax → Option (Syntax × Syntax)
   | `(Nat.add $x $y) => some (x, y)
   | _ => none
 
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some ...
+#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- some ...
+#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]) -- none
 
 /-!
 Note that `x` and `y` in this example are of type `Syntax` not `Nat`. This is simply
@@ -345,7 +349,8 @@ def isLitAdd : Syntax → Option Nat
   | `(Nat.add $x:num $y:num) => some (x.toNat + y.toNat)
   | _ => none
 
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some 2
+#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
 
 /-!
 As you can see in the code even though we explicitly matched on the `num`
