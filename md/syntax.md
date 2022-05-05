@@ -362,7 +362,7 @@ again, we are on `Syntax` level, types do not exist.
 
 One last important note about the matching on syntax: In this basic
 form it only works on syntax from the `term` category. If you want to use
-it to match on your own syntax categories you will have to use ``(category| ...)`.
+it to match on your own syntax categories you will have to use ```(category| ...)``.
 
 ### Mini Project
 As a final mini project for this chapter we will declare the syntax of mini
