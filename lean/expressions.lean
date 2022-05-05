@@ -175,7 +175,7 @@ def one := mkApp (mkConst ``Nat.succ) z
 -- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
 def natExpr: Nat → Expr 
-| 0 => z
+| 0     => z
 | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
 
 /-! There are many helpers that make defining function applications easier. In
@@ -194,6 +194,3 @@ constant function on natural numbers taking value zero. The argument
 More interesting functions are best constructed by using a smart constructor,
 examples of which we will see in the chapter on `MetaM`.
 -/
-
-def constZero : Expr := 
-  mkLambda `cz BinderInfo.default  (mkConst ``Nat) (mkConst ``Nat.zero)
