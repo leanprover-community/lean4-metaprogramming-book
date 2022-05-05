@@ -142,35 +142,78 @@ syntax "[Bool|" boolean_expr "]" : term
 ### Syntax combinators
 In order to declare more complex syntax it is often very desirable to have
 some basic operations on syntax already built-in, these include:
-- optional parts
-- repetetive parts
-- alternatives
 - helper parsers without syntax categories (i.e. not extendable)
+- alternatives
+- repetetive parts
+- optional parts
 While all of these do have an encoding based on syntax categories this
 can make things quite ugly at times so Lean provides a way to do all
-of these which we will take a brief look at:
+of these.
+
+In order to see all of these in action briefly we will define a simple
+binary expression syntax.
+First things first, declaring named parsers that don't belong to a syntax
+category, this is quite similar to ordinary `def`s:
 -/
 
--- a helper parser named `binDigit` without syntax category
--- the `<|>` operator indicates alternatives so it will parse one Z or one O
-syntax binDigit := "Z" <|> "O"
--- a helper parser that will accept 1 or more `binDigit`, using `*` instead of `+` would mean 0 or more
--- the "," denotes the separator if left out the default separator is a space
-syntax binNumber := binDigit,+
--- the "?" marks the part before it as optional, str is the builtin parser for string literals
-syntax "bin(" (str ",")? binNumber ")" : term
-
-#check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
-#check bin("mycomment", Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+syntax binOne := "O"
+syntax binZero := "Z"
 
 /-!
-Now that we have seen the helper parsers and in fact already one built-in one (`str`) you might
-be wondering what other useful ones there are out there, the most relevant ones are:
-- `str`
-- `num`
-- `ident`
+These named parsers can be used in the same positions as syntax categories
+from above, their only difference to them is, that they are not extensible.
+There does also exist a number of built-in named parsers that are generally useful,
+most notably:
+- `str` for string literals
+- `num` for number literals
+- `ident` for identifiers
 - ... TOOD: better list or link to compiler docs
 
+Next up we want to declare a parser that understands digits, a binary digit is
+either 0 or 1 so we can write:
+-/
+
+syntax binDigit := binZero <|> binOne
+
+/-!
+Where the `<|>` operator implements the "accept the left or the right" behaviour.
+We can also chain them to achieve parsers that accept arbitrarily many, arbitrarly complex
+other ones. Now we will define the concept of a binary number, usually this would be written
+as digits directly after each other but we will instead use comma separated ones to showcase
+the repetetion feature:
+-/
+
+-- the "+" denotes "one or many"
+-- the "," denotes the separator between the `binDigit`s, if left out the default separator is a space
+syntax binNumber := binDigit,+
+
+/-!
+Since we can just used named parsers in place of syntax categories we can now easily
+add this to the `term` category:
+-/
+
+syntax "bin(" binNumber ")" : term
+#check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+
+/-!
+Note that nothing is limiting us to only using one syntax combinator per parser,
+we could also have written all of this inline:
+-/
+
+syntax "binCompact(" ("Z" <|> "O"),+ ")" : term
+#check binCompact(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+
+/-!
+As a final feature lets add an optional string comment that explains the binary
+literal being declared:
+-/
+
+-- The (...)? syntax makes the part in parentheses optional
+syntax "binDoc(" (str ";")? binNumber ")" : term
+#check binDoc(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check binDoc("mycomment"; Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+
+/-!
 ## Operating on Syntax
 ### Matching on Syntax
 ### Constructing new Syntax
