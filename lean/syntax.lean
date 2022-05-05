@@ -9,8 +9,8 @@ later chapters.
 Some readers might be familiar with the `infix` or even the `notation`
 commands, for those that are not here is a brief recap:
 -/
--- XOR, denoted \oplus
 
+-- XOR, denoted \oplus
 infix:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 
 #eval true ⊕ true -- false
@@ -194,6 +194,11 @@ add this to the `term` category:
 
 syntax "bin(" binNumber ")" : term
 #check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check bin() -- fails to parse because `binNumber` is "one or many"
+
+syntax binNumber' := binDigit,* -- note the *
+syntax "emptyBin(" binNumber' ")" : term
+#check emptyBin() -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 Note that nothing is limiting us to only using one syntax combinator per parser,
