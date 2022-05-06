@@ -171,7 +171,7 @@ will not allow name clashes like the one in the `const` example.
 
 ## `MonadQuotation` and `MonadRef`
 This macro hygiene mechanism is the reason that while we are able to use pattern
-matching on syntax with ``(syntax)` we cannot just create `Syntax` with the same
+matching on syntax with `` `(syntax) `` we cannot just create `Syntax` with the same
 syntax in pure functions because someone has to keep track of macro scopes for us.
 In this case this is done by the `MacroM` monad but can be done by any monad that
 implements `Lean.MonadQuotation` so it's worth to take a brief look at it:
