@@ -1,6 +1,5 @@
 ```lean
 import Lean
-#exit
 ```
 
 # Introduction

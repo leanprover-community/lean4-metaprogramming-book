@@ -1,5 +1,5 @@
 import Lean
-#exit
+
 /-!
 # Introduction
 

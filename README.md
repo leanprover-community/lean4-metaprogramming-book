@@ -12,7 +12,7 @@ Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddharth
 * [Tactics](md/tactics.md)
 
 Sources to extract material from:
-* [Metavariables by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
+* [By by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
 
 ## Collaborating
 
