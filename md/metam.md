@@ -5,12 +5,7 @@ import Lean
 # `MetaM`
 
 --todo
-* metavariables, assignment, types of metavariables
-* metavariables as goals
-* local contexts, `withMVarContext`
-* smart Expr constructors
 * locally nameless representation; `forallTelescope` and friends
-* implicit arguments, app builder (`mkAppM` etc.)
 
 ## Smart constructors for expressions
 
@@ -143,3 +138,125 @@ elab "myProp" : term => propM
 #reduce myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
 #reduce myProp Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
 ```
+
+## Meta variables
+
+Meta-variables are variables that can be created and assigned to only at the
+meta level, and not the object/term level. They are used principally as
+placeholders, especially for goals. They can be assigned expressions in terms of
+other meta variables. However, before being assigned to a pure (i.e., not meta)
+definition, the assignments should be resolvable to a value not involving
+meta-variables.
+
+One way to create a meta-variable representing an expression is to use the
+`mkFreshExprMVar` function. This function creates a meta-variable that can be
+assigned an expression. One can optionally specify a type for the meta-variable.
+In the example below, we create three meta-variables, `mvar1`, `mvar2`, and
+`mvar3`, with `mvar1` and `mvar3` assigned type `Nat` and `mvar2` assigned the
+type `Nat → Nat`.
+
+We assign expressions to the meta-variables using the `assignExprMVar` function.
+Like many functions dealing with meta-variables, this takes the id of the
+meta-variable as an argument. Below we assign to `mvar1` the result of function
+application of `mvar2` to `mvar3`. We then assign to `mvar2` the constant
+expression `Nat.succ` and to `mvar3` the constant expression `Nat.zero`. Clearly
+this means we have assigned `Nat.succ (Nat.zero)`, i.e., `1` to `mvar1`. We
+return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
+indeed when the expression `metaOneM` is assigned to a term, the result is `1`.
+
+```lean
+def oneMetaVar : MetaM Expr := do
+  let zero := mkConst ``Nat.zero
+  let mvar1 ← mkFreshExprMVar (some (mkConst ``Nat))
+  let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat))
+  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
+  let mvar3 ← mkFreshExprMVar (some funcType)
+  IO.println "the initial state of each metavariable:"
+  IO.println $ ← instantiateMVars mvar1
+  IO.println $ ← instantiateMVars mvar2
+  IO.println $ ← instantiateMVars mvar3
+  IO.println "--------------------------------"
+  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
+  IO.println "after turning `mvar1` into an application:"
+  IO.println $ ← instantiateMVars mvar1
+  IO.println $ ← instantiateMVars mvar2
+  IO.println $ ← instantiateMVars mvar3
+  IO.println "--------------------------------"
+  assignExprMVar mvar2.mvarId! zero
+  IO.println "after turning the application argument into `Nat.zero`:"
+  IO.println $ ← instantiateMVars mvar1
+  IO.println $ ← instantiateMVars mvar2
+  IO.println $ ← instantiateMVars mvar3
+  IO.println "--------------------------------"
+  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
+  IO.println "after turning the application function into `Nat.succ`:"
+  IO.println $ ← instantiateMVars mvar1
+  IO.println $ ← instantiateMVars mvar2
+  IO.println $ ← instantiateMVars mvar3
+  IO.println "--------------------------------"
+  return mvar1
+
+elab "one!" : term => oneMetaVar
+
+#eval one! -- 1
+-- the initial state of each metavariable:
+-- ?_uniq.3411
+-- ?_uniq.3412
+-- ?_uniq.3413
+-- --------------------------------
+-- after turning `mvar1` into an application:
+-- ?_uniq.3413 ?_uniq.3412
+-- ?_uniq.3412
+-- ?_uniq.3413
+-- --------------------------------
+-- after turning the application argument into `Nat.zero`:
+-- ?_uniq.3413 Nat.zero
+-- Nat.zero
+-- ?_uniq.3413
+-- --------------------------------
+-- after turning the application function into `Nat.succ`:
+-- Nat.succ Nat.zero
+-- Nat.zero
+-- Nat.succ
+-- --------------------------------
+```
+
+## Telescopes
+
+Before going further, let's take a step back and think about the `Expr.lam`
+constructor:
+
+```lean
+Expr.lam : Name → Expr → Expr → Data → Expr
+```
+
+The first `Expr` is the type of the function's input and the second is its body.
+Then we ask ourselves: how do we build a function with multiple input variables?
+Well, e use the same constructor multiple times, one for each input variable.
+
+As an example, let's see an approximation of how we'd build the function
+`fun (x : Nat) (y : Nat) => x + y`:
+
+```lean
+Expr.lam `x (mkConst ``Nat) (Expr.lam `y (mkConst ``Nat) b) d') d
+```
+
+It's done by nesting a new `Expr.lam` as the body of another `Expr.lam`. Thus,
+if we wanted to, say, perform a computation that involves all the input types of
+a function as well as its body, we would have to unfold the expression
+recursively until the last nested `Expr.lam` just to gather everything we need
+to do what we want. And that's when `lambdaTelescope` comes into play.
+
+```lean
+def lambdaTelescope (e : Expr) (k : Array Expr → Expr → n α) : n α
+```
+
+It makes it easier for us to do our computation with the data that we need. All
+we need to do is provide a `k` function, whose first argument is an array of
+input types and the second argument is the function body.
+
+There are multiple telescopes in the API and we don't intend to be exhaustive
+here. Something to note is that `n` is not necessarily the `MetaM` monad, but we
+are covering this subject here because telescopes are defined in `Lean.Meta` and
+also because we are already in `MetaM` when we want to use more powerful tools
+to deal with expressions.

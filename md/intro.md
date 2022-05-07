@@ -1,8 +1,20 @@
 ```lean
 import Lean
+#exit
 ```
 
 # Introduction
+
+## What's the goal of this book?
+
+This book aims to build up enough knowledge about metaprogramming in Lean 4 so
+you can be comfortable enough to start building your own meta helpers.
+
+We by no means intend to provide an exhaustive exploration/explanation of the
+entire Lean 4 metaprogramming API. We also don't cover the topic of monadic
+programming in Lean 4. However, the examples provided will be simple enough for
+you to follow and comprehend without a super deep understanding of monadic
+programming.
 
 ## What does it mean to be in meta?
 

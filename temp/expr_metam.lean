@@ -25,46 +25,6 @@ elab "two!" : term => do
 #eval (two! : Nat) -- 2
 
 /-!
-## Meta variables
-
-Meta-variables are variables that can be created and assigned to only at the
-meta level, and not the object/term level. They are used principally as
-placeholders, especially for goals. They can be assigned expressions in terms of
-other meta variables. However, before being assigned to a pure (i.e., not meta)
-definition, the assignments should be resolvable to a value not involving
-meta-variables.
-
-One way to create a meta-variable representing an expression is to use the
-`mkFreshExprMVar` function. This function creates a meta-variable that can be
-assigned an expression. One can optionally specify a type for the meta-variable.
-In the example below, we create three meta-variables, `mvar1`, `mvar2`, and
-`mvar3`, with `mvar1` and `mvar3` assigned type `Nat` and `mvar2` assigned the
-type `Nat → Nat`.
-
-We assign expressions to the meta-variables using the `assignExprMVar` function.
-Like many functions dealing with meta-variables, this takes the id of the
-meta-variable as an argument. Below we assign to `mvar1` the result of function
-application of `mvar2` to `mvar3`. We then assign to `mvar2` the constant
-expression `Nat.succ` and to `mvar3` the constant expression `Nat.zero`. Clearly
-this means we have assigned `Nat.succ (Nat.zero)`, i.e., `1` to `mvar1`. We
-return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
-indeed when the expression `metaOneM` is assigned to a term, the result is `1`.
--/
-
-elab "one!" : term => do
-  let zero := mkConst ``Nat.zero
-  let mvar1 ← mkFreshExprMVar (some (mkConst ``Nat)) 
-  let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat))
-  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
-  let mvar3 ← mkFreshExprMVar (some funcType)
-  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
-  assignExprMVar mvar2.mvarId! zero 
-  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
-  return mvar1
-
-#eval one! -- 1
-
-/-!
 ## Matching on expressions
 
 Often we wish to construct expressions depending on the nature of other

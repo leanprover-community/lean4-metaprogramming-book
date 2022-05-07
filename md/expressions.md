@@ -5,6 +5,7 @@ import Lean
 # Expressions
 
 --todo
+* matching (there's some content in `temp`)
 * normalisation, transparency
 * discrimination trees
 
