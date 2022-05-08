@@ -24,8 +24,9 @@ Lean, that would be defining an inductive type, implementing a function, proving
 a theorem etc. The compiler, then, has to parse the code, build an abstract
 syntax tree and elaborate its syntax nodes into terms that can be processed by
 the language kernel. We say that such activities performed by the compiler are
-done in the __meta-level__, and that the common usage of the syntax is done in
-the __object-level__.
+done in the __meta-level__, which will be studied throughout the book. And we
+also say that the common usage of the language syntax is done in the
+__object-level__.
 
 In most systems, the meta-level activities are done in a different language to
 the one that we use to write code. In Isabelle, the meta-level language is ML
@@ -44,9 +45,10 @@ say that, in Lean, the meta-level is _reflected_ to the object-level.
 Since the objects defined in the meta-level are not the ones we're most
 interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
-our `Expr` recursion function is well founded. Thus, we can use the `partial`
-keyword if we're convinced that our function terminates. In the worst case
-scenario, our custom elaboration loops but the kernel is not reached/affected.
+a recursive function to traverse an expression is well founded. Thus, we can
+use the `partial` keyword if we're convinced that our function terminates. In
+the worst case scenario, our function gets stuck in a loop but the kernel is
+not reached/affected.
 
 Let's see some exemple use cases of metaprogramming in Lean.
 
