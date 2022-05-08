@@ -55,10 +55,9 @@ What is each of these constructors doing?
 - `fvar` is a __free variable__. These are variables which are not bound by a
   binder. An example is `x` in `x + 2`. Note that you can't just look at a free
   variable `x` and tell what its type is, you need there to be a context
-  (denoted `Γ` from the previous section) which contains an declaration for `x`
-  and its type. A free variable has an ID that tells you where to look for it in
-  a `LocalContext`. In Lean 3, free variables were called "local constants" or
-  "locals".
+  which contains an declaration for `x` and its type. A free variable has an ID
+  that tells you where to look for it in a `LocalContext`. In Lean 3, free
+  variables were called "local constants" or "locals".
 - `mvar` is a __metavariable__. There will be much more on these later, but you
   can think of it as a placeholder or a 'hole' in an expression that needs to be
   filled at a later point.
