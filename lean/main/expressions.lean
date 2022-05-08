@@ -122,11 +122,9 @@ __abstraction__.
 ## Constructing Expressions
 
 As mentioned above, you should _never_ construct instances of `Expr` directly
-using the `Expr` constructors but instead use the helper methods (`mkLambda`,
-`mkApp` etc) that compute `Data` for you. Indeed, you should usually use _smart_
-constructors that take care of _hygiene_, _unification_ etc. We describe the
-smart constructors in the chapter on `MetaM` (as they depend on `MetaM`). Here
-we give examples and brief descriptions of the basic helpers.
+using the `Expr` constructors but instead use helper methods that not only
+compute `Data` but also take care of other things for you. Here we give examples
+and brief descriptions of some basic helpers.
 -/
 
 /-! The simplest expressions we can construct are constants. We use `mkConst`

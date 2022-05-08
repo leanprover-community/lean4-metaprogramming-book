@@ -5,13 +5,13 @@ import Lean
 # `MetaM`
 
 --todo
-* locally nameless representation; `forallTelescope` and friends
+-- better thread of thought
 
 ## Smart constructors for expressions
 
-Lean has smart helpers that allow construction of expressions with hygeine,
-reduction and other such details taken care of the system, and allow us to use
-the powerful unifier. Here we sketch a few of these.
+The `MetaM` monad provides even more smart constructors to help us build
+expressions. The API also contains functions that help us explore certain
+expressions more easily. In this chapter we will visit some of those.
 
 But first, let's recap the definition of `natExpr`
 
@@ -248,7 +248,7 @@ recursively until the last nested `Expr.lam` just to gather everything we need
 to do what we want. And that's when `lambdaTelescope` comes into play.
 
 ```lean
-def lambdaTelescope (e : Expr) (k : Array Expr → Expr → n α) : n α
+def lambdaTelescope (e : Expr) (k : Array Expr → Expr → m α) : m α
 ```
 
 It makes it easier for us to do our computation with the data that we need. All
@@ -256,7 +256,7 @@ we need to do is provide a `k` function, whose first argument is an array of
 input types and the second argument is the function body.
 
 There are multiple telescopes in the API and we don't intend to be exhaustive
-here. Something to note is that `n` is not necessarily the `MetaM` monad, but we
+here. Something to note is that `m` is not necessarily the `MetaM` monad, but we
 are covering this subject here because telescopes are defined in `Lean.Meta` and
 also because we are already in `MetaM` when we want to use more powerful tools
 to deal with expressions.
