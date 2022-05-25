@@ -184,13 +184,86 @@ theorem trivial_wrong_0 (H1: 1 = 1): 2 = 2 := by {
 Next, we access the list of hypotheses, which are stored in a data structure
 called `LocalContext`. This is accessed via `Lean.MonadLCtx.getLCtx`. The `LocalContext`
 contains `LocalDeclaration`s, from which we can extract information such as the name that
-is given to declarations (`.userName)`, the expression of the declaration `(.toExpr)`, etc.
-We are looking for a local declaration that has the same type as the hypothesis. We
-get the type of `LocalDefinition` by calling `Lean.Meta.inferType` on the local declaration's expression.
-We check if the type of the `LocalDefinition` is equal to the goal type with  wih `Lean.Meta.isExprDefEq`.
-See that for `trivial_1`, we get the `matching_expr` to be `some _uniq.1407`, and for `trivial_wrong`,
-we get the `matching_expr` to be `none`:
+is given to declarations (`.userName)`, the expression of the declaration `(.toExpr)`.
+We write a tactic called `list_local_decls` that prints the local declarations:
 -/
+
+elab "list_local_decls_1" : tactic => do
+  let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+      let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
+      let ldecl_name := ldecl.userName -- Find the name of the declaration.
+      dbg_trace f!"1) local decl: name: {ldecl_name} | expr: {ldecl_expr}"
+  )
+
+-- + local decl: nametrivial_correct_1 | expr: _uniq.3339
+-- + local decl: name: H1 | expr: _uniq.3340
+-- + local decl: name: H2 | expr: _uniq.3341
+theorem test_list_local_decls_1 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by {
+  list_local_decls_1
+  sorry
+}
+
+
+
+/-
+Recall that we are looking for a local declaration that has the same type as the hypothesis. We
+get the type of `LocalDefinition` by calling `Lean.Meta.inferType` on the local declaration's expression.
+-/
+
+elab "list_local_decls_2" : tactic => do
+  let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+      let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
+      let ldecl_name := ldecl.userName -- Find the name of the declaration.
+      let ldecl_type <- Lean.Meta.inferType ldecl_expr -- **NEW:** Find the type.
+      dbg_trace f!"+ local decl: name: {ldecl_name} | expr: {ldecl_expr} | type: {ldecl_type}"
+  )
+
+-- + local decl: name: test_list_local_decls_2 | expr: _uniq.4263 | type: (Eq.{1} Nat ...)
+-- + local decl: name: H1 | expr: _uniq.4264 | type: Eq.{1} Nat ...)
+-- + local decl: name: H2 | expr: _uniq.4265 | type: Eq.{1} Nat ...)
+theorem test_list_local_decls_2 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by {
+  list_local_decls_2
+  sorry
+}
+
+/-
+We check if the type of the `LocalDefinition` is equal to the goal type with  wih `Lean.Meta.isExprDefEq`.
+See that we check if the types are equal at `eq?`, and we print that `H1` has the same type
+as the goal (`local decl[EQUAL? true]: name: H1`), and we print that `H2` does not have the
+same type (`local decl[EQUAL? false]: name: H2 `):
+-/
+
+elab "list_local_decls_3" : tactic => do
+  let goal <- Lean.Elab.Tactic.getMainGoal
+  let goal_declaration <- Lean.Meta.getMVarDecl goal
+  let goal_type := goal_declaration.type
+  let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+      let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
+      let ldecl_name := ldecl.userName -- Find the name of the declaration.
+      let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
+      let eq? <- Lean.Meta.isExprDefEq ldecl_type goal_type -- **NEW** Check if type equals goal type.
+      dbg_trace f!"+ local decl[EQUAL? {eq?}]: name: {ldecl_name} | expr: {ldecl_expr} | type: {ldecl_type}"
+  )
+
+-- + local decl[EQUAL? false]: name: test_list_local_decls_3 | expr: _uniq.5378 | type: ...
+-- + local decl[EQUAL? true]: name: H1 | expr: _uniq.5379 | type: ...
+-- + local decl[EQUAL? false]: name: H2 | expr: _uniq.5380 | type: ...
+theorem test_list_local_decls_3 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by {
+  list_local_decls_3
+  sorry
+}
+
+/-
+Finally, we put all of these parts together
+to write a tactic that loops over all declarations and finds
+one with the correct type. We loop over decalrations with
+`lctx.findDeclM?`. We infer the type of declarations with `Lean.Meta.inferType`.
+We check that the declaration has the same type as the goal with `Lean.Meta.isExprDefEq`:
+-/
+
 
 elab "custom_trivial_1" : tactic => do
   let goal <- Lean.Elab.Tactic.getMainGoal
@@ -199,13 +272,14 @@ elab "custom_trivial_1" : tactic => do
   dbg_trace f!"2) goal type: {goal_type}"
   let lctx <- Lean.MonadLCtx.getLCtx
 
+   -- Iterate over the local declarations...
    let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
-      let ldecl_expr := ldecl.toExpr
-      let ldecl_type <- Lean.Meta.inferType ldecl_expr
-      dbg_trace f!"3) local decl: name={ldecl.userName} | expr: {ldecl.toExpr} | type: {ldecl_type}"
-      if (<- Lean.Meta.isExprDefEq ldecl_type goal_type)
-      then return Option.some ldecl_expr
-      else return Option.none
+      let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
+      let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
+      dbg_trace f!"3) local decl: name={ldecl.userName} | expr: {ldecl_expr} | type: {ldecl_type}"
+      if (<- Lean.Meta.isExprDefEq ldecl_type goal_type) -- Check if type equals goal type.
+      then return Option.some ldecl_expr -- If equal, success!
+      else return Option.none -- Not found.
   )
   dbg_trace f!"4) matching_expr: {option_matching_expr}"
 
