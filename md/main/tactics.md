@@ -350,7 +350,26 @@ theorem trivial_wrong_2 (H1: 1 = 1): 2 = 2 := by {
 -- ⊢ 2 = 2
 ```
 
-#### FAQ
+## Tactics by Macro Expansion
+
+Just like many other parts of the Lean4 infrastructure, tactics too can be declared by lightweight
+macro expansion.
+
+```lean
+-- Define a new notation for the tactic DSL
+syntax "sorry_custom_macro" : tactic
+
+macro_rules
+  | `(tactic| sorry_custom_macro) => `(tactic| sorry)
+
+theorem test_sorry_custom_macro: 1 = 42 := by 
+  sorry_custom_macro
+#print test_sorry_custom_macro
+-- theorem test_sorry_custom_macro : 1 = 42 :=
+--   sorryAx (1 = 42) false
+```
+
+## FAQ
 
 In this section, we collect common patterns that are used during writing tactics,
 to make it easy to find common patterns.
