@@ -21,7 +21,7 @@ In this section, we wish to write a tactic that fills the proof with sorry:
 
 ```
 theorem wrong : 1 = 2 := by {
-  custom_sorry
+custom_sorry
 }
 
 #print wrong
@@ -33,8 +33,8 @@ We begin by declaring such a tactic:
 
 ```lean
 elab "custom_sorry_0" : tactic => do
-    let goal <- Lean.Elab.Tactic.getMainGoal
-    dbg_trace f!"1) goal: {goal.name}"
+  let goal <- Lean.Elab.Tactic.getMainGoal
+  dbg_trace f!"1) goal: {goal.name}"
 
 theorem wrong : 1 = 2 := by {
   custom_sorry_0
@@ -60,11 +60,11 @@ We check this by printing the type of `goal`.
 
 ```lean
 elab "custom_sorry_1" : tactic => do
-    let goal <- Lean.Elab.Tactic.getMainGoal
-    dbg_trace f!"1) goal: {goal.name}"
-    let goal_declaration <- Lean.Meta.getMVarDecl goal
-    let goal_type := goal_declaration.type
-    dbg_trace f!"2) goal type: {goal_type}"
+  let goal <- Lean.Elab.Tactic.getMainGoal
+  dbg_trace f!"1) goal: {goal.name}"
+  let goal_declaration <- Lean.Meta.getMVarDecl goal
+  let goal_type := goal_declaration.type
+  dbg_trace f!"2) goal type: {goal_type}"
 
 theorem wrong_1 : 1 = 2 := by {
   custom_sorry_1
@@ -81,12 +81,12 @@ To `sorry` the goal, we can use the helper `Lean.Elab.admitGoal`:
 
 ```lean
 elab "custom_sorry_2" : tactic => do
-    let goal <- Lean.Elab.Tactic.getMainGoal
-    dbg_trace f!"1) goal: {goal.name}"
-    let goal_declaration <- Lean.Meta.getMVarDecl goal
-    let goal_type := goal_declaration.type
-    dbg_trace f!"2) goal type: {goal_type}"
-    Lean.Elab.admitGoal goal
+  let goal <- Lean.Elab.Tactic.getMainGoal
+  dbg_trace f!"1) goal: {goal.name}"
+  let goal_declaration <- Lean.Meta.getMVarDecl goal
+  let goal_type := goal_declaration.type
+  dbg_trace f!"2) goal type: {goal_type}"
+  Lean.Elab.admitGoal goal
 
 theorem wrong_2 : 1 = 2 := by {
   custom_sorry_2
@@ -117,7 +117,7 @@ below, we expect `custom_trivial` to use `(H2: 2 = 2)` to solve the goal `(2 = 2
 
 ```lean
 theorem trivial_correct (H1: 1 = 1) (H2: 2 = 2): 2 = 2 := by {
-  custom_trivial
+custom_trivial
 }
 
 #print trivial_correct
@@ -132,7 +132,7 @@ of the type we are looking for:
 
 ```lean
 theorem trivial_wrong (H1: 1 = 1): 2 = 2 := by {
-  custom_trivial
+custom_trivial
 }
 
 #print trivial_wrong
@@ -184,17 +184,17 @@ We write a tactic called `list_local_decls` that prints the local declarations:
 ```lean
 elab "list_local_decls_1" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       dbg_trace f!"1) local decl: name: {ldecl_name} | expr: {ldecl_expr}"
-  )
+)
 
 theorem test_list_local_decls_1 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by {
   list_local_decls_1
--- + local decl: nametrivial_correct_1 | expr: _uniq.3339
--- + local decl: name: H1 | expr: _uniq.3340
--- + local decl: name: H2 | expr: _uniq.3341
+  -- + local decl: nametrivial_correct_1 | expr: _uniq.3339
+  -- + local decl: name: H1 | expr: _uniq.3340
+  -- + local decl: name: H2 | expr: _uniq.3341
   sorry
 }
 ```
@@ -205,18 +205,18 @@ get the type of `LocalDefinition` by calling `Lean.Meta.inferType` on the local 
 ```lean
 elab "list_local_decls_2" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       let ldecl_type <- Lean.Meta.inferType ldecl_expr -- **NEW:** Find the type.
       dbg_trace f!"+ local decl: name: {ldecl_name} | expr: {ldecl_expr} | type: {ldecl_type}"
-  )
+)
 
 theorem test_list_local_decls_2 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by {
   list_local_decls_2
--- + local decl: name: test_list_local_decls_2 | expr: _uniq.4263 | type: (Eq.{1} Nat ...)
--- + local decl: name: H1 | expr: _uniq.4264 | type: Eq.{1} Nat ...)
--- + local decl: name: H2 | expr: _uniq.4265 | type: Eq.{1} Nat ...)
+  -- + local decl: name: test_list_local_decls_2 | expr: _uniq.4263 | type: (Eq.{1} Nat ...)
+  -- + local decl: name: H1 | expr: _uniq.4264 | type: Eq.{1} Nat ...)
+  -- + local decl: name: H2 | expr: _uniq.4265 | type: Eq.{1} Nat ...)
   sorry
 }
 ```
@@ -232,13 +232,13 @@ elab "list_local_decls_3" : tactic => do
   let goal_declaration <- Lean.Meta.getMVarDecl goal
   let goal_type := goal_declaration.type
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
       let eq? <- Lean.Meta.isExprDefEq ldecl_type goal_type -- **NEW** Check if type equals goal type.
       dbg_trace f!"+ local decl[EQUAL? {eq?}]: name: {ldecl_name} | expr: {ldecl_expr} | type: {ldecl_type}"
-  )
+)
 
 -- + local decl[EQUAL? false]: name: test_list_local_decls_3 | expr: _uniq.5378 | type: ...
 -- + local decl[EQUAL? true]: name: H1 | expr: _uniq.5379 | type: ...
@@ -262,39 +262,38 @@ elab "custom_trivial_1" : tactic => do
   let goal_type <- Lean.Elab.Tactic.getMainTarget
   dbg_trace f!"2) goal type: {goal_type}"
   let lctx <- Lean.MonadLCtx.getLCtx
-
-   -- Iterate over the local declarations...
-   let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
-      let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
-      let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
-      dbg_trace f!"3) local decl: name={ldecl.userName} | expr: {ldecl_expr} | type: {ldecl_type}"
-      if (<- Lean.Meta.isExprDefEq ldecl_type goal_type) -- Check if type equals goal type.
-      then return Option.some ldecl_expr -- If equal, success!
-      else return Option.none -- Not found.
-  )
-  dbg_trace f!"4) matching_expr: {option_matching_expr}"
+  -- Iterate over the local declarations...
+  let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
+  let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
+  let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
+  dbg_trace f!"3) local decl: name={ldecl.userName} | expr: {ldecl_expr} | type: {ldecl_type}"
+  if (<- Lean.Meta.isExprDefEq ldecl_type goal_type) -- Check if type equals goal type.
+  then return Option.some ldecl_expr -- If equal, success!
+  else return Option.none -- Not found.
+)
+dbg_trace f!"4) matching_expr: {option_matching_expr}"
 
 theorem trivial_correct_1 (H1: 1 = 1) (H2: 2 = 2): 2 = 2 := by {
   custom_trivial_1
--- 1) goal: _uniq.1408
--- 2) goal type: ...
--- 3) local decl: name=trivial_1 | ...
--- 3) local decl: name=H1 | ...
--- 3) local decl: name=H2 | ...
--- 4) matching_expr: some _uniq.1407
-sorry
+  -- 1) goal: _uniq.1408
+  -- 2) goal type: ...
+  -- 3) local decl: name=trivial_1 | ...
+  -- 3) local decl: name=H1 | ...
+  -- 3) local decl: name=H2 | ...
+  -- 4) matching_expr: some _uniq.1407
+  sorry
 }
 #print trivial_correct_1
 --  1 = 1 → 2 = 2 → 2 = 2 := fun H1 H2 => sorryAx (2 = 2) false
 
 theorem trivial_wrong_1 (H1: 1 = 1): 2 = 2 := by {
   custom_trivial_1
--- 1) goal: _uniq.1488
--- 2) goal type: ...
--- 3) local decl: name=trivial_wrong | ...
--- 3) local decl: name=H1 | ...
--- 4) matching_expr: none
-sorry
+  -- 1) goal: _uniq.1488
+  -- 2) goal type: ...
+  -- 3) local decl: name=trivial_wrong | ...
+  -- 3) local decl: name=H1 | ...
+  -- 4) matching_expr: none
+  sorry
 }
 #print trivial_wrong_1
 -- 1 = 1 → 2 = 2 := fun H1 => sorryAx (2 = 2) false
@@ -350,7 +349,123 @@ theorem trivial_wrong_2 (H1: 1 = 1): 2 = 2 := by {
 -- ⊢ 2 = 2
 ```
 
-#### FAQ
+## Tactics by Macro Expansion
+
+Just like many other parts of the Lean4 infrastructure, tactics too can be declared by lightweight
+macro expansion.
+
+For example, we build an example of a `custom_sorry_macro` that elaborates into a `sorry`.
+We write this as a macro expansion, which expands the piece of syntax `custom_sorry_macro`
+into the piece of syntax `sorry`:
+
+```lean
+-- 1. Define a new notation for the tactic DSL.
+syntax "custom_sorry" : tactic
+
+-- 2. Define a macro rule that sets up the elaboration.
+macro_rules
+| `(tactic| custom_sorry) => `(tactic| sorry)
+
+theorem test_sorry_custom_macro: 1 = 42 := by
+  custom_sorry
+#print test_sorry_custom_macro
+-- theorem test_sorry_custom_macro : 1 = 42 :=
+--   sorryAx (1 = 42) false
+```
+
+### Implementing `trivial`: Extensible Tactics by Macro Expansion
+
+As more complex examples, we can write a tactic such as `custom_trivial`, which is initially left
+completely unimplemented, and can be extended with more tactics. We start by simply declaring
+the tactic with no implementation:
+
+```lean
+syntax "custom_trivial" : tactic
+
+theorem test_custom_trivial_macro_0: 42 = 42 := by {
+  custom_trivial
+  -- tactic 'tacticCustom_trivial' has not been implemented
+  sorry
+}
+```
+
+We will now add the `rfl` tactic into `custom_trivial`, which will allow us to
+prove the previous theorem
+
+```lean
+macro_rules
+| `(tactic| custom_trivial) => `(tactic| rfl)
+
+theorem test_custom_trivial_macro_1: 42 = 42 := by {
+   custom_trivial
+  -- ▶ goals accomplished 🎉
+}
+```
+
+We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
+
+```lean
+theorem test_custom_trivial_macro_2: 43 = 43 /\ 42 = 42:= by {
+  custom_trivial
+  -- tactic 'rfl' failed, equality expected{indentExpr targetType}
+  -- ⊢ 43 = 43 ∧ 42 = 42
+}
+```
+
+We extend the `custom_trivial` tactic with a tactic that tries to break `And` down
+with `apply And.intro`, and then (recursively (!)) applies `trivial` to the two
+cases with `(<;> trivial)` to solve the generated subcases `43 = 43`, `42 = 42`.
+
+```lean
+macro_rules
+| `(tactic| custom_trivial) => `(tactic| apply And.intro <;> custom_trivial)
+```
+
+The above declaration uses `<;>` which is a *tactic combinator*. Here, `a <;> b` means "run tactic `a`,
+and apply "b" to each goal after running `a`". Thus, `And.intro <;> custom_trivial` means
+"run `And.intro`, and then run `custom_trivial` on each goal". We test it out on our
+previous theorem and see that we dispatch the theorem.
+
+```lean
+theorem test_custom_trivial_macro_3 : 43 = 43 /\ 42 = 42 := by {
+  custom_trivial
+  -- ▶ goals accomplished 🎉
+}
+```
+
+In summary, we declared an extensible tactic called `custom_trivial`. It initially
+had no elaboration at all. We added the `rfl` as an elaboration of `custom_trivial`, which
+allowed it to solve the goal `42 = 42`. We then tried a harder theorem, `43 = 43 /\ 42 = 42`
+which `custom_trivial` was unable to solve. We were then able to enrich `custom_trivial` to
+split and with `And.intro`, and also *recursively* call `custom_trivial` in the two subcases.
+
+## Implementing `<;>`: Tactic Combinators by Macro Expansion
+
+Recall that in the previous section, we say that `a <;> b` meant "run `a`, and then run `b` for all goals".
+In fact, `<;>` itself is a tactic combinator. In this section, we will implement the syntax
+`a and_then b` which will stand for "run `a`, and then run `b` for all goals".
+
+```lean
+-- 1. We declre the syntax and_then
+syntax tactic "and_then" tactic : tactic
+
+-- 2. We write the expander than expands the tactic
+--    into running `a`, and then running `b` on all goals.
+macro_rules
+| `(tactic| $a:tactic and_then $b:tactic) =>
+    `(tactic| $a:tactic; all_goals $b:tactic)
+
+-- 3. We test this tactic.
+theorem test_and_then: 1 = 1 /\ 2 = 2 := by {
+  apply And.intro <;> rfl
+}
+
+#print test_and_then
+-- theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
+-- { left := Eq.refl 1, right := Eq.refl 2 }
+```
+
+## FAQ
 
 In this section, we collect common patterns that are used during writing tactics,
 to make it easy to find common patterns.
@@ -364,13 +479,13 @@ Use `Lean.Elab.Tactic.getMainGoal`.
 
 ```lean
 elab "faq_main_goal" : tactic => do
-    let goal <- Lean.Elab.Tactic.getMainGoal
-    dbg_trace f!"goal: {goal.name}"
+  let goal <- Lean.Elab.Tactic.getMainGoal
+  dbg_trace f!"goal: {goal.name}"
 
 theorem test_faq_main_goal: 1 = 1 := by {
- faq_main_goal
--- goal: _uniq.9298
- sorry
+  faq_main_goal
+  -- goal: _uniq.9298
+  sorry
 }
 ```
 
@@ -380,18 +495,18 @@ Use `getGoals`.
 ```lean
 elab "faq_get_goals" : tactic => do
     let goals <- Lean.Elab.Tactic.getGoals
-    goals.forM $ fun goal => do 
-       let goal_type <- Lean.Meta.getMVarType goal
-       dbg_trace f!"goal: {goal.name} | type: {goal_type}"
+    goals.forM $ fun goal => do
+      let goal_type <- Lean.Meta.getMVarType goal
+      dbg_trace f!"goal: {goal.name} | type: {goal_type}"
 
 
 theorem test_faq_get_goals (b: Bool): b = true := by {
- cases b;
- faq_get_goals
--- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
--- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
- sorry
- sorry
+  cases b;
+  faq_get_goals
+  -- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
+  -- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
+  sorry
+  sorry
 }
 ```
 
@@ -404,7 +519,7 @@ such as `foldlM` and `forM`.
 ```lean
 elab "faq_get_hypotheses" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_type := ldecl.type -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
@@ -412,9 +527,9 @@ elab "faq_get_hypotheses" : tactic => do
   )
 theorem test_faq_get_hypotheses (H1: 1 = 1) (H2: 2 = 2): 3 = 3 := by {
   faq_get_hypotheses
--- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
--- local decl: name: H1 | expr: _uniq.10815 | type: ...
--- local decl: name: H2 | expr: _uniq.10816 | type: ...
+  -- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
+  -- local decl: name: H1 | expr: _uniq.10815 | type: ...
+  -- local decl: name: H2 | expr: _uniq.10816 | type: ...
   sorry
 }
 ```
@@ -452,14 +567,14 @@ elab "faq_throw_error" : tactic => do
 
 
 theorem test_faq_throw_error (b: Bool): b = true := by {
- cases b;
- faq_throw_error
--- case true
--- ⊢ true = true
--- ▶ 469:2-469:17: error:
--- tactic 'faq_throw_error' failed, throwing an error at the current goal
--- case false
--- ⊢ false = true
+  cases b;
+  faq_throw_error
+  -- case true
+  -- ⊢ true = true
+  -- ▶ 469:2-469:17: error:
+  -- tactic 'faq_throw_error' failed, throwing an error at the current goal
+  -- case false
+  -- ⊢ false = true
 }
 ```
 
@@ -468,3 +583,7 @@ theorem test_faq_throw_error (b: Bool): b = true := by {
 `Lean.Meta.Tactic.*` contains low level code that uses the `Meta` monad to implement
 basic features such as rewriting. `Lean.Elab.Tactic.*` contains high-level code that connects the low
 level development in `Lean.Meta` to the tactic infrastructure and the parsing front-end.
+
+How to add hypotheses to the context?
+
+TODO
