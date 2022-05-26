@@ -82,7 +82,7 @@ What is each of these constructors doing?
 - `mdata` is just a way of storing extra information on expressions that might
   be useful, without changing the nature of the expression.
 - `proj` is for projection. Suppose you have a structure such as `p : α × β`,
-  rather that storing the projection `π₁ p` as `app π₁ p`, it is expressed as
+  rather than storing the projection `π₁ p` as `app π₁ p`, it is expressed as
   `proj Prod 0 p`. This is for efficiency reasons ([todo] find link to docstring
   explaining this).
 
