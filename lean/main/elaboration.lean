@@ -1,5 +1,6 @@
 import Lean
 open Lean Elab Command Term
+
 /-!
 # Elaboration
 
@@ -348,8 +349,6 @@ elab "#assertType" termStx:term " : " typeStx:term : command =>
 #assertType [] : Nat -- failure
 #assertType List.foldr .add 0 [1,2,3] : Nat -- success
 
-/-!
-The only new thing here, is the wrapper and helper functions, we will
-not attempt to make an exhaustive list of them here since they are evolving
-but you can browse the documentation to see what's there (TODO: Link).
--/
+/- The only new thing here, is the wrapper and helper functions, we will not
+attempt to make an exhaustive list of them here since they are evolving but you
+can browse the documentation to see what's there (TODO: Link). -/
