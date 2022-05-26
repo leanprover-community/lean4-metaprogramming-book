@@ -272,9 +272,8 @@ elab "custom_trivial_1" : tactic => do
   let goal_type <- Lean.Elab.Tactic.getMainTarget
   dbg_trace f!"2) goal type: {goal_type}"
   let lctx <- Lean.MonadLCtx.getLCtx
-
- -- Iterate over the local declarations...
- let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
+  -- Iterate over the local declarations...
+  let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
   let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
   let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
   dbg_trace f!"3) local decl: name={ldecl.userName} | expr: {ldecl_expr} | type: {ldecl_type}"
@@ -292,7 +291,7 @@ theorem trivial_correct_1 (H1: 1 = 1) (H2: 2 = 2): 2 = 2 := by {
   -- 3) local decl: name=H1 | ...
   -- 3) local decl: name=H2 | ...
   -- 4) matching_expr: some _uniq.1407
-sorry
+  sorry
 }
 #print trivial_correct_1
 --  1 = 1 → 2 = 2 → 2 = 2 := fun H1 H2 => sorryAx (2 = 2) false
@@ -473,7 +472,7 @@ syntax tactic "and_then" tactic : tactic
 --    into running `a`, and then running `b` on all goals.
 macro_rules
 | `(tactic| $a:tactic and_then $b:tactic) => 
-     `(tactic| $a:tactic; all_goals $b:tactic)
+    `(tactic| $a:tactic; all_goals $b:tactic)
 
 -- 3. We test this tactic.
 theorem test_and_then: 1 = 1 /\ 2 = 2 := by {
@@ -503,9 +502,9 @@ elab "faq_main_goal" : tactic => do
   dbg_trace f!"goal: {goal.name}"
 
 theorem test_faq_main_goal: 1 = 1 := by {
-faq_main_goal
--- goal: _uniq.9298
-sorry
+  faq_main_goal
+  -- goal: _uniq.9298
+  sorry
 }
 
 /-
@@ -516,17 +515,17 @@ Use `getGoals`.
 elab "faq_get_goals" : tactic => do
     let goals <- Lean.Elab.Tactic.getGoals
     goals.forM $ fun goal => do 
-       let goal_type <- Lean.Meta.getMVarType goal
-       dbg_trace f!"goal: {goal.name} | type: {goal_type}"
+      let goal_type <- Lean.Meta.getMVarType goal
+      dbg_trace f!"goal: {goal.name} | type: {goal_type}"
 
 
 theorem test_faq_get_goals (b: Bool): b = true := by {
- cases b;
- faq_get_goals
--- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
--- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
- sorry
- sorry
+  cases b;
+  faq_get_goals
+  -- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
+  -- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
+  sorry
+  sorry
 }
 
 /-
@@ -547,9 +546,9 @@ elab "faq_get_hypotheses" : tactic => do
   )
 theorem test_faq_get_hypotheses (H1: 1 = 1) (H2: 2 = 2): 3 = 3 := by {
   faq_get_hypotheses
--- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
--- local decl: name: H1 | expr: _uniq.10815 | type: ...
--- local decl: name: H2 | expr: _uniq.10816 | type: ...
+  -- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
+  -- local decl: name: H1 | expr: _uniq.10815 | type: ...
+  -- local decl: name: H2 | expr: _uniq.10816 | type: ...
   sorry
 }
 
@@ -591,14 +590,14 @@ elab "faq_throw_error" : tactic => do
 
 
 theorem test_faq_throw_error (b: Bool): b = true := by {
- cases b;
- faq_throw_error
--- case true
--- ⊢ true = true
--- ▶ 469:2-469:17: error:
--- tactic 'faq_throw_error' failed, throwing an error at the current goal
--- case false
--- ⊢ false = true
+  cases b;
+  faq_throw_error
+  -- case true
+  -- ⊢ true = true
+  -- ▶ 469:2-469:17: error:
+  -- tactic 'faq_throw_error' failed, throwing an error at the current goal
+  -- case false
+  -- ⊢ false = true
 }
 
 /-
