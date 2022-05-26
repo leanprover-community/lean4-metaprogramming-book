@@ -191,7 +191,7 @@ We write a tactic called `list_local_decls` that prints the local declarations:
 
 elab "list_local_decls_1" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       dbg_trace f!"1) local decl: name: {ldecl_name} | expr: {ldecl_expr}"
@@ -214,7 +214,7 @@ get the type of `LocalDefinition` by calling `Lean.Meta.inferType` on the local 
 
 elab "list_local_decls_2" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       let ldecl_type <- Lean.Meta.inferType ldecl_expr -- **NEW:** Find the type.
@@ -241,7 +241,7 @@ elab "list_local_decls_3" : tactic => do
   let goal_declaration <- Lean.Meta.getMVarDecl goal
   let goal_type := goal_declaration.type
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
       let ldecl_type <- Lean.Meta.inferType ldecl_expr -- Find the type.
@@ -328,7 +328,7 @@ elab "custom_trivial_2" : tactic => do
   let goal_type <- Lean.Elab.Tactic.getMainTarget
   dbg_trace f!"2) goal type: {goal_type}"
   let lctx <- Lean.MonadLCtx.getLCtx
-  
+
    let option_matching_expr <- lctx.findDeclM? (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr
       let ldecl_type <- Lean.Meta.inferType ldecl_expr
@@ -379,7 +379,7 @@ syntax "custom_sorry" : tactic
 macro_rules
 | `(tactic| custom_sorry) => `(tactic| sorry)
 
-theorem test_sorry_custom_macro: 1 = 42 := by 
+theorem test_sorry_custom_macro: 1 = 42 := by
   custom_sorry
 #print test_sorry_custom_macro
 -- theorem test_sorry_custom_macro : 1 = 42 :=
@@ -471,7 +471,7 @@ syntax tactic "and_then" tactic : tactic
 -- 2. We write the expander than expands the tactic
 --    into running `a`, and then running `b` on all goals.
 macro_rules
-| `(tactic| $a:tactic and_then $b:tactic) => 
+| `(tactic| $a:tactic and_then $b:tactic) =>
     `(tactic| $a:tactic; all_goals $b:tactic)
 
 -- 3. We test this tactic.
@@ -514,7 +514,7 @@ Use `getGoals`.
 
 elab "faq_get_goals" : tactic => do
     let goals <- Lean.Elab.Tactic.getGoals
-    goals.forM $ fun goal => do 
+    goals.forM $ fun goal => do
       let goal_type <- Lean.Meta.getMVarType goal
       dbg_trace f!"goal: {goal.name} | type: {goal_type}"
 
@@ -538,7 +538,7 @@ such as `foldlM` and `forM`.
 
 elab "faq_get_hypotheses" : tactic => do
   let lctx <- Lean.MonadLCtx.getLCtx -- get the local context.
-  lctx.forM (fun (ldecl: Lean.LocalDecl) => do 
+  lctx.forM (fun (ldecl: Lean.LocalDecl) => do
       let ldecl_expr := ldecl.toExpr -- Find the expression of the declaration.
       let ldecl_type := ldecl.type -- Find the expression of the declaration.
       let ldecl_name := ldecl.userName -- Find the name of the declaration.
@@ -606,4 +606,10 @@ theorem test_faq_throw_error (b: Bool): b = true := by {
 `Lean.Meta.Tactic.*` contains low level code that uses the `Meta` monad to implement
 basic features such as rewriting. `Lean.Elab.Tactic.*` contains high-level code that connects the low
 level development in `Lean.Meta` to the tactic infrastructure and the parsing front-end.
+-/
+
+/-
+How to add hypotheses to the context?
+
+TODO
 -/
