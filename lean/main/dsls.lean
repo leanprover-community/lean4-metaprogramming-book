@@ -10,6 +10,7 @@ open Lean Lean.Syntax
 open Lean.Elab
 open Lean.Elab.Command
 open Lean.Meta
+open Lean
 
 /--
 We begin by defining the AST of the language:
@@ -21,12 +22,14 @@ inductive Aexp
 | ANat: Nat -> Aexp
 | AVar: String -> Aexp
 | APlus: Aexp -> Aexp -> Aexp
+deriving Inhabited
 
 inductive Bexp
 | BBool: Bool -> Bexp
 | BVar: String -> Bexp
 | BAnd: Bexp -> Bexp -> Bexp
 | BLess: Aexp -> Aexp -> Bexp
+deriving Inhabited
 
 inductive Command
 | Skip: Command
@@ -34,14 +37,118 @@ inductive Command
 | Seq: Command -> Command -> Command
 | If: Bexp -> Command -> Command
 | While: Bexp -> Command
+deriving Inhabited
+
+
+
+
+/-
+## Direct parsing by macros
+-/
+
+/-
+#### Parsing aexp 
+-/
 
 declare_syntax_cat imp_aexp
-declare_syntax_cat imp_bexp
-declare_syntax_cat imp_command
-
 syntax num : imp_aexp
 syntax ident : imp_aexp
 syntax imp_aexp "+" imp_aexp : imp_aexp
+
+syntax "[imp_aexp|" imp_aexp "]" : term
+
+macro_rules
+| `([imp_aexp| $n:num ]) => do
+   let n : Nat := n.toNat
+   let nStx : Syntax := Lean.quote n
+   `(Aexp.ANat $(nStx))
+
+def example_aexp_num: Aexp := [imp_aexp| 42]
+#reduce example_aexp_num
+-- Aexp.ANat 42
+
+macro_rules
+| `([imp_aexp| $name:ident ]) => do
+   let nameStr : String := name.getId.toString
+   let nameStx : Syntax := Lean.quote nameStr
+   `(Aexp.AVar $(nameStx))
+
+
+def example_aexp_ident: Aexp := [imp_aexp| foo]
+#reduce example_aexp_ident
+-- Aexp.AVar "foo"
+
+macro_rules
+| `([imp_aexp| $x:imp_aexp + $y:imp_aexp]) => do
+      let xStx <- `([imp_aexp| $(x)])
+      let yStx <- `([imp_aexp| $(y)])
+      `(Aexp.APlus $xStx $yStx)
+
+def example_aexp_plus: Aexp := [imp_aexp| foo + bar]
+#reduce example_aexp_plus
+-- Aexp.APlus (Aexp.AVar "foo") (Aexp.AVar "bar")
+
+/-
+#### Parsing BExp
+
+We repeat the same process, this time for `BExp`.
+-/
+
+declare_syntax_cat imp_bexp
+syntax ident : imp_bexp
+
+/-
+Note that we want `<` to have lower precedence than `+`,
+whch we declare by annotating the parse rule with `syntax:min`. 
+-/
+syntax:min imp_aexp "<" imp_aexp : imp_bexp 
+syntax imp_bexp "&&" imp_bexp : imp_bexp
+
+/-
+Once again, we declare the macro `[imp_bexp|...]` which takes
+an `imp_exp` and produces a Lean `term`.
+-/
+syntax "[imp_bexp| " imp_bexp "]" : term
+
+/-
+We write the macro rule once more:
+-/
+
+macro_rules
+| `([imp_bexp| $x:ident]) => do 
+    let xStr : String := x.getId.toString
+    match xStr with 
+    | "true" => `(Bexp.BBool true)
+    | "false" => `(Bexp.BBool false)
+    | _ => do
+       let xStx : Syntax := quote xStr
+       `(Bexp.BVar $xStx)
+  
+def example_bexp_true : Bexp := [imp_bexp| true]
+#print example_bexp_true 
+-- BExp.BBool true
+
+def example_bexp_false : Bexp := [imp_bexp| false]
+#print example_bexp_false
+-- BExp.BBool false
+
+def example_bexp_ident : Bexp := [imp_bexp| var]
+#print example_bexp_ident
+-- BExp.BVar "var"
+
+
+
+/-
+#### Parsing commands
+-/
+
+declare_syntax_cat imp_command
+syntax ident "=" imp_aexp : imp_command
+syntax sepBy(imp_command, ";") : imp_command
+
+/- 
+## Greater type checking: Parsing by going through Syntax -> Except String
+-/
 
 -- Helper to lift applicative function
 private def liftA2 {α β γ : Type} [Applicative f] (g: α → β → γ) (fa: f α) (fb: f β): f γ :=
@@ -55,10 +162,6 @@ partial def mkAexp : Syntax → Except String Aexp
   | x => throw "error parsing expression statement {x}"
 
 
-syntax num : imp_bexp
-syntax ident : imp_bexp
-syntax imp_aexp "<" imp_aexp : imp_bexp
-syntax imp_bexp "&&" imp_bexp : imp_bexp
 
 -- | TODO: handle precedence
 partial def mkBexp : Syntax → Except String Bexp
@@ -70,8 +173,6 @@ partial def mkBexp : Syntax → Except String Bexp
       liftA2 Bexp.BAnd (mkBexp x) (mkBexp y)
   | x => throw "error parsing expression statement {x}"
 
-syntax ident "=" imp_aexpr : imp_command
-syntax sepBy(imp_command, ";") : imp_command
 
 class QuoteM (a: Type) where
   quoteM : a -> MacroM Syntax
@@ -104,7 +205,6 @@ instance : QuoteM Aexp where
 def quotedParser [Quote α] (p: Syntax -> Except ε α): Syntax -> Except ε Syntax :=
    (Functor.map quote) ∘ p
 
-elab "[aexp|" x:imp_aexp "]" : term => quotedParser mkAexp x
 
 
 def quoteMBexp : Bexp → MacroM Syntax
@@ -115,36 +215,36 @@ def quoteMBexp : Bexp → MacroM Syntax
 
 
 
-def quoteMTerm : Term -> MacroM Syntax
-| .negation t => do
-     `(Term.negation $(<- (quoteMTerm t)))
-| .logical_negation t => do
-     `(Term.logical_negation $(<- (quoteMTerm t)))
-| .const c => do
-  `(Term.const $(<- (quoteM c)))
-| _ => Macro.throwError "unhandled term case"
+-- def quoteMTerm : Term -> MacroM Syntax
+-- | .negation t => do
+--      `(Term.negation $(<- (quoteMTerm t)))
+-- | .logical_negation t => do
+--      `(Term.logical_negation $(<- (quoteMTerm t)))
+-- | .const c => do
+--   `(Term.const $(<- (quoteM c)))
+-- | _ => Macro.throwError "unhandled term case"
+-- 
+-- instance : QuoteM Term where
+--   quoteM := quoteMTerm
+-- 
+-- instance [Inhabited a] [QuoteM a] : Quote a where
+--   quote (val: a) := runMacroM default (quoteM val)
 
-instance : QuoteM Term where
-  quoteM := quoteMTerm
-
-instance [Inhabited a] [QuoteM a] : Quote a where
-  quote (val: a) := runMacroM default (quoteM val)
-
-macro_rules
-  | `([constval| $x:constval ]) => do
-      
-     let val := mkConstval x
-     match val with
-       | .error msg => Macro.throwError msg
-       | .ok v => return (quote v)
-
-
-macro_rules
-| `([dsl_term| $x ]) => do
-   let val := mkTerm x
-   match val with
-   | .error msg => Macro.throwError msg
-   | .ok v => return (quote v)
+-- macro_rules
+--   | `([constval| $x:constval ]) => do
+--       
+--      let val := mkConstval x
+--      match val with
+--        | .error msg => Macro.throwError msg
+--        | .ok v => return (quote v)
+-- 
+-- 
+-- macro_rules
+-- | `([dsl_term| $x ]) => do
+--    let val := mkTerm x
+--    match val with
+--    | .error msg => Macro.throwError msg
+--    | .ok v => return (quote v)
 
 
 
@@ -620,3 +720,36 @@ def parseExpr := mkNonTerminalParser `expr mkExpr
 def parseFile := mkNonTerminalParser `file mkAST
 def parse := parseFile
 -/
+
+/- 
+# FAQ
+-/
+/-
+#### How do I debug a `macro_rule`?
+
+Use `dbg_trace` to print any information.
+-/
+
+syntax "[faq_debug|" term "]" :  term
+macro_rules
+| `([faq_debug| $x:term ]) => do 
+      dbg_trace x
+      return x
+
+def faq_debug_example : Int := [faq_debug| 1 + 2 + 3]
+-- («term_+_» («term_+_» (num "1") "+" (num "2")) "+" (num "3"))
+
+/-
+#### How do I throw an errror from a macro?
+
+Use `MacroM.throw: String → MacroM α
+-/
+
+syntax "[faq_error|" term "]" :  term
+macro_rules
+| `([faq_error| $x:term ]) => do 
+      Macro.throwError "error!"
+      return x
+
+def faq_error_example : Int := [faq_error| 42]
+-- error!
