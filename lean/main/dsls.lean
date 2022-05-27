@@ -16,14 +16,21 @@ open Lean
 We begin by defining the AST of the language:
 -/
 
-abbrev vname := String
-
+/-
+Arithmetic expressions are naturals, variables, or sums of other
+arithmetic expressions.
+-/
 inductive Aexp
 | ANat: Nat -> Aexp
 | AVar: String -> Aexp
 | APlus: Aexp -> Aexp -> Aexp
 deriving Inhabited
 
+/-
+Boolean expressions are either booleans (true/false), variables,
+an and (`&&`) of two booleans, or a less than comparison (`<`) between
+two arithmetic expressions.
+-/
 inductive Bexp
 | BBool: Bool -> Bexp
 | BVar: String -> Bexp
@@ -31,9 +38,14 @@ inductive Bexp
 | BLess: Aexp -> Aexp -> Bexp
 deriving Inhabited
 
+/-
+Commands can be either a `skip` command to skip the execution, an `assign`
+command to assign a value to a variable, a `seq`(`;;`) to sequence commands,
+an `if` for conditionals, and `while` for looping.
+-/
 inductive Command
 | Skip: Command
-| Assign: vname -> Aexp -> Command
+| Assign: String -> Aexp -> Command
 | Seq: Command -> Command -> Command
 | If: Bexp -> Command -> Command -> Command
 | While: Bexp -> Command -> Command
@@ -41,7 +53,9 @@ deriving Inhabited
 
 
 /-
-## Direct parsing by macros
+## Embedding a DSL via Macros
+
+We shall describe how to embed a dialect into Lean by using Lean macros.
 -/
 
 /-
