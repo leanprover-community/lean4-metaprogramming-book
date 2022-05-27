@@ -40,8 +40,6 @@ inductive Command
 deriving Inhabited
 
 
-
-
 /-
 ## Direct parsing by macros
 -/
@@ -101,8 +99,6 @@ syntax ident : imp_bexp
 Note that we want `<` to have lower precedence than `+`,
 whch we declare by annotating the parse rule with `syntax:min`. 
 -/
-syntax:min imp_aexp "<" imp_aexp : imp_bexp 
-syntax imp_bexp "&&" imp_bexp : imp_bexp
 
 /-
 Once again, we declare the macro `[imp_bexp|...]` which takes
@@ -137,6 +133,28 @@ def example_bexp_ident : Bexp := [imp_bexp| var]
 -- BExp.BVar "var"
 
 
+syntax:min imp_aexp "<" imp_aexp : imp_bexp 
+
+
+macro_rules
+| `([imp_bexp| $x:imp_aexp < $y:imp_aexp]) =>
+      `(Bexp.BLess [imp_aexp| $x] [imp_aexp| $y])
+
+def example_bexp_lt_1 : Bexp := [imp_bexp| 1 < 2]
+#print example_bexp_lt_1
+-- Bexp.BLess (Aexp.ANat 1) (Aexp.ANat 2)
+
+def example_bexp_lt_2 : Bexp := [imp_bexp| 1 + 1 < 2 + 2]
+#print example_bexp_lt_2
+-- Bexp.BLess (Aexp.ANat 1) (Aexp.ANat 2)
+
+syntax imp_bexp "&&" imp_bexp : imp_bexp
+macro_rules
+| `([imp_bexp| $x:imp_bexp && $y:imp_bexp]) => do
+    `(Bexp.Band [imp_bexp| $x] [imp_bexp| $y])
+
+def example_bexp_and_1: Bexp := [imp_bexp| true && true]
+#print example_bexp_and_1
 
 /-
 #### Parsing commands
