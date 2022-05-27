@@ -3,14 +3,20 @@ import Lean.Elab.Tactic
 /-
 # Tactics
 
-Tactics too are Lean programs that manipulate a custom state.
-All tactics are of type `TacticM Unit`. This has the type:
+We've finally come to what may be considered by many the end goal of this book.
+The reason why this chapter is placed after the DSL chapter is because the
+tactic mode in Lean 4 is itself a DSL.
+
+Tactics too are Lean programs that manipulate a custom state. All tactics are,
+in the end, of type `TacticM Unit`. This has the type:
 
 ```lean
 -- Lean/Elab/Tactic/Basic.lean
 TacticM = ReaderT Context $ StateRefT State TermElabM
 ```
-The goals of the proof state are represented by metavariables (`MVarId`).
+
+We will start by implementing tactics that compute in `TacticM` and then we
+shall see how some tactics can be implemented as macros.
 
 ## The simplest tactic: `sorry`
 
