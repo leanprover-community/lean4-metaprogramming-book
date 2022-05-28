@@ -386,45 +386,47 @@ well-understood formula.
 declare_syntax_cat imp_command
 
 syntax ident "=" imp_aexp : imp_command
+syntax "if" imp_bexp "then" imp_command "else" imp_command "fi" : imp_command
+syntax "while" imp_bexp "do" imp_command "od" : imp_command
 
-
-
-
-syntax "[imp_command|" imp_command "]" : term
-
-macro_rules
-| `([imp_command| $x:ident = $exp:imp_aexp]) => do
-      let xString : String := x.getId.toString
-      let xStx : Syntax := quote xString
-      `(Command.Assign $(xStx) [imp_aexp| $exp])
+partial def elabCommand (s: Syntax): TermElabM Expr := 
+match s with
+| `(imp_command| $x:ident = $e:imp_aexp) => do 
+    let xString : String := x.getId.toString
+    let elab_aexp (s: Syntax): TermElabM Expr := do
+        Term.elabTerm (<- `([imp_aexp'| $s])) none
+    let e <- elab_aexp e
+    mkAppM ``Command.Assign #[(mkStrLit xString),e]
+| `(imp_command| if $b:imp_bexp then $c:imp_command else $c':imp_command fi) => do 
+     let b <- elab_bexp b
+     let c <- elabCommand c -- recursion
+     let c' <- elabCommand c' -- recursion
+     mkAppM ``Command.If #[b, c, c']
+| `(imp_command| while $b:imp_bexp do $c:imp_command od) => do 
+     let b <- elab_bexp b
+     let c <- elabCommand c
+     mkAppM ``Command.While #[b, c]
+| _ => throwUnsupportedSyntax
+    
+ 
+elab "[imp_command|" s:imp_command "]" : term => elabCommand s
 
 def eg_command_assign : Command := [imp_command| x = 11 + 20]
 #print eg_command_assign
 -- Command.Assign "x" (AExp.APlus (AExp.ANat 10) (AExp.ANat 20))
 
-syntax "if'" imp_bexp "then" imp_command "else" imp_command : imp_command
-
-macro_rules
-| `([imp_command| if' $b:imp_bexp then $t:imp_command else $e:imp_command]) => do
-      `(Command.If [imp_bexp| $b] [imp_command| $t] [imp_command| $e])
-
-def eg_command_if : Command := [imp_command| if' 1 < 2 then x = 10 else x = 20]
+def eg_command_if : Command := [imp_command| if 1 < 2 then x = 10 else x = 20 fi]
 #print eg_command_if
 -- Command.If (BExp.BLess (AExp.ANat 1) (AExp.ANat 2))
 --  (Command.Assign "x" (AExp.ANat 10))
 --  (Command.Assign "x" (AExp.ANat 20))
-
-syntax "while" imp_bexp "do" imp_command : imp_command
-macro_rules
-| `([imp_command| while $b:imp_bexp do $t:imp_command]) => do
-     `(Command.While [imp_bexp| $b] [imp_command| $t])
-
-def eg_command_while : Command := [imp_command| while x < 3 do x = x + 10]
+def eg_command_while : Command := [imp_command| while x < 3 do x = x + 10 od]
 #print eg_command_while
 -- Command.While
 --  (BExp.BLess (AExp.AVar "x") (AExp.ANat 3))
 --  (Command.Assign "x" (AExp.APlus (AExp.AVar "x") (AExp.ANat 10)))
 
+-- | TODO: is this too low level? Should we just use sepBy and call it a day?
 /-
 A placeholder with precedence `p` accepts only notations with precedence at
 least `p` in that place.  Thus the string `a + b + c` cannot be parsed as the
@@ -434,9 +436,17 @@ notation has precedence one greater than the notation itself.
 
 syntax:60 imp_command:61 ";;" imp_command:60 : imp_command
 
-macro_rules
-| `([imp_command| $x ;; $y ]) => do
-      `(Command.Seq [imp_command| $x] [imp_command| $y])
+/- Once again, we hijack the elaborator by adding a new rule to the elaboration -/
+
+partial def elabCompound (x: Syntax) : TermElabM Expr :=
+match x with
+| `(imp_command| $a:imp_command ;; $b:imp_command) => do 
+      let a <- elabCompound a
+      let b <- elabCompound b 
+      mkAppM ``Command.Seq #[a, b]
+| other => elabCommand other -- hook into previous elaborator.
+
+elab "[imp_command|" x:imp_command "]" : term => elabCompound x
 
 def eg_command_seq : Command := [imp_command| x = 1 ;; x = 2 ;; x = 3 ;; x = 4]
 #print eg_command_seq
@@ -444,31 +454,30 @@ def eg_command_seq : Command := [imp_command| x = 1 ;; x = 2 ;; x = 3 ;; x = 4]
 --  (Command.Seq (Command.Assign "x" (AExp.ANat 2)) (Command.Assign "x" (AExp.ANat 3)))
 
 /-
-Compare the above to an "incorrect" parse, given by defining the
-precedences in the opposite way:
--/
-
-syntax:60 imp_command:60 ";×;" imp_command:61 : imp_command
-
-macro_rules
-| `([imp_command| $x ;×; $y ]) => do
-      `(Command.Seq [imp_command| $x] [imp_command| $y])
-
-
-def eg_command_seqx : Command := [imp_command| x = 1 ;×; x = 2 ;×; x = 3 ;×; x = 4]
-#print eg_command_seqx
--- Command.Seq
--- |(Command.Seq
--- |  (Command.Seq
--- |  | (Command.Assign "x" (AExp.ANat 1))
--- |  | (Command.Assign "x" (AExp.ANat 2)))
--- |  (Command.Assign "x" (AExp.ANat 3)))
--- |(Command.Assign "x" (AExp.ANat 4))
-
-
-/-
 At this point, we have defined the full parsing infrastructure.
 -/
+
+def eg_command_all := [imp_command|
+  x = 1 ;;
+  y = 0 ;;
+  while x < 10 do 
+    y = y + 1
+  od ;;
+  if x < 10
+  then y = y + 2
+  else y = y + 3
+  fi
+]
+#print eg_command_all
+-- Command.Seq (Command.Assign "x" (AExp.ANat 1))
+--   (Command.Seq (Command.Assign "y" (AExp.ANat 0))
+--     (Command.Seq
+--       (Command.While (BExp.BLess (AExp.AVar "x") (AExp.ANat 10))
+--         (Command.Assign "y" (AExp.APlus (AExp.AVar "y") (AExp.ANat 1))))
+--       (Command.If (BExp.BLess (AExp.AVar "x") (AExp.ANat 10))
+--         (Command.Assign "y" (AExp.APlus (AExp.AVar "y") (AExp.ANat 2)))
+--         (Command.Assign "y" (AExp.APlus (AExp.AVar "y") (AExp.ANat 3))))))
+
 
 
 /-
