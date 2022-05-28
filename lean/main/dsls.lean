@@ -20,10 +20,10 @@ We begin by defining the AST of the language:
 Arithmetic expressions are naturals, variables, or sums of other
 arithmetic expressions.
 -/
-inductive Aexp
-| ANat: Nat -> Aexp
-| AVar: String -> Aexp
-| APlus: Aexp -> Aexp -> Aexp
+inductive AExp
+| ANat: Nat -> AExp
+| AVar: String -> AExp
+| APlus: AExp -> AExp -> AExp
 deriving Inhabited
 
 /-
@@ -31,11 +31,11 @@ Boolean expressions are either booleans (true/false), variables,
 an and (`&&`) of two booleans, or a less than comparison (`<`) between
 two arithmetic expressions.
 -/
-inductive Bexp
-| BBool: Bool -> Bexp
-| BVar: String -> Bexp
-| BAnd: Bexp -> Bexp -> Bexp
-| BLess: Aexp -> Aexp -> Bexp
+inductive BExp
+| BBool: Bool -> BExp
+| BVar: String -> BExp
+| BAnd: BExp -> BExp -> BExp
+| BLess: AExp -> AExp -> BExp
 deriving Inhabited
 
 /-
@@ -45,10 +45,10 @@ an `if` for conditionals, and `while` for looping.
 -/
 inductive Command
 | Skip: Command
-| Assign: String -> Aexp -> Command
+| Assign: String -> AExp -> Command
 | Seq: Command -> Command -> Command
-| If: Bexp -> Command -> Command -> Command
-| While: Bexp -> Command -> Command
+| If: BExp -> Command -> Command -> Command
+| While: BExp -> Command -> Command
 deriving Inhabited
 
 
@@ -62,7 +62,7 @@ that is the focus of this section.
 -/
 
 /-
-#### Parsing aexp
+#### Parsing AExp
 -/
 
 
@@ -82,10 +82,10 @@ macro_rules
 | `([imp_aexp| $n:num ]) => do
    let n : Nat := n.toNat -- grab the number.
    let nStx : Syntax := Lean.quote n -- quote the number.
-   `(Aexp.ANat $(nStx)) -- return the syntax.
+   `(AExp.ANat $(nStx)) -- return the syntax.
 
-def eg_aexp_num_macro: Aexp := [imp_aexp| 42]
-#reduce eg_aexp_num_macro
+def eg_AExp_num_macro: AExp := [imp_aexp| 42]
+#reduce eg_AExp_num_macro
 
 /-
 In contrast to this approach, when we write an `elab`orator,
@@ -107,13 +107,13 @@ name `name` to an expression `e`.
 -/
 
 
-def elab_aexp_num (s: Syntax): TermElabM Expr :=
+def elab_AExp_num (s: Syntax): TermElabM Expr :=
 match s with
 | `(imp_aexp| $n:num) => 
         -- build an Expr by hand
-        mkAppM ``Aexp.ANat #[ mkNatLit n.toNat ]
+        mkAppM ``AExp.ANat #[ mkNatLit n.toNat ]
 | _ => do 
-   dbg_trace "elab_aexp_num failed"
+   dbg_trace "elab_AExp_num failed"
    throwUnsupportedSyntax
 
 /-
@@ -130,31 +130,31 @@ much as we do when writing macros, called `[imp_aexp'|...]` which takes
 an `imp_aexp` and produces an `Expr`:
 -/
 
-elab "[imp_aexp'|" s:imp_aexp  "]" : term => elab_aexp_num s
+elab "[imp_aexp'|" s:imp_aexp  "]" : term => elab_AExp_num s
 
 /-
-We invoke this on the number 42, and we do get out an `Aexp.ANat 42`:
+We invoke this on the number 42, and we do get out an `AExp.ANat 42`:
 -/
 
-def eg_aexp_num_elab: Aexp := [imp_aexp'| 42]
-#reduce eg_aexp_num_elab
--- Aexp.ANat 42
+def eg_AExp_num_elab: AExp := [imp_aexp'| 42]
+#reduce eg_AExp_num_elab
+-- AExp.ANat 42
 
 /-
 Let's write a macro_rules for converting identifiers.
 We see that we need to grab the string as `nameStr`, then
 quote the string back into `Syntax`, and then we finally build
-the `Aexp.Avar`.
+the `AExp.Avar`.
 -/
 macro_rules
 | `([imp_aexp| $name:ident ]) => do
    let nameStr : String := name.getId.toString
    let nameStx : Syntax := Lean.quote nameStr
-   `(Aexp.AVar $(nameStx))
+   `(AExp.AVar $(nameStx))
 
-def eg_aexp_ident_macro: Aexp := [imp_aexp|  foo]
-#reduce eg_aexp_ident_macro
--- Aexp.AVar "foo"
+def eg_AExp_ident_macro: AExp := [imp_aexp|  foo]
+#reduce eg_AExp_ident_macro
+-- AExp.AVar "foo"
 
 /-
 In contrast to the `macro_rules` based solution, see that
@@ -165,7 +165,7 @@ and `mkStrLit: String → Expr` to convert a string into an `Expr`.
 def elab_aexp_ident (s: Syntax): TermElabM Expr :=
 match s with 
 | `(imp_aexp| $n:ident) =>
-      mkAppM ``Aexp.AVar #[mkStrLit n.getId.toString]
+      mkAppM ``AExp.AVar #[mkStrLit n.getId.toString]
 | _ => do 
   dbg_trace "elab_aexp_ident failed."
   throwUnsupportedSyntax
@@ -177,18 +177,18 @@ a `s:imp_aexp` with `elab_aexp_ident`.
 -/
 elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_ident s
 
-def eg_aexp_ident_elab: Aexp := [imp_aexp'|  foo]
-#reduce eg_aexp_ident_elab
--- Aexp.AVar "foo"
+def eg_AExp_ident_elab: AExp := [imp_aexp'|  foo]
+#reduce eg_AExp_ident_elab
+-- AExp.AVar "foo"
 
 /-
 We test that our new elaboration rule did not interfere with 
 our previous rule to parse numbers:
 -/
-def eg_aexp_num2_elab: Aexp := [imp_aexp'|  43]
-#reduce eg_aexp_num2_elab
+def eg_AExp_num2_elab: AExp := [imp_aexp'|  43]
+#reduce eg_AExp_num2_elab
 -- elab_aexp_ident failed.
--- Aexp.AVar "43"
+-- AExp.AVar "43"
 
 /-
 See that we have *not* lost the ability to parse numbers when we introduced
@@ -213,7 +213,7 @@ We can try a piece of grammar that has not been handled yet, and see how both el
 will be invoked in succession:
 -/
 
-def eg_aexp_fail: Aexp := [imp_aexp'| 42 + 43]
+def eg_AExp_fail: AExp := [imp_aexp'| 42 + 43]
 -- elab_aexp_ident failed.
 -- elab_aexp_num failed
 
@@ -232,15 +232,17 @@ macro_rules
 | `([imp_aexp| $x:imp_aexp + $y:imp_aexp]) => do
       let xStx <- `([imp_aexp| $(x)])
       let yStx <- `([imp_aexp| $(y)])
-      `(Aexp.APlus $xStx $yStx)
+      `(AExp.APlus $xStx $yStx)
 
-def eg_aexp_plus_macro: Aexp := [imp_aexp| foo + bar]
+def eg_aexp_plus_macro: AExp := [imp_aexp| foo + bar]
 #reduce eg_aexp_plus_macro
--- Aexp.APlus (Aexp.AVar "foo") (Aexp.AVar "bar")
+-- AExp.APlus (AExp.AVar "foo") (AExp.AVar "bar")
+
+
 
 /-
 This time, to recursively expand `imp_aexp`, we use
-`Term.elabTerm`.
+`Term.elabTerm`.  
 -/
 
 def elab_aexp_plus (s: Syntax): TermElabM Expr := 
@@ -248,101 +250,123 @@ match s with
 | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
      let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) none
      let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) none
-     mkAppM ``Aexp.APlus #[xExpr, yExpr]
+     mkAppM ``AExp.APlus #[xExpr, yExpr]
 | _ => do 
    dbg_trace "elab_aexp_plus failed"
    throwUnsupportedSyntax
 
 
 elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_plus s
-def eg_aexp_plus_elab: Aexp := [imp_aexp'| foo + bar]
+def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 #print eg_aexp_plus_elab
--- Aexp.APlus (Aexp.AVar "foo") (Aexp.AVar "bar")
+-- AExp.APlus (AExp.AVar "foo") (AExp.AVar "bar")
 
 
 /-
 #### Parsing BExp
 
 We repeat the same process, this time for `BExp`.
+This time, we show a different method to writing the elaboration
+function `elab_bexp: Syntax → TermElabM Expr`, where we write
+the function as a regular lean function, and use regular recursion
+to elaborate our `BExp`.
 -/
+
 
 declare_syntax_cat imp_bexp
 syntax ident : imp_bexp
+syntax imp_aexp "<" imp_aexp : imp_bexp
+syntax imp_bexp "&&" imp_bexp : imp_bexp
+
+-- Helper to convert Booleans into expressions
+def mkBoolLit: Bool -> Expr
+| true => mkConst ``Bool.true
+| false => mkConst ``Bool.false
+
+
+-- As we saw before, we can elaborate `AExp` by using `elabTerm`. Let's
+-- write a helper for this as well
+
+partial def elab_bexp (s: Syntax): TermElabM Expr := 
+match s with
+| `(imp_bexp| $n:ident) =>
+     let str := n.getId.toString
+     match str with 
+     | "true" => mkAppM ``BExp.BBool #[mkBoolLit true]
+     | "false" => mkAppM ``BExp.BBool #[mkBoolLit false]
+     | n => mkAppM ``BExp.BVar #[mkStrLit str]
 
 /-
-Note that we want `<` to have lower precedence than `+`,
-whch we declare by annotating the parse rule with `syntax:min`.
+To elaborate `aexp`s, we wrie a helper called `elab_aexp`, that calls
+`elabTerm` on the term `[imp_aexp'| $s]`. This produces an `Expr` node,
+which we use to build a `BExp.BLess`
 -/
-
+| `(imp_bexp| $x:imp_aexp < $y:imp_aexp) => do  
+     let elab_aexp (s: Syntax): TermElabM Expr := do
+        Term.elabTerm (<- `([imp_aexp'| $s])) none
+       let x <- elab_aexp x
+       let y <- elab_aexp y
+       mkAppM ``BExp.BLess #[x, y]
 /-
-Once again, we declare the macro `[imp_bexp|...]` which takes
-an `imp_exp` and produces a Lean `term`.
+To elaborate `bexp`s, we recursively call `elab_bexp` to elaborate
+the left and the right hand side, and we then finally create a `BExp.BAnd`
+term.
 -/
-syntax "[imp_bexp| " imp_bexp "]" : term
+| `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
+     let x <- elab_bexp x -- recursion  
+     let y <- elab_bexp y -- recursion
+     mkAppM ``BExp.BAnd #[x, y]
+| _ => throwUnsupportedSyntax
 
-/-
-We write the macro rule once more:
+
+/- 
+Finally, we write the elaborator rule that invokes the function
+`elab_bexp` upon seeing an `[imp_bexp|...]`.
 -/
 
-macro_rules
-| `([imp_bexp| $x:ident]) => do
-    let xStr : String := x.getId.toString
-    match xStr with
-    | "true" => `(Bexp.BBool true)
-    | "false" => `(Bexp.BBool false)
-    | _ => do
-       let xStx : Syntax := quote xStr
-       `(Bexp.BVar $xStx)
+elab "[imp_bexp|" s:imp_bexp "]" : term => elab_bexp s 
 
-def eg_bexp_true : Bexp := [imp_bexp| true]
+
+def eg_bexp_true : BExp := [imp_bexp| true]
 #print eg_bexp_true
 -- BExp.BBool true
 
-def eg_bexp_false : Bexp := [imp_bexp| false]
+def eg_bexp_false : BExp := [imp_bexp| false]
 #print eg_bexp_false
 -- BExp.BBool false
 
-def eg_bexp_ident : Bexp := [imp_bexp| var]
+def eg_bexp_ident : BExp := [imp_bexp| var]
 #print eg_bexp_ident
 -- BExp.BVar "var"
 
 
-syntax:30 imp_aexp "<" imp_aexp : imp_bexp
 
 
-macro_rules
-| `([imp_bexp| $x:imp_aexp < $y:imp_aexp]) =>
-      `(Bexp.BLess [imp_aexp| $x] [imp_aexp| $y])
 
-def eg_bexp_lt_1 : Bexp := [imp_bexp| 1 < 2]
+def eg_bexp_lt_1 : BExp := [imp_bexp| 1 < 2]
 #print eg_bexp_lt_1
--- Bexp.BLess (Aexp.ANat 1) (Aexp.ANat 2)
+-- BExp.BLess (AExp.ANat 1) (AExp.ANat 2)
 
-def eg_bexp_lt_2 : Bexp := [imp_bexp| 1 + 1 < 2 + 2]
+def eg_bexp_lt_2 : BExp := [imp_bexp| 1 + 1 < 2 + 2]
 #print eg_bexp_lt_2
--- Bexp.BLess (Aexp.ANat 1) (Aexp.ANat 2)
+-- BExp.BLess (AExp.ANat 1) (AExp.ANat 2)
 
-syntax:20 imp_bexp "&&" imp_bexp : imp_bexp
-macro_rules
-| `([imp_bexp| $x:imp_bexp && $y:imp_bexp]) => do
-    `(Bexp.BAnd [imp_bexp| $x] [imp_bexp| $y])
-
-def eg_bexp_and_1: Bexp := [imp_bexp| true && true]
+def eg_bexp_and_1: BExp := [imp_bexp| true && true]
 #print eg_bexp_and_1
--- Bexp.BAnd (Bexp.BBool true) (Bexp.BBool true)
+-- BExp.BAnd (BExp.BBool true) (BExp.BBool true)
 
-def eg_bexp_and_2: Bexp := [imp_bexp| a < b && c < d]
+def eg_bexp_and_2: BExp := [imp_bexp| a < b && c < d]
 #print eg_bexp_and_2
--- Bexp.BAnd (Bexp.BLess (Aexp.AVar "a") (Aexp.AVar "b"))
---           (Bexp.BLess (Aexp.AVar "c") (Aexp.AVar "d"))
+-- BExp.BAnd (BExp.BLess (AExp.AVar "a") (AExp.AVar "b"))
+--           (BExp.BLess (AExp.AVar "c") (AExp.AVar "d"))
 
-def eg_bexp_and_3: Bexp := [imp_bexp| x + y < z && p + q < r]
+def eg_bexp_and_3: BExp := [imp_bexp| x + y < z && p + q < r]
 #print eg_bexp_and_3
--- Bexp.BAnd
---    (Bexp.BLess (Aexp.APlus (Aexp.AVar "x") (Aexp.AVar "y"))
---                (Aexp.AVar "z"))
---    (Bexp.BLess (Aexp.APlus (Aexp.AVar "p") (Aexp.AVar "q"))
---                (Aexp.AVar "r"))
+-- BExp.BAnd
+--    (BExp.BLess (AExp.APlus (AExp.AVar "x") (AExp.AVar "y"))
+--                (AExp.AVar "z"))
+--    (BExp.BLess (AExp.APlus (AExp.AVar "p") (AExp.AVar "q"))
+--                (AExp.AVar "r"))
 
 /-
 See that our annotations ensure that we parse precedence
@@ -363,6 +387,9 @@ declare_syntax_cat imp_command
 
 syntax ident "=" imp_aexp : imp_command
 
+
+
+
 syntax "[imp_command|" imp_command "]" : term
 
 macro_rules
@@ -373,7 +400,7 @@ macro_rules
 
 def eg_command_assign : Command := [imp_command| x = 11 + 20]
 #print eg_command_assign
--- Command.Assign "x" (Aexp.APlus (Aexp.ANat 10) (Aexp.ANat 20))
+-- Command.Assign "x" (AExp.APlus (AExp.ANat 10) (AExp.ANat 20))
 
 syntax "if'" imp_bexp "then" imp_command "else" imp_command : imp_command
 
@@ -383,9 +410,9 @@ macro_rules
 
 def eg_command_if : Command := [imp_command| if' 1 < 2 then x = 10 else x = 20]
 #print eg_command_if
--- Command.If (Bexp.BLess (Aexp.ANat 1) (Aexp.ANat 2))
---  (Command.Assign "x" (Aexp.ANat 10))
---  (Command.Assign "x" (Aexp.ANat 20))
+-- Command.If (BExp.BLess (AExp.ANat 1) (AExp.ANat 2))
+--  (Command.Assign "x" (AExp.ANat 10))
+--  (Command.Assign "x" (AExp.ANat 20))
 
 syntax "while" imp_bexp "do" imp_command : imp_command
 macro_rules
@@ -395,8 +422,8 @@ macro_rules
 def eg_command_while : Command := [imp_command| while x < 3 do x = x + 10]
 #print eg_command_while
 -- Command.While
---  (Bexp.BLess (Aexp.AVar "x") (Aexp.ANat 3))
---  (Command.Assign "x" (Aexp.APlus (Aexp.AVar "x") (Aexp.ANat 10)))
+--  (BExp.BLess (AExp.AVar "x") (AExp.ANat 3))
+--  (Command.Assign "x" (AExp.APlus (AExp.AVar "x") (AExp.ANat 10)))
 
 /-
 A placeholder with precedence `p` accepts only notations with precedence at
@@ -413,8 +440,8 @@ macro_rules
 
 def eg_command_seq : Command := [imp_command| x = 1 ;; x = 2 ;; x = 3 ;; x = 4]
 #print eg_command_seq
--- Command.Seq (Command.Assign "x" (Aexp.ANat 1))
---  (Command.Seq (Command.Assign "x" (Aexp.ANat 2)) (Command.Assign "x" (Aexp.ANat 3)))
+-- Command.Seq (Command.Assign "x" (AExp.ANat 1))
+--  (Command.Seq (Command.Assign "x" (AExp.ANat 2)) (Command.Assign "x" (AExp.ANat 3)))
 
 /-
 Compare the above to an "incorrect" parse, given by defining the
@@ -433,10 +460,10 @@ def eg_command_seqx : Command := [imp_command| x = 1 ;×; x = 2 ;×; x = 3 ;×; 
 -- Command.Seq
 -- |(Command.Seq
 -- |  (Command.Seq
--- |  | (Command.Assign "x" (Aexp.ANat 1))
--- |  | (Command.Assign "x" (Aexp.ANat 2)))
--- |  (Command.Assign "x" (Aexp.ANat 3)))
--- |(Command.Assign "x" (Aexp.ANat 4))
+-- |  | (Command.Assign "x" (AExp.ANat 1))
+-- |  | (Command.Assign "x" (AExp.ANat 2)))
+-- |  (Command.Assign "x" (AExp.ANat 3)))
+-- |(Command.Assign "x" (AExp.ANat 4))
 
 
 /-
