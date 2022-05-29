@@ -14,9 +14,12 @@ open Lean
 
 /--
 We begin by defining the AST of the language:
+We have arithmetic expressions, boolean expressions, and commands.
 -/
 
 /-
+#### Arithmetic Expressions
+
 Arithmetic expressions are naturals, variables, or sums of other
 arithmetic expressions.
 -/
@@ -27,6 +30,8 @@ inductive AExp
 deriving Inhabited
 
 /-
+#### Boolean Expressions
+
 Boolean expressions are either booleans (true/false), variables,
 an and (`&&`) of two booleans, or a less than comparison (`<`) between
 two arithmetic expressions.
@@ -39,6 +44,8 @@ inductive BExp
 deriving Inhabited
 
 /-
+#### Command
+
 Commands can be either a `skip` command to skip the execution, an `assign`
 command to assign a value to a variable, a `seq`(`;;`) to sequence commands,
 an `if` for conditionals, and `while` for looping.
@@ -53,7 +60,7 @@ deriving Inhabited
 
 
 /-
-## Embedding a DSL via Low-level Elaboration
+## Embedding a DSL via Low-level Syntax Elaboration
 
 In this section, we shall contrast the previously explained
 macro-based approach (which has type `Syntax → MacroM Syntax`)
@@ -62,7 +69,7 @@ that is the focus of this section.
 -/
 
 /-
-#### Parsing AExp
+#### Parsing AExp via Syntax Elaboration
 -/
 
 
@@ -94,14 +101,18 @@ data type that Syntax is finally reduced down to. `Expr`
 only contains the bare minimum to express a dependently typed language,
 so as we shall see, building `Expr`s will be more laborious.
 
-The lower level match syntax is of the form 
+We shall use a `match` syntax which is of the form:
 
 ```
 match <syntax-node> with
-| `(syntax<category>| <match-pattern>) => <rhs>
+| `(<syntax-category>| <match-pattern>) => <rhs>
 ```
 
-First, we write a combinator `mkApp': Name → Expr → Expr`
+This means that we are looking for `Syntax` nodes whose syntax
+category is `<syntax-category>`, which match the `<match-pattern>`.
+
+To write a low level `elab`orator for `num`,
+we write a combinator `mkApp': Name → Expr → Expr`
 that create an `Expr` denoting the function application of a 
 name `name` to an expression `e`.
 -/
@@ -512,3 +523,20 @@ macro_rules
 
 def eg_faq_error : Int := [faq_error| 42]
 -- error!
+
+/-
+#### What is a syntax category, exactly?
+
+A syntax category is information that is stored in a `Syntax` node about 
+which nonterminal it belongs to. Intuitively, a grammar contains rules such as:
+
+```
+Expr -> Term
+Term -> Factor
+Factor -> number
+```
+
+and it is thus important to know whether a given token `42` is a `Factor`, or a `Term`,
+or an `Expr`, since it could conceivably be any of these, by the derivations `Factor -> Number`,
+`Term -> Factor -> Number`, and `Expr -> Term -> Factor -> Number` respectively.
+-/
