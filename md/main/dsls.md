@@ -1,7 +1,28 @@
-## DSLs in Lean
+# Elaboration
 
-In this tutorial, we shall write a DSL for [IMP](http://concrete-semantics.org/concrete-semantics.pdf),
-which is a simple imperative language.
+In this tutorial, we will learn about constructing `Expr`essions directly,
+rather than producing `Syntax`. This will have us hook into the elaborator
+via `elab` statements. This provides one with more control, since the
+monad that is used during elaboration (`TermElabM` and `CommandElabM`) offer
+access to `MetaM`, which provides access to, in Leonardo De Moura's 
+words:
+
+> 1. Weak head normal form computation with support for metavariables and transparency modes.
+> 2. Definitionally equality checking with support for metavariables (aka unification modulo definitional equality).
+> 3. Type inference.
+> 4. Type class resolution.
+
+We do not explore the full power of `MetaM` in this tutorial, and simply 
+gesture at how to get access to this low-level machinery.
+
+
+## DSLs in Lean via TermElabM
+
+We shall write a DSL for
+[IMP](http://concrete-semantics.org/concrete-semantics.pdf),
+which is a simple imperative language, using the `TermElabM` infrastructure,
+where we will build low-level `Expr`s, instead of higher level syntax trees 
+with `Syntax`.
 
 ```lean
 import Lean
@@ -15,6 +36,9 @@ open Lean
 
 -
 We begin by defining the AST of the language:
+We have arithmetic expressions, boolean expressions, and commands.
+
+#### Arithmetic Expressions
 
 Arithmetic expressions are naturals, variables, or sums of other
 arithmetic expressions.
@@ -26,6 +50,8 @@ inductive AExp
 | APlus: AExp -> AExp -> AExp
 deriving Inhabited
 ```
+
+#### Boolean Expressions
 
 Boolean expressions are either booleans (true/false), variables,
 an and (`&&`) of two booleans, or a less than comparison (`<`) between
@@ -39,6 +65,8 @@ inductive BExp
 | BLess: AExp -> AExp -> BExp
 deriving Inhabited
 ```
+
+#### Command
 
 Commands can be either a `skip` command to skip the execution, an `assign`
 command to assign a value to a variable, a `seq`(`;;`) to sequence commands,
@@ -54,14 +82,14 @@ inductive Command
 deriving Inhabited
 ```
 
-## Embedding a DSL via Low-level Elaboration
+## Embedding a DSL via Low-level Syntax Elaboration
 
 In this section, we shall contrast the previously explained
 macro-based approach (which has type `Syntax → MacroM Syntax`)
 with the lower level elaborator (which has type `Syntax → TermElabM Expr`)
 that is the focus of this section.
 
-#### Parsing AExp
+#### Parsing AExp via Syntax Elaboration
 
 ```lean
 declare_syntax_cat imp_aexp
@@ -92,14 +120,18 @@ data type that Syntax is finally reduced down to. `Expr`
 only contains the bare minimum to express a dependently typed language,
 so as we shall see, building `Expr`s will be more laborious.
 
-The lower level match syntax is of the form 
+We shall use a `match` syntax which is of the form:
 
 ```
 match <syntax-node> with
-| `(syntax<category>| <match-pattern>) => <rhs>
+| `(<syntax-category>| <match-pattern>) => <rhs>
 ```
 
-First, we write a combinator `mkApp': Name → Expr → Expr`
+This means that we are looking for `Syntax` nodes whose syntax
+category is `<syntax-category>`, which match the `<match-pattern>`.
+
+To write a low level `elab`orator for `num`,
+we write a combinator `mkApp': Name → Expr → Expr`
 that create an `Expr` denoting the function application of a 
 name `name` to an expression `e`.
 
@@ -217,35 +249,35 @@ def eg_AExp_fail: AExp := [imp_aexp'| 42 + 43]
 Clearly, both parses `elab_aexp_ident` and `elab_aexp_num`
 are tried in succession, and both fail, leading to an error.
 
-We shall fix this omission, and finally parse the addition node, first as a macro rule:
-
-```lean
-macro_rules
-| `([imp_aexp| $x:imp_aexp + $y:imp_aexp]) => do
-      let xStx <- `([imp_aexp| $(x)])
-      let yStx <- `([imp_aexp| $(y)])
-      `(AExp.APlus $xStx $yStx)
-
-def eg_aexp_plus_macro: AExp := [imp_aexp| foo + bar]
-#reduce eg_aexp_plus_macro
--- AExp.APlus (AExp.AVar "foo") (AExp.AVar "bar")
-```
-
-This time, to recursively expand `imp_aexp`, we use
-`Term.elabTerm`.
+We shall fix this omission, and finally parse the addition node. 
+We go directly to parsing with `elab`, since the `macro_rules`
+approach does not have anything more interesting to say.
 
 ```lean
 def elab_aexp_plus (s: Syntax): TermElabM Expr := 
 match s with 
 | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
-     let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) none
-     let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) none
+     -- recrsively expand xExpr, yExpr via `Term.elabTerm`
+     let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) (expectedType? := none)
+     let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) (expectedType? := none)
      mkAppM ``AExp.APlus #[xExpr, yExpr]
 | _ => do 
    dbg_trace "elab_aexp_plus failed"
    throwUnsupportedSyntax
+```
 
+Note that we make use of a couple of features here:
+1. `TermElabM` allows us to use macros, so we build the
+    piece of syntax `[imp_aexp'| $x]`. We can see that `TermElabM`
+    in this way already subsumes `macroM`.
+2. To recursively expand `imp_aexp`, we use `Term.elabTerm`.  
+3. See that there is an option, `expectedType? : Option Expr` which allows
+   us to declare the type we expect the elaborated term to be. We ignore
+   this in the tutorial, but make a point to note it, since this shows that
+   `TermElabM` really is capable of reasoning about _types_, and not just
+   `Syntax`.
 
+```lean
 elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_plus s
 def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 #print eg_aexp_plus_elab
@@ -257,7 +289,8 @@ def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 We repeat the same process, this time for `BExp`.
 This time, we show a different method to writing the elaboration
 function `elab_bexp: Syntax → TermElabM Expr`, where we write
-the function as a regular lean function, and use regular recursion
+the function for all `BExp`s at once. This allows us to
+write it as a regular lean function, and use regular recursion
 to elaborate our `BExp`.
 
 ```lean
@@ -265,16 +298,21 @@ declare_syntax_cat imp_bexp
 syntax ident : imp_bexp
 syntax imp_aexp "<" imp_aexp : imp_bexp
 syntax imp_bexp "&&" imp_bexp : imp_bexp
+```
 
--- Helper to convert Booleans into expressions
+We first create a helper to function
+to convert Booleans into `Expr`s.
+
+```lean
 def mkBoolLit: Bool -> Expr
 | true => mkConst ``Bool.true
 | false => mkConst ``Bool.false
+```
 
+We then write the elaborator for `BExp` as `elab_bexp`. We first
+handle `true`, `false`, and identifiers in the natural way:
 
--- As we saw before, we can elaborate `AExp` by using `elabTerm`. Let's
--- write a helper for this as well
-
+```lean
 partial def elab_bexp (s: Syntax): TermElabM Expr := 
 match s with
 | `(imp_bexp| $n:ident) =>
@@ -285,9 +323,9 @@ match s with
      | n => mkAppM ``BExp.BVar #[mkStrLit str]
 ```
 
-To elaborate `aexp`s, we wrie a helper called `elab_aexp`, that calls
-`elabTerm` on the term `[imp_aexp'| $s]`. This produces an `Expr` node,
-which we use to build a `BExp.BLess`
+To elaborate the less than (`<`) operator on `aexp`s, we wrie a helper called
+`elab_aexp`, that calls `elabTerm` on the term `[imp_aexp'| $s]`. This produces
+an `Expr` node, which we use to build a `BExp.BLess`
 
 ```lean
 | `(imp_bexp| $x:imp_aexp < $y:imp_aexp) => do  
@@ -298,9 +336,9 @@ which we use to build a `BExp.BLess`
        mkAppM ``BExp.BLess #[x, y]
 ```
 
-To elaborate `bexp`s, we recursively call `elab_bexp` to elaborate
-the left and the right hand side, and we then finally create a `BExp.BAnd`
-term.
+To elaborate the logical and (`&&`) operator on `bexp`s, we recursively call
+`elab_bexp` to elaborate the left and the right hand side, and we then finally
+create a `BExp.BAnd` term.
 
 ```lean
 | `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
@@ -359,11 +397,7 @@ def eg_bexp_and_3: BExp := [imp_bexp| x + y < z && p + q < r]
 --                (AExp.AVar "r"))
 ```
 
-See that our annotations ensure that we parse precedence
-correctly. We correctly bind `+` tighter than `<`,
-and `<` tighter than `&&`.
-
-#### Parsing commands
+#### Parsing Commands
 
 We'll parse the final piece of the puzzle, the commands.
 It's going to be old hat at this point, and we follow the hopefully
@@ -469,6 +503,10 @@ def eg_command_all := [imp_command|
 --         (Command.Assign "y" (AExp.APlus (AExp.AVar "y") (AExp.ANat 3))))))
 ```
 
+In this section, we have understood the difference between `macro_rules`
+and `elab`. We saw how to build `Expr` nodes, which are the lowest level of encoding
+of `Lean` terms, as opposed to `Syntax` nodes which can undergo further elaboration.
+
 # FAQ
 
 #### How do I debug a `macro_rule`?
@@ -500,3 +538,18 @@ macro_rules
 def eg_faq_error : Int := [faq_error| 42]
 -- error!
 ```
+
+#### What is a syntax category, exactly?
+
+A syntax category is information that is stored in a `Syntax` node about 
+which nonterminal it belongs to. Intuitively, a grammar contains rules such as:
+
+```
+Expr -> Term
+Term -> Factor
+Factor -> number
+```
+
+and it is thus important to know whether a given token `42` is a `Factor`, or a `Term`,
+or an `Expr`, since it could conceivably be any of these, by the derivations `Factor -> Number`,
+`Term -> Factor -> Number`, and `Expr -> Term -> Factor -> Number` respectively.
