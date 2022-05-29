@@ -181,7 +181,6 @@ match s with
   dbg_trace "elab_aexp_ident failed."
   throwUnsupportedSyntax
 
-
 /-
 We add our `elab` rule, which says that we can try to elaborate
 a `s:imp_aexp` with `elab_aexp_ident`. 
@@ -231,12 +230,9 @@ def eg_AExp_fail: AExp := [imp_aexp'| 42 + 43]
 /-
 Clearly, both parses `elab_aexp_ident` and `elab_aexp_num`
 are tried in succession, and both fail, leading to an error.
--/
 
-
-
-/-
-We shall fix this omission, and finally parse the addition node, first as a macro rule:
+We shall fix this omission, and finally parse the addition node, first as a
+macro rule:
 -/
 
 macro_rules
@@ -252,8 +248,8 @@ def eg_aexp_plus_macro: AExp := [imp_aexp| foo + bar]
 
 
 /-
-This time, to recursively expand `imp_aexp`, we use
-`Term.elabTerm`.  
+Then, we implement the same as an `elab`orator. This time, to recursively expand
+`imp_aexp`, we use `Term.elabTerm`.  
 -/
 
 def elab_aexp_plus (s: Syntax): TermElabM Expr := 
@@ -279,7 +275,8 @@ def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 We repeat the same process, this time for `BExp`.
 This time, we show a different method to writing the elaboration
 function `elab_bexp: Syntax → TermElabM Expr`, where we write
-the function as a regular lean function, and use regular recursion
+the function for all `BExp`s at once. This allows us to
+write it as a regular lean function, and use regular recursion
 to elaborate our `BExp`.
 -/
 
@@ -289,14 +286,19 @@ syntax ident : imp_bexp
 syntax imp_aexp "<" imp_aexp : imp_bexp
 syntax imp_bexp "&&" imp_bexp : imp_bexp
 
--- Helper to convert Booleans into expressions
+/-
+We first create a helper to function
+to convert Booleans into `Expr`s.
+-/
 def mkBoolLit: Bool -> Expr
 | true => mkConst ``Bool.true
 | false => mkConst ``Bool.false
 
 
--- As we saw before, we can elaborate `AExp` by using `elabTerm`. Let's
--- write a helper for this as well
+/-
+We then write the elaborator for `BExp` as `elab_bexp`. We first
+handle `true`, `false`, and identifiers in the natural way:
+-/
 
 partial def elab_bexp (s: Syntax): TermElabM Expr := 
 match s with
@@ -308,9 +310,9 @@ match s with
      | n => mkAppM ``BExp.BVar #[mkStrLit str]
 
 /-
-To elaborate `aexp`s, we wrie a helper called `elab_aexp`, that calls
-`elabTerm` on the term `[imp_aexp'| $s]`. This produces an `Expr` node,
-which we use to build a `BExp.BLess`
+To elaborate the less than (`<`) operator on `aexp`s, we wrie a helper called
+`elab_aexp`, that calls `elabTerm` on the term `[imp_aexp'| $s]`. This produces
+an `Expr` node, which we use to build a `BExp.BLess`
 -/
 | `(imp_bexp| $x:imp_aexp < $y:imp_aexp) => do  
      let elab_aexp (s: Syntax): TermElabM Expr := do
@@ -319,9 +321,9 @@ which we use to build a `BExp.BLess`
        let y <- elab_aexp y
        mkAppM ``BExp.BLess #[x, y]
 /-
-To elaborate `bexp`s, we recursively call `elab_bexp` to elaborate
-the left and the right hand side, and we then finally create a `BExp.BAnd`
-term.
+To elaborate the logical and (`&&`) operator on `bexp`s, we recursively call
+`elab_bexp` to elaborate the left and the right hand side, and we then finally
+create a `BExp.BAnd` term.
 -/
 | `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
      let x <- elab_bexp x -- recursion  
@@ -380,14 +382,7 @@ def eg_bexp_and_3: BExp := [imp_bexp| x + y < z && p + q < r]
 --                (AExp.AVar "r"))
 
 /-
-See that our annotations ensure that we parse precedence
-correctly. We correctly bind `+` tighter than `<`,
-and `<` tighter than `&&`.
--/
-
-
-/-
-#### Parsing commands
+#### Parsing Commands
 
 We'll parse the final piece of the puzzle, the commands.
 It's going to be old hat at this point, and we follow the hopefully
@@ -490,6 +485,11 @@ def eg_command_all := [imp_command|
 --         (Command.Assign "y" (AExp.APlus (AExp.AVar "y") (AExp.ANat 3))))))
 
 
+/-
+In this section, we have understood the difference between `macro_rules`
+and `elab`. We saw how to build `Expr` nodes, which are the lowest level of encoding
+of `Lean` terms, as opposed to `Syntax` nodes which can undergo further elaboration.
+-/
 
 /-
 # FAQ
