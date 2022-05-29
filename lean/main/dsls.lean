@@ -1,8 +1,30 @@
 /-
-## DSLs in Lean
+# Elaboration
 
-In this tutorial, we shall write a DSL for [IMP](http://concrete-semantics.org/concrete-semantics.pdf),
-which is a simple imperative language.
+In this tutorial, we will learn about constructing `Expr`essions directly,
+rather than producing `Syntax`. This will have us hook into the elaborator
+via `elab` statements. This provides one with more control, since the
+monad that is used during elaboration (`TermElabM` and `CommandElabM`) offer
+access to `MetaM`, which provides access to, in Leonardo De Moura's 
+words:
+
+> 1. Weak head normal form computation with support for metavariables and transparency modes.
+> 2. Definitionally equality checking with support for metavariables (aka unification modulo definitional equality).
+> 3. Type inference.
+> 4. Type class resolution.
+
+We do not explore the full power of `MetaM` in this tutorial, and simply 
+gesture at how to get access to this low-level machinery.
+
+
+## DSLs in Lean via TermElabM
+
+We shall write a DSL for
+[IMP](http://concrete-semantics.org/concrete-semantics.pdf),
+which is a simple imperative language, using the `TermElabM` infrastructure,
+where we will build low-level `Expr`s, instead of higher level syntax trees 
+with `Syntax`.
+
 -/
 import Lean
 import Lean.Elab.Deriving.Basic
