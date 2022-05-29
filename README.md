@@ -7,8 +7,8 @@ Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddharth
     2. [Expressions](md/main/expressions.md)
     3. [`MetaM`](md/main/metam.md)
     4. [`Syntax`](md/main/syntax.md)
-    5. [Elaboration](md/main/elaboration.md)
-    6. [Macros](md/main/macros.md)
+    5. [Macros](md/main/macros.md)
+    6. [Elaboration](md/main/elaboration.md)
     7. [DSLs](md/main/dsls.md)
     8. [Tactics](md/main/tactics.md)
 * Extra
