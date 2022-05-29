@@ -253,37 +253,33 @@ def eg_AExp_fail: AExp := [imp_aexp'| 42 + 43]
 Clearly, both parses `elab_aexp_ident` and `elab_aexp_num`
 are tried in succession, and both fail, leading to an error.
 
-We shall fix this omission, and finally parse the addition node, first as a
-macro rule:
--/
-
-macro_rules
-| `([imp_aexp| $x:imp_aexp + $y:imp_aexp]) => do
-      let xStx <- `([imp_aexp| $(x)])
-      let yStx <- `([imp_aexp| $(y)])
-      `(AExp.APlus $xStx $yStx)
-
-def eg_aexp_plus_macro: AExp := [imp_aexp| foo + bar]
-#reduce eg_aexp_plus_macro
--- AExp.APlus (AExp.AVar "foo") (AExp.AVar "bar")
-
-
-
-/-
-Then, we implement the same as an `elab`orator. This time, to recursively expand
-`imp_aexp`, we use `Term.elabTerm`.  
+We shall fix this omission, and finally parse the addition node. 
+We go directly to parsing with `elab`, since the `macro_rules`
+approach does not have anything more interesting to say.
 -/
 
 def elab_aexp_plus (s: Syntax): TermElabM Expr := 
 match s with 
 | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
-     let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) none
-     let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) none
+     -- recrsively expand xExpr, yExpr via `Term.elabTerm`
+     let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) (expectedType? := none)
+     let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) (expectedType? := none)
      mkAppM ``AExp.APlus #[xExpr, yExpr]
 | _ => do 
    dbg_trace "elab_aexp_plus failed"
    throwUnsupportedSyntax
-
+/-
+Note that we make use of a couple of features here:
+1. `TermElabM` allows us to use macros, so we build the
+    piece of syntax `[imp_aexp'| $x]`. We can see that `TermElabM`
+    in this way already subsumes `macroM`.
+2. To recursively expand `imp_aexp`, we use `Term.elabTerm`.  
+3. See that there is an option, `expectedType? : Option Expr` which allows
+   us to declare the type we expect the elaborated term to be. We ignore
+   this in the tutorial, but make a point to note it, since this shows that
+   `TermElabM` really is capable of reasoning about _types_, and not just
+   `Syntax`.
+-/
 
 elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_plus s
 def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
