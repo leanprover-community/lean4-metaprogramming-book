@@ -1,4 +1,4 @@
-# Elaboration
+# Embedding DSLs By Elaboration
 
 In this tutorial, we will learn about constructing `Expr`essions directly,
 rather than producing `Syntax`. This will have us hook into the elaborator
@@ -15,14 +15,18 @@ words:
 We do not explore the full power of `MetaM` in this tutorial, and simply 
 gesture at how to get access to this low-level machinery.
 
+Concretely, we teach how to assemble
+elaborated pieces of Lean4 with the goal of providing an accessible syntax to express
+to the [IMP](http://concrete-semantics.org/concrete-semantics.pdf) DSL,
+which is a simple imperative language, often used for teaching operational
+and denotational semantics. 
+
+
 
 ## DSLs in Lean via TermElabM
 
-We shall write a DSL for
-[IMP](http://concrete-semantics.org/concrete-semantics.pdf),
-which is a simple imperative language, using the `TermElabM` infrastructure,
-where we will build low-level `Expr`s, instead of higher level syntax trees 
-with `Syntax`.
+Let's begin with the usual incantations, where we import `Lean` and open
+`Lean`, `Lean.Elab`, and `Lean.Meta`.
 
 ```lean
 import Lean
