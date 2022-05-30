@@ -112,10 +112,7 @@ and the declare the translation as a macro rule:
 
 syntax "[imp_aexp|" imp_aexp "]" : term
 macro_rules
-| `([imp_aexp| $n:num ]) => do
-   let n : Nat := n.toNat -- grab the number.
-   let nStx : Syntax := Lean.quote n -- quote the number.
-   `(AExp.ANat $(nStx)) -- return the syntax.
+| `([imp_aexp| $n:num ]) => `(AExp.ANat $n)
 
 def eg_AExp_num_macro: AExp := [imp_aexp| 42]
 #reduce eg_AExp_num_macro
