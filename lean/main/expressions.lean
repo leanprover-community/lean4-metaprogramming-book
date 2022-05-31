@@ -86,12 +86,12 @@ end Playground
 
 ## Expression Data
 
-If you look at the file where `Expr` is defined, you will see that every
-constructor also has a `Data` argument to it. This Data field contains some
-extra cached information about the expression that is useful for speeding up
-some common operations. These are things like: a hash of the `Expr`, whether or
-not the `Expr` contains free variables, metavariables or bound variables and
-also it is where the `BinderInfo` is stored for `forallE` and `lam`.
+If you look the constructors of `Expr`, you will see that all of them have a
+`Data` argument. This Data field contains some extra cached information about
+the expression that is useful for speeding up some common operations. These are
+things like: a hash of the `Expr`, whether or not the `Expr` contains free
+variables, metavariables or bound variables and also it is where the
+`BinderInfo` is stored for `forallE` and `lam`.
 
 This data param means that you should _never_ construct instances of `Expr`
 directly using the `Expr` constructors but instead use the helper methods

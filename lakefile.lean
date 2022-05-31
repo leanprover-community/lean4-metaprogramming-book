@@ -2,26 +2,24 @@ import Lake
 open Lake DSL
 
 package «lean4-metaprogramming-book» {
-  -- add configuration options here
+  defaultFacet := PackageFacet.oleans
 }
 
+def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
+  let out ← IO.Process.output {
+    cmd := cmd
+    args := args
+  }
+  let hasError := out.exitCode != 0
+  if hasError then
+    IO.eprint out.stderr
+  return hasError
+
 script build do
-  let _ ← IO.Process.output {
-    cmd := "rm"
-    args := #["-rf", "md"]
-  }
-  let out ← IO.Process.output {
-    cmd := "python"
-    args := #["-m", "lean2md", "lean/main", "md/main"]
-  }
-  if out.exitCode ≠ 0 then
-    IO.eprint out.stderr
-    return 1
-  let out ← IO.Process.output {
-    cmd := "python"
-    args := #["-m", "lean2md", "lean/extra", "md/extra"]
-  }
-  if out.exitCode ≠ 0 then
-    IO.eprint out.stderr
-    return 1
+  let _ ← runCmd "rm" #["-rf", "md"]
+
+  if ← runCmd "python" #["-m", "lean2md", "lean", "md"] then return 1
+  if ← runCmd "python" #["-m", "lean2md", "lean/main", "md/main"] then return 1
+  if ← runCmd "python" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
+
   return 0
