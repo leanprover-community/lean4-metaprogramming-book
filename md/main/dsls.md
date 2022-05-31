@@ -1,27 +1,13 @@
 # Embedding DSLs By Elaboration
 
-In this tutorial, we will learn about constructing `Expr`essions directly,
-rather than producing `Syntax`. This will have us hook into the elaborator
-via `elab` statements. This provides one with more control, since the
-monad that is used during elaboration (`TermElabM` and `CommandElabM`) offer
-access to `MetaM`, which provides access to, in Leonardo De Moura's 
-words:
+In this chapter we will learn how to use elaboration to build a DSL. We will not
+explore the full power of `MetaM`, and simply gesture at how to get access to
+this low-level machinery.
 
-> 1. Weak head normal form computation with support for metavariables and transparency modes.
-> 2. Definitionally equality checking with support for metavariables (aka unification modulo definitional equality).
-> 3. Type inference.
-> 4. Type class resolution.
-
-We do not explore the full power of `MetaM` in this tutorial, and simply 
-gesture at how to get access to this low-level machinery.
-
-Concretely, we teach how to assemble
-elaborated pieces of Lean4 with the goal of providing an accessible syntax to express
-to the [IMP](http://concrete-semantics.org/concrete-semantics.pdf) DSL,
+More precisely, we shall enable Lean to understand the syntax of
+[IMP](http://concrete-semantics.org/concrete-semantics.pdf),
 which is a simple imperative language, often used for teaching operational
 and denotational semantics. 
-
-
 
 ## DSLs in Lean via TermElabM
 
