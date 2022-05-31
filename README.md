@@ -1,6 +1,6 @@
 # A Lean 4 Metaprogramming Book
 
-Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat
+Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat, Damiano Testa
 
 * Main
     1. [Introduction](md/main/intro.md)
@@ -11,6 +11,7 @@ Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddharth
     6. [Elaboration](md/main/elaboration.md)
     7. [DSLs](md/main/dsls.md)
     8. [Tactics](md/main/tactics.md)
+    9. [Cheat sheet](md/main/cheat-sheet.md)
 * Extra
     1. [Options](md/extra/options.md)
     2. [Attributes](md/extra/attributes.md)
