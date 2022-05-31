@@ -438,13 +438,13 @@ macro_rules
 
 theorem test_custom_trivial_macro_1: 42 = 42 := by
    custom_trivial
--- ▶ goals accomplished 🎉
+-- Goals accomplished 🎉
 
 /-
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-theorem test_custom_trivial_macro_2: 43 = 43 /\ 42 = 42:= by
+theorem test_custom_trivial_macro_2: 43 = 43 ∧ 42 = 42:= by
   custom_trivial
 -- tactic 'rfl' failed, equality expected{indentExpr targetType}
 -- ⊢ 43 = 43 ∧ 42 = 42
@@ -467,15 +467,15 @@ means "run tactic `a`, and apply "b" to each goal after running `a`". Thus,
 that we dispatch the theorem.
 -/
 
-theorem test_custom_trivial_macro_3 : 43 = 43 /\ 42 = 42 := by
+theorem test_custom_trivial_macro_3 : 43 = 43 ∧ 42 = 42 := by
   custom_trivial
--- ▶ goals accomplished 🎉
+-- Goals accomplished 🎉
 
 /-
 In summary, we declared an extensible tactic called `custom_trivial`. It
 initially had no elaboration at all. We added the `rfl` as an elaboration of
 `custom_trivial`, which allowed it to solve the goal `42 = 42`. We then tried a
-harder theorem, `43 = 43 /\ 42 = 42` which `custom_trivial` was unable to solve.
+harder theorem, `43 = 43 ∧ 42 = 42` which `custom_trivial` was unable to solve.
 We were then able to enrich `custom_trivial` to split "and" with `And.intro`, and
 also *recursively* call `custom_trivial` in the two subcases.
 
@@ -497,7 +497,7 @@ macro_rules
     `(tactic| $a:tactic; all_goals $b:tactic)
 
 -- 3. We test this tactic.
-theorem test_and_then: 1 = 1 /\ 2 = 2 := by
+theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
   apply And.intro and_then rfl
 
 #print test_and_then
@@ -609,7 +609,6 @@ theorem test_faq_throw_error (b : Bool): b = true := by
   faq_throw_error
   -- case true
   -- ⊢ true = true
-  -- ▶ 469:2-469:17: error:
   -- tactic 'faq_throw_error' failed, throwing an error at the current goal
   -- case false
   -- ⊢ false = true
