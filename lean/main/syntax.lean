@@ -140,8 +140,8 @@ syntax boolean_expr " OR " boolean_expr : boolean_expr
 syntax boolean_expr " AND " boolean_expr : boolean_expr
 
 /-!
-Now that we are working in our own syntax category however we are completely
-disconnected from the rest of the system, we (who?) cannot be used in place of
+Now that we are working in our own syntax category, we are completely
+disconnected from the rest of the system. And these cannot be used in place of
 terms anymore:
 -/
 
@@ -361,11 +361,10 @@ form it only works on syntax from the `term` category. If you want to use
 it to match on your own syntax categories you will have to use `` `(category| ...)``.
 
 ### Mini Project
-As a final mini project for this chapter we will declare the syntax of mini
+As a final mini project for this chapter we will declare the syntax of a mini
 arithmetic expression language and a function of type `Syntax → Nat` to evaluate
-it. In the end will be a function, which you should understand
--- I do not understand this last sentence: which function is it referring to?  `test`?
-by the end of the macro chapter, so that you can test the implementation.
+it. We will see more about some of the concepts presented below in future
+chapters.
 -/
 
 declare_syntax_cat arith
