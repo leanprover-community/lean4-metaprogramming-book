@@ -1,5 +1,7 @@
 ##  Lean4 Cheat-sheet
 
+###  Extracting information
+
 * Extract the goal: `Lean.Elab.Tactic.getMainGoal`
   Use as `let goal ← Lean.Elab.Tactic.getMainGoal`
 * Extract the declaration out of a meta-variable: `Lean.Meta.getMVarDecl mvar`
@@ -7,7 +9,6 @@
   For instance, `mvar` could be the goal extracted using `getMainGoal`
 * Extract the type of a meta-variable: `Lean.MetavarDecl.type mvdecl`
   when `mvdecl : Lean.MetavarDecl` is in context.
-* meta-sorry: `Lean.Elab.admitGoal goal`, when `goal : Lean.MVarId` is the current goal
 * Extract the type of the main goal: `Lean.Elab.Tactic.getMainTarget`
   Use as `let goal_type ← Lean.Elab.Tactic.getMainTarget`
   Achieves the same as 
@@ -18,19 +19,26 @@ let goal_type := goal_decl.type
 ```
 * Extract local context: `Lean.MonadLCtx.getLCtx`
   Use as `let lctx ← Lean.MonadLCtx.getLCtx`
-* Convert a declaration into an expression: `Lean.LocalDecl.toExpr`
-  Use as `ldecl.toExpr`, when `ldecl : Lean.LocalDecl` is in context
-  For instance, `ldecl` could be `let ldecl ← Lean.MonadLCtx.getLCtx`
 * Extract the name of a declaration: `Lean.LocalDecl.userName ldecl`
   when `ldecl : Lean.LocalDecl` is in context
 * Extract the type of an expression: `Lean.Meta.inferType expr`
   when `expr : Lean.Expr` is an expression in context
   Use as `let expr_type ← Lean.Meta.inferType expr`
+
+###  Playing around with expressions
+
+* Convert a declaration into an expression: `Lean.LocalDecl.toExpr`
+  Use as `ldecl.toExpr`, when `ldecl : Lean.LocalDecl` is in context
+  For instance, `ldecl` could be `let ldecl ← Lean.MonadLCtx.getLCtx`
 * Check whether two expressions are definitionally equal: `Lean.Meta.isExprDefEq ex1 ex2`
   when `ex1 ex2 : Lean.Expr` are in context. Returns a `Lean.MetaM Bool`
   `isDefEq ex1 ex2` appears to be a synonym
 * Close a goal: `Lean.Elab.Tactic.closeMainGoal expr`
   when `expr : Lean.Expr` is in context
+
+###  Further commands
+
+* meta-sorry: `Lean.Elab.admitGoal goal`, when `goal : Lean.MVarId` is the current goal
 
 ###  Printing and errors
 
