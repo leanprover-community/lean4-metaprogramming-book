@@ -31,12 +31,8 @@ Let's begin with the usual incantations, where we import `Lean` and open
 
 -/
 import Lean
-import Lean.Elab.Deriving.Basic
-open Lean Lean.Syntax
-open Lean.Elab
-open Lean.Elab.Command
-open Lean.Meta
-open Lean
+
+open Lean Syntax Meta Elab Command
 
 /--
 We begin by defining the AST of the language:
@@ -50,10 +46,10 @@ Arithmetic expressions are naturals, variables, or sums of other
 arithmetic expressions.
 -/
 inductive AExp
-| ANat: Nat -> AExp
-| AVar: String -> AExp
-| APlus: AExp -> AExp -> AExp
-deriving Inhabited
+  | ANat: Nat → AExp
+  | AVar: String → AExp
+  | APlus: AExp → AExp → AExp
+  deriving Inhabited
 
 /-
 #### Boolean Expressions
@@ -63,11 +59,11 @@ an and (`&&`) of two booleans, or a less than comparison (`<`) between
 two arithmetic expressions.
 -/
 inductive BExp
-| BBool: Bool -> BExp
-| BVar: String -> BExp
-| BAnd: BExp -> BExp -> BExp
-| BLess: AExp -> AExp -> BExp
-deriving Inhabited
+  | BBool: Bool → BExp
+  | BVar: String → BExp
+  | BAnd: BExp → BExp → BExp
+  | BLess: AExp → AExp → BExp
+  deriving Inhabited
 
 /-
 #### Command
@@ -77,12 +73,12 @@ command to assign a value to a variable, a `seq`(`;;`) to sequence commands,
 an `if` for conditionals, and `while` for looping.
 -/
 inductive Command
-| Skip: Command
-| Assign: String -> AExp -> Command
-| Seq: Command -> Command -> Command
-| If: BExp -> Command -> Command -> Command
-| While: BExp -> Command -> Command
-deriving Inhabited
+  | Skip: Command
+  | Assign: String → AExp → Command
+  | Seq: Command → Command → Command
+  | If: BExp → Command → Command → Command
+  | While: BExp → Command → Command
+  deriving Inhabited
 
 
 /-
@@ -111,8 +107,9 @@ and the declare the translation as a macro rule:
 -/
 
 syntax "[imp_aexp|" imp_aexp "]" : term
+
 macro_rules
-| `([imp_aexp| $n:num ]) => `(AExp.ANat $n)
+  | `([imp_aexp| $n:num ]) => `(AExp.ANat $n)
 
 def eg_AExp_num_macro: AExp := [imp_aexp| 42]
 #reduce eg_AExp_num_macro
@@ -141,14 +138,13 @@ name `name` to an expression `e`.
 -/
 
 
-def elab_AExp_num (s: Syntax): TermElabM Expr :=
-match s with
-| `(imp_aexp| $n:num) => 
-        -- build an Expr by hand
-        mkAppM ``AExp.ANat #[ mkNatLit n.toNat ]
-| _ => do 
-   dbg_trace "elab_AExp_num failed"
-   throwUnsupportedSyntax
+def elab_AExp_num : Syntax → TermElabM Expr
+  | `(imp_aexp| $n:num) => 
+    -- build an Expr by hand
+    mkAppM ``AExp.ANat #[mkNatLit n.toNat]
+  | _ => do 
+    dbg_trace "elab_AExp_num failed"
+    throwUnsupportedSyntax
 
 /-
 Note that we are building a raw `Expr` by hand. Also note that
@@ -182,11 +178,11 @@ the `AExp.Avar`.
 -/
 macro_rules
 | `([imp_aexp| $name:ident ]) => do
-   let nameStr : String := name.getId.toString
-   let nameStx : Syntax := Lean.quote nameStr
-   `(AExp.AVar $(nameStx))
+  let nameStr : String := name.getId.toString
+  let nameStx : Syntax := Lean.quote nameStr
+  `(AExp.AVar $(nameStx))
 
-def eg_AExp_ident_macro: AExp := [imp_aexp|  foo]
+def eg_AExp_ident_macro: AExp := [imp_aexp| foo]
 #reduce eg_AExp_ident_macro
 -- AExp.AVar "foo"
 
@@ -196,21 +192,23 @@ we build the expression node by hand, using lower level
 functions such as `mkAppM` to build a function application,
 and `mkStrLit: String → Expr` to convert a string into an `Expr`.
 -/
-def elab_aexp_ident (s: Syntax): TermElabM Expr :=
-match s with 
-| `(imp_aexp| $n:ident) =>
-      mkAppM ``AExp.AVar #[mkStrLit n.getId.toString]
-| _ => do 
-  dbg_trace "elab_aexp_ident failed."
-  throwUnsupportedSyntax
+def elab_aexp_ident : Syntax → TermElabM Expr
+  | `(imp_aexp| $n:ident) =>
+    mkAppM ``AExp.AVar #[mkStrLit n.getId.toString]
+  | _ => do 
+    dbg_trace "elab_aexp_ident failed."
+    throwUnsupportedSyntax
 
 /-
 We add our `elab` rule, which says that we can try to elaborate
 a `s:imp_aexp` with `elab_aexp_ident`. 
 -/
-elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_ident s
+elab "[imp_aexp'|" s:imp_aexp "]" : term =>
+  elab_aexp_ident s
 
-def eg_AExp_ident_elab: AExp := [imp_aexp'|  foo]
+def eg_AExp_ident_elab: AExp :=
+  [imp_aexp'|  foo]
+
 #reduce eg_AExp_ident_elab
 -- AExp.AVar "foo"
 
@@ -246,7 +244,8 @@ We can try a piece of grammar that has not been handled yet, and see how both el
 will be invoked in succession:
 -/
 
-def eg_AExp_fail: AExp := [imp_aexp'| 42 + 43]
+def eg_AExp_fail: AExp :=
+  [imp_aexp'| 42 + 43]
 -- elab_aexp_ident failed.
 -- elab_aexp_num failed
 
@@ -259,16 +258,16 @@ We go directly to parsing with `elab`, since the `macro_rules`
 approach does not have anything more interesting to say.
 -/
 
-def elab_aexp_plus (s: Syntax): TermElabM Expr := 
-match s with 
-| `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
-     -- recrsively expand xExpr, yExpr via `Term.elabTerm`
-     let xExpr <- Term.elabTerm (<- `([imp_aexp'| $x])) (expectedType? := none)
-     let yExpr <- Term.elabTerm (<- `([imp_aexp'| $y])) (expectedType? := none)
-     mkAppM ``AExp.APlus #[xExpr, yExpr]
-| _ => do 
-   dbg_trace "elab_aexp_plus failed"
-   throwUnsupportedSyntax
+def elab_aexp_plus : Syntax → TermElabM Expr
+  | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
+    -- recrsively expand xExpr, yExpr via `Term.elabTerm`
+    let xExpr ← Term.elabTerm (← `([imp_aexp'| $x])) (expectedType? := none)
+    let yExpr ← Term.elabTerm (← `([imp_aexp'| $y])) (expectedType? := none)
+    mkAppM ``AExp.APlus #[xExpr, yExpr]
+  | _ => do 
+    dbg_trace "elab_aexp_plus failed"
+    throwUnsupportedSyntax
+
 /-
 Note that we make use of a couple of features here:
 1. `TermElabM` allows us to use macros, so we build the
@@ -283,10 +282,10 @@ Note that we make use of a couple of features here:
 -/
 
 elab "[imp_aexp'|" s:imp_aexp "]" : term => elab_aexp_plus s
+
 def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 #print eg_aexp_plus_elab
 -- AExp.APlus (AExp.AVar "foo") (AExp.AVar "bar")
-
 
 /-
 #### Parsing BExp
@@ -299,7 +298,6 @@ write it as a regular lean function, and use regular recursion
 to elaborate our `BExp`.
 -/
 
-
 declare_syntax_cat imp_bexp
 syntax ident : imp_bexp
 syntax imp_aexp "<" imp_aexp : imp_bexp
@@ -309,46 +307,45 @@ syntax imp_bexp "&&" imp_bexp : imp_bexp
 We first create a helper to function
 to convert Booleans into `Expr`s.
 -/
-def mkBoolLit: Bool -> Expr
-| true => mkConst ``Bool.true
-| false => mkConst ``Bool.false
-
+def mkBoolLit: Bool → Expr
+  | true => mkConst ``Bool.true
+  | false => mkConst ``Bool.false
 
 /-
 We then write the elaborator for `BExp` as `elab_bexp`. We first
 handle `true`, `false`, and identifiers in the natural way:
 -/
 
-partial def elab_bexp (s: Syntax): TermElabM Expr := 
-match s with
-| `(imp_bexp| $n:ident) =>
-     let str := n.getId.toString
-     match str with 
-     | "true" => mkAppM ``BExp.BBool #[mkBoolLit true]
-     | "false" => mkAppM ``BExp.BBool #[mkBoolLit false]
-     | n => mkAppM ``BExp.BVar #[mkStrLit str]
+partial def elab_bexp : Syntax → TermElabM Expr
+  | `(imp_bexp| $n:ident) =>
+    let str := n.getId.toString
+    match str with 
+    | "true" => mkAppM ``BExp.BBool #[mkBoolLit true]
+    | "false" => mkAppM ``BExp.BBool #[mkBoolLit false]
+    | n => mkAppM ``BExp.BVar #[mkStrLit str]
 
 /-
 To elaborate the less than (`<`) operator on `aexp`s, we wrie a helper called
 `elab_aexp`, that calls `elabTerm` on the term `[imp_aexp'| $s]`. This produces
 an `Expr` node, which we use to build a `BExp.BLess`
 -/
-| `(imp_bexp| $x:imp_aexp < $y:imp_aexp) => do  
-     let elab_aexp (s: Syntax): TermElabM Expr := do
-        Term.elabTerm (<- `([imp_aexp'| $s])) none
-       let x <- elab_aexp x
-       let y <- elab_aexp y
-       mkAppM ``BExp.BLess #[x, y]
+  | `(imp_bexp| $x:imp_aexp < $y:imp_aexp) => do  
+    let elab_aexp (s: Syntax) : TermElabM Expr := do
+      Term.elabTerm (← `([imp_aexp'| $s])) none
+    let x ← elab_aexp x
+    let y ← elab_aexp y
+    mkAppM ``BExp.BLess #[x, y]
+
 /-
 To elaborate the logical and (`&&`) operator on `bexp`s, we recursively call
 `elab_bexp` to elaborate the left and the right hand side, and we then finally
 create a `BExp.BAnd` term.
 -/
-| `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
-     let x <- elab_bexp x -- recursion  
-     let y <- elab_bexp y -- recursion
-     mkAppM ``BExp.BAnd #[x, y]
-| _ => throwUnsupportedSyntax
+  | `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
+    let x ← elab_bexp x -- recursion  
+    let y ← elab_bexp y -- recursion
+    mkAppM ``BExp.BAnd #[x, y]
+  | _ => throwUnsupportedSyntax
 
 
 /- 
@@ -370,10 +367,6 @@ def eg_bexp_false : BExp := [imp_bexp| false]
 def eg_bexp_ident : BExp := [imp_bexp| var]
 #print eg_bexp_ident
 -- BExp.BVar "var"
-
-
-
-
 
 def eg_bexp_lt_1 : BExp := [imp_bexp| 1 < 2]
 #print eg_bexp_lt_1
@@ -414,24 +407,23 @@ syntax ident "=" imp_aexp : imp_command
 syntax "if" imp_bexp "then" imp_command "else" imp_command "fi" : imp_command
 syntax "while" imp_bexp "do" imp_command "od" : imp_command
 
-partial def elabCommand (s: Syntax): TermElabM Expr := 
-match s with
-| `(imp_command| $x:ident = $e:imp_aexp) => do 
+partial def elabCommand : Syntax → TermElabM Expr
+  | `(imp_command| $x:ident = $e:imp_aexp) => do 
     let xString : String := x.getId.toString
     let elab_aexp (s: Syntax): TermElabM Expr := do
-        Term.elabTerm (<- `([imp_aexp'| $s])) none
-    let e <- elab_aexp e
+      Term.elabTerm (← `([imp_aexp'| $s])) none
+    let e ← elab_aexp e
     mkAppM ``Command.Assign #[(mkStrLit xString),e]
-| `(imp_command| if $b:imp_bexp then $c:imp_command else $c':imp_command fi) => do 
-     let b <- elab_bexp b
-     let c <- elabCommand c -- recursion
-     let c' <- elabCommand c' -- recursion
-     mkAppM ``Command.If #[b, c, c']
-| `(imp_command| while $b:imp_bexp do $c:imp_command od) => do 
-     let b <- elab_bexp b
-     let c <- elabCommand c
-     mkAppM ``Command.While #[b, c]
-| _ => throwUnsupportedSyntax
+  | `(imp_command| if $b:imp_bexp then $c:imp_command else $c':imp_command fi) => do 
+    let b ← elab_bexp b
+    let c ← elabCommand c -- recursion
+    let c' ← elabCommand c' -- recursion
+    mkAppM ``Command.If #[b, c, c']
+  | `(imp_command| while $b:imp_bexp do $c:imp_command od) => do 
+    let b ← elab_bexp b
+    let c ← elabCommand c
+    mkAppM ``Command.While #[b, c]
+  | _ => throwUnsupportedSyntax
     
  
 elab "[imp_command|" s:imp_command "]" : term => elabCommand s
@@ -463,13 +455,12 @@ syntax:60 imp_command:61 ";;" imp_command:60 : imp_command
 
 /- Once again, we hijack the elaborator by adding a new rule to the elaboration -/
 
-partial def elabCompound (x: Syntax) : TermElabM Expr :=
-match x with
-| `(imp_command| $a:imp_command ;; $b:imp_command) => do 
-      let a <- elabCompound a
-      let b <- elabCompound b 
-      mkAppM ``Command.Seq #[a, b]
-| other => elabCommand other -- hook into previous elaborator.
+partial def elabCompound : Syntax → TermElabM Expr
+  | `(imp_command| $a:imp_command ;; $b:imp_command) => do 
+    let a ← elabCompound a
+    let b ← elabCompound b 
+    mkAppM ``Command.Seq #[a, b]
+  | other => elabCommand other -- hook into previous elaborator.
 
 elab "[imp_command|" x:imp_command "]" : term => elabCompound x
 
