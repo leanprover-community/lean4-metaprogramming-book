@@ -132,7 +132,7 @@ with argument a name. Below are two examples of this, both giving an expression
 for the natural number `0`. 
 
 The second form (with double backticks) is better, as it resolves the name to a
-global name, in the process checking that it is valid. -/
+global name, checking, in the process that it is valid. -/
 
 open Lean
 
