@@ -45,7 +45,7 @@ theorem wrong : 1 = 2 := by
 
 /-
 This defines a syntax extension to Lean, where we are naming the piece of syntax
-`admit` as living `tactic` syntax category. This informs the elaborator that in
+`admit` as living in `tactic` syntax category. This informs the elaborator that in
 the context of elaborating `tactic`s, the piece of syntax `admit` must be
 elaborated as what we write to the right-hand-side of the `=>` (we fill the
 `...` with the body of the tactic).
@@ -236,7 +236,7 @@ theorem test_list_local_decls_3 (H1: 1 = 1) (H2: 2 = 2): 1 = 1 := by
 
 /-
 Finally, we put all of these parts together to write a tactic that loops over
-all declarations and finds one with the correct type. We loop over decalrations
+all declarations and finds one with the correct type. We loop over declarations
 with `lctx.findDeclM?`. We infer the type of declarations with
 `Lean.Meta.inferType`. We check that the declaration has the same type as the
 goal with `Lean.Meta.isExprDefEq`:
@@ -476,7 +476,7 @@ In summary, we declared an extensible tactic called `custom_trivial`. It
 initially had no elaboration at all. We added the `rfl` as an elaboration of
 `custom_trivial`, which allowed it to solve the goal `42 = 42`. We then tried a
 harder theorem, `43 = 43 /\ 42 = 42` which `custom_trivial` was unable to solve.
-We were then able to enrich `custom_trivial` to split and with `And.intro`, and
+We were then able to enrich `custom_trivial` to split "and" with `And.intro`, and
 also *recursively* call `custom_trivial` in the two subcases.
 
 ## Implementing `<;>`: Tactic Combinators by Macro Expansion
@@ -487,10 +487,10 @@ this section, we will implement the syntax `a and_then b` which will stand for
 "run `a`, and then run `b` for all goals".
 -/
 
--- 1. We declre the syntax `and_then`
+-- 1. We declare the syntax `and_then`
 syntax tactic " and_then " tactic : tactic
 
--- 2. We write the expander than expands the tactic
+-- 2. We write the expander that expands the tactic
 --    into running `a`, and then running `b` on all goals.
 macro_rules
 | `(tactic| $a:tactic and_then $b:tactic) =>
@@ -580,7 +580,7 @@ A: Use `Lean.Elab.Tactic.evalTactic: Syntax → TacticM Unit` which evaluates a
 given tactic syntax. One can create tactic syntax using the macro
 `(tactic| ⋯)`.
 
-For example, one call call `try rfl` with the piece of code:
+For example, one could call `try rfl` with the piece of code:
 
 ```lean
 Lean.Elab.Tactic.evalTactic (← `(tactic| try rfl))
