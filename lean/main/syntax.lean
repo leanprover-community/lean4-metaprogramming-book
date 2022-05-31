@@ -27,8 +27,7 @@ notation:10 l:10 " LXOR " r:11 => (!l && r)
 #eval false LXOR true -- true
 #eval false LXOR false -- false
 
-/-!
-As we can see the `infixl` command allows us to declare a notation for
+/- As we can see the `infixl` command allows us to declare a notation for
 a binary operation that is infix, meaning that the operator is in between
 the operands (as opposed to e.g. before which would be done using the `prefix` command).
 The `l` at the end of `infixl` means that the notation is left associative so `a ⊕ b ⊕ c`

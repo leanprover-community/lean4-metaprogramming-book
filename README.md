@@ -1,6 +1,6 @@
 # A Lean 4 Metaprogramming Book
 
-Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat
+Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat
 
 * Main
     1. [Introduction](md/main/intro.md)
@@ -11,6 +11,7 @@ Authors: Arthur Paulino, Edward Ayers, Henrik Böving, Jannis Limperg, Siddharth
     6. [Elaboration](md/main/elaboration.md)
     7. [DSLs](md/main/dsls.md)
     8. [Tactics](md/main/tactics.md)
+    9. [Cheat sheet](md/main/cheat-sheet.md)
 * Extra
     1. [Options](md/extra/options.md)
     2. [Attributes](md/extra/attributes.md)
@@ -26,8 +27,10 @@ The markdown files are generated automatically via
 write or fix content for the book, please do so in the original Lean files
 inside the [lean](lean) directory.
 
-To build the markdown files, please run `lake script run build`
-
 **Important**: since `lean2md` is so simple, please avoid using comment sections
 in Lean code blocks with `/- ... -/`. If you want to insert commentaries, do so
 with double dashes `--`.
+
+This is not required, but if you want to build the markdown files, you can do so
+by running `lake script run build`. It requires having Python installed, as well
+as the `lean2md` package.

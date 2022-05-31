@@ -40,9 +40,9 @@ def sumExprM (n m : Nat) : MetaM Expr := do
 #eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
 
 /-! We next construct a λ-expression for the function `double : Nat → Nat` given
-by `double n = n + n`. To construct such an expression, a free variable `n` has
-to be introduced, the expression defined in terms of this variable, and the
-λ-expression should be constructed. 
+by `double n = n + n`. To construct such an expression, we introduce a free
+variable `n`, we define an expression in terms of this variable, and we construct
+the λ-expression.
 
 The variable is introduced by passing the code using it as a _continuation_ to 
 `withLocalDecl`. The arguments of `withLocalDecl` are:
