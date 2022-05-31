@@ -27,8 +27,10 @@ The markdown files are generated automatically via
 write or fix content for the book, please do so in the original Lean files
 inside the [lean](lean) directory.
 
-To build the markdown files, please run `lake script run build`
-
 **Important**: since `lean2md` is so simple, please avoid using comment sections
 in Lean code blocks with `/- ... -/`. If you want to insert commentaries, do so
 with double dashes `--`.
+
+This is not required, but if you want to build the markdown files, you can do so
+by running `lake script run build`. It requires having Python installed, as well
+as the `lean2md` package.

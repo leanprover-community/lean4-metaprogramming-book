@@ -127,7 +127,7 @@ compute `Data` but also take care of other things for you. Here we give examples
 and brief descriptions of some basic helpers.
 -/
 
-/-! The simplest expressions we can construct are constants. We use `mkConst`
+/- The simplest expressions we can construct are constants. We use `mkConst`
 with argument a name. Below are two examples of this, both giving an expression
 for the natural number `0`. 
 

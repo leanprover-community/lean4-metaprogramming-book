@@ -20,7 +20,7 @@ term `Nat.zero`, so all this is represented as an application, given a constant
 named "Nat.succ" and a constant named "Nat.zero".
 
 That example gives us an idea of what we're aiming at: we use expressions to
-represent all lean terms at the meta level. Let's check the precise definition
+represent all Lean terms at the meta level. Let's check the precise definition
 of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 
 ```lean
@@ -54,8 +54,8 @@ What is each of these constructors doing?
   information for it.
 - `fvar` is a __free variable__. These are variables which are not bound by a
   binder. An example is `x` in `x + 2`. Note that you can't just look at a free
-  variable `x` and tell what its type is, you need there to be a context
-  which contains an declaration for `x` and its type. A free variable has an ID
+  variable `x` and tell what its type is, there needs to be a context
+  which contains a declaration for `x` and its type. A free variable has an ID
   that tells you where to look for it in a `LocalContext`. In Lean 3, free
   variables were called "local constants" or "locals".
 - `mvar` is a __metavariable__. There will be much more on these later, but you
@@ -91,7 +91,7 @@ What is each of these constructors doing?
 If you look at the file where `Expr` is defined, you will see that every
 constructor also has a `Data` argument to it. This Data field contains some
 extra cached information about the expression that is useful for speeding up
-some common operations. These are things like; a hash of the `Expr`, whether or
+some common operations. These are things like: a hash of the `Expr`, whether or
 not the `Expr` contains free variables, metavariables or bound variables and
 also it is where the `BinderInfo` is stored for `forallE` and `lam`.
 
@@ -133,7 +133,7 @@ with argument a name. Below are two examples of this, both giving an expression
 for the natural number `0`. 
 
 The second form (with double backticks) is better, as it resolves the name to a
-global name, in the process checking that it is valid.
+global name, checking, in the process that it is valid.
 
 ```lean
 open Lean
