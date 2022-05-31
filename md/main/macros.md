@@ -13,7 +13,7 @@ Macros are registered as handlers for a specific syntax declaration using the
 `macro` attribute. The compiler will take care of applying these function
 to the syntax for us before performing actual analysis of the input. This
 means that the only thing we have to do is declare our syntax with a specific
-name and bind a function of type `Lean.Macro` to it, let's try to reproduce
+name and bind a function of type `Lean.Macro` to it. Let's try to reproduce
 the `LXOR` notation from the `Syntax` chapter:
 
 ```lean
@@ -34,7 +34,8 @@ to indicate that "it doesn't feel responsible for this syntax". In this case
 it's merely used to fill a wildcard pattern that should never be reached anyways.
 
 However we can in fact register multiple macros for the same syntax this way
-if we desire, they will be tried one after another (the later registered ones have priority)
+if we desire, they will be tried one after another (the later registered ones have 
+higher priority)  -- is "higher" correct?
 until one throws either a real error using `Macro.throwError` or succeeds, that
 is it does not `Macro.throwUnsupported`. Let's see this in action:
 
@@ -49,8 +50,8 @@ is it does not `Macro.throwUnsupported`. Let's see this in action:
 #eval true LXOR false -- false, still handled by the old
 ```
 
-This capability is obviously a *very* powerful one and should not be used
-just like that without thinking about it since it can introduce weird
+This capability is obviously *very* powerful! It should not be used
+lightly and without careful thinking since it can introduce weird
 behaviour while writing code later on. The following example illustrates
 this weird behaviour:
 
@@ -63,7 +64,7 @@ def foo := true
 
 Without knowing exactly how this macro is implemented this behaviour
 will be very confusing to whoever might be debugging an issue based on this.
-The rule of thumb for when to use a macro vs. other mechnanisms like
+The rule of thumb for when to use a macro vs. other mechanisms like
 elaboration is that as soon as you are building real logic like in the 2nd
 macro above, it should most likely not be a macro but an elaborator
 (explained in the elaboration chapter). This means ideally we want to
@@ -85,7 +86,7 @@ macro_rules
   | `($l:term RXOR $r:term) => `($l && !$r)
 ```
 
-As you can see it figure out lot's of things on it's own for us:
+As you can see, it figures out lot's of things on it's own for us:
 - the name of the syntax declaration
 - the `macro` attribute registration
 - the `throwUnsupported` wildcard
