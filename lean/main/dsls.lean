@@ -22,7 +22,7 @@ open Lean Syntax Meta Elab Command
 
 /--
 We begin by defining the AST of the language:
-We have arithmetic expressions, boolean expressions, and commands.
+arithmetic expressions, boolean expressions, and commands.
 -/
 
 /-
