@@ -1,7 +1,7 @@
 /-
-##  Lean4 Cheat-sheet
+#  Lean4 Cheat-sheet
 
-###  Extracting information
+##  Extracting information
 
 * Extract the goal: `Lean.Elab.Tactic.getMainGoal`
   Use as `let goal ← Lean.Elab.Tactic.getMainGoal`
@@ -26,7 +26,7 @@ let goal_type := goal_decl.type
   when `expr : Lean.Expr` is an expression in context
   Use as `let expr_type ← Lean.Meta.inferType expr`
 
-###  Playing around with expressions
+##  Playing around with expressions
 
 * Convert a declaration into an expression: `Lean.LocalDecl.toExpr`
   Use as `ldecl.toExpr`, when `ldecl : Lean.LocalDecl` is in context
@@ -37,11 +37,11 @@ let goal_type := goal_decl.type
 * Close a goal: `Lean.Elab.Tactic.closeMainGoal expr`
   when `expr : Lean.Expr` is in context
 
-###  Further commands
+##  Further commands
 
 * meta-sorry: `Lean.Elab.admitGoal goal`, when `goal : Lean.MVarId` is the current goal
 
-###  Printing and errors
+##  Printing and errors
 
 * Print a message: `dbg_trace f!"1) goal: {goal.name}"`
   Use as `dbg_trace f!"1) goal: {goal.name}"`
