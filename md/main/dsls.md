@@ -22,7 +22,7 @@ open Lean Syntax Meta Elab Command
 
 -
 We begin by defining the AST of the language:
-We have arithmetic expressions, boolean expressions, and commands.
+arithmetic expressions, boolean expressions, and commands.
 
 #### Arithmetic Expressions
 
@@ -31,8 +31,8 @@ arithmetic expressions.
 
 ```lean
 inductive AExp
-  | ANat: Nat → AExp
-  | AVar: String → AExp
+  | ANat:  Nat → AExp
+  | AVar:  String → AExp
   | APlus: AExp → AExp → AExp
   deriving Inhabited
 ```
@@ -46,8 +46,8 @@ two arithmetic expressions.
 ```lean
 inductive BExp
   | BBool: Bool → BExp
-  | BVar: String → BExp
-  | BAnd: BExp → BExp → BExp
+  | BVar:  String → BExp
+  | BAnd:  BExp → BExp → BExp
   | BLess: AExp → AExp → BExp
   deriving Inhabited
 ```
@@ -60,11 +60,11 @@ an `if` for conditionals, and `while` for looping.
 
 ```lean
 inductive Command
-  | Skip: Command
+  | Skip:   Command
   | Assign: String → AExp → Command
-  | Seq: Command → Command → Command
-  | If: BExp → Command → Command → Command
-  | While: BExp → Command → Command
+  | Seq:    Command → Command → Command
+  | If:     BExp → Command → Command → Command
+  | While:  BExp → Command → Command
   deriving Inhabited
 ```
 
@@ -79,14 +79,14 @@ that is the focus of this section.
 
 ```lean
 declare_syntax_cat imp_aexp
-syntax num : imp_aexp
+syntax num   : imp_aexp
 syntax ident : imp_aexp
 syntax imp_aexp "+" imp_aexp : imp_aexp
 ```
 
-Recall that if we were doing this via lean macros, 
+Recall that if we were doing this via Lean macros, 
 we would write out an "interpretation" macro such as `[imp_aexp|...]`,
-and the declare the translation as a macro rule:
+and then declare the translation as a macro rule:
 
 ```lean
 syntax "[imp_aexp|" imp_aexp "]" : term
@@ -95,7 +95,7 @@ macro_rules
   | `([imp_aexp| $n:num ]) => `(AExp.ANat $n)
 
 def eg_AExp_num_macro: AExp := [imp_aexp| 42]
-#reduce eg_AExp_num_macro
+#reduce eg_AExp_num_macro  -- AExp.ANat 42
 ```
 
 In contrast to this approach, when we write an `elab`orator,
@@ -116,7 +116,7 @@ category is `<syntax-category>`, which match the `<match-pattern>`.
 
 To write a low level `elab`orator for `num`,
 we write a combinator `mkApp': Name → Expr → Expr`
-that create an `Expr` denoting the function application of a 
+that creates an `Expr` denoting the function application of a 
 name `name` to an expression `e`.
 
 ```lean
@@ -151,7 +151,7 @@ def eg_AExp_num_elab: AExp := [imp_aexp'| 42]
 -- AExp.ANat 42
 ```
 
-Let's write a macro_rules for converting identifiers.
+Let's write a `macro_rules` for converting identifiers.
 We see that we need to grab the string as `nameStr`, then
 quote the string back into `Syntax`, and then we finally build
 the `AExp.Avar`.
@@ -189,7 +189,7 @@ a `s:imp_aexp` with `elab_aexp_ident`.
 elab "[imp_aexp'|" s:imp_aexp "]" : term =>
   elab_aexp_ident s
 
-def eg_AExp_ident_elab: AExp :=
+def eg_AExp_ident_elab: AExp :=  -- elab_AExp_num failed
   [imp_aexp'|  foo]
 
 #reduce eg_AExp_ident_elab
@@ -201,8 +201,8 @@ our previous rule to parse numbers:
 
 ```lean
 def eg_AExp_num2_elab: AExp := [imp_aexp'|  43]
-#reduce eg_AExp_num2_elab
 -- elab_aexp_ident failed.
+#reduce eg_AExp_num2_elab
 -- AExp.AVar "43"
 ```
 
@@ -219,7 +219,7 @@ This is because, as we discussed above, introducing new `elab` rules ensures
 that these rules are run in sequence, and this allows for the Lean syntax
 to be extended gracefully in an open-ended fashion.
 
-We can see from the output that Lean did try to runthe rule `elab_aexp_ident` which failed.
+We can see from the output that Lean did try to run the rule `elab_aexp_ident` which failed.
 It then fell back to running `elab_aexp_num`, which succeeded.
 
 We can try a piece of grammar that has not been handled yet, and see how both elaborators
@@ -242,7 +242,7 @@ approach does not have anything more interesting to say.
 ```lean
 def elab_aexp_plus : Syntax → TermElabM Expr
   | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
-    -- recrsively expand xExpr, yExpr via `Term.elabTerm`
+    -- recursively expand xExpr, yExpr via `Term.elabTerm`
     let xExpr ← Term.elabTerm (← `([imp_aexp'| $x])) (expectedType? := none)
     let yExpr ← Term.elabTerm (← `([imp_aexp'| $y])) (expectedType? := none)
     mkAppM ``AExp.APlus #[xExpr, yExpr]
@@ -273,10 +273,10 @@ def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 #### Parsing BExp
 
 We repeat the same process, this time for `BExp`.
-This time, we show a different method to writing the elaboration
+This time, we show a different method of writing the elaboration
 function `elab_bexp: Syntax → TermElabM Expr`, where we write
 the function for all `BExp`s at once. This allows us to
-write it as a regular lean function, and use regular recursion
+write it as a regular Lean function, and use regular recursion
 to elaborate our `BExp`.
 
 ```lean
@@ -286,7 +286,7 @@ syntax imp_aexp "<" imp_aexp : imp_bexp
 syntax imp_bexp "&&" imp_bexp : imp_bexp
 ```
 
-We first create a helper to function
+We first create a helper function
 to convert Booleans into `Expr`s.
 
 ```lean
@@ -308,7 +308,7 @@ partial def elab_bexp : Syntax → TermElabM Expr
     | n => mkAppM ``BExp.BVar #[mkStrLit str]
 ```
 
-To elaborate the less than (`<`) operator on `aexp`s, we wrie a helper called
+To elaborate the less than (`<`) operator on `aexp`s, we write a helper called
 `elab_aexp`, that calls `elabTerm` on the term `[imp_aexp'| $s]`. This produces
 an `Expr` node, which we use to build a `BExp.BLess`
 
@@ -322,7 +322,7 @@ an `Expr` node, which we use to build a `BExp.BLess`
 ```
 
 To elaborate the logical and (`&&`) operator on `bexp`s, we recursively call
-`elab_bexp` to elaborate the left and the right hand side, and we then finally
+`elab_bexp` to elaborate the left and the right hand side.  Finally, we
 create a `BExp.BAnd` term.
 
 ```lean
@@ -358,7 +358,8 @@ def eg_bexp_lt_1 : BExp := [imp_bexp| 1 < 2]
 
 def eg_bexp_lt_2 : BExp := [imp_bexp| 1 + 1 < 2 + 2]
 #print eg_bexp_lt_2
--- BExp.BLess (AExp.ANat 1) (AExp.ANat 2)
+-- BExp.BLess (AExp.APlus (AExp.ANat 1) (AExp.ANat 1)) (AExp.APlus (AExp.ANat 2) (AExp.ANat 2))
+
 
 def eg_bexp_and_1: BExp := [imp_bexp| true && true]
 #print eg_bexp_and_1
@@ -414,7 +415,7 @@ elab "[imp_command|" s:imp_command "]" : term => elabCommand s
 
 def eg_command_assign : Command := [imp_command| x = 11 + 20]
 #print eg_command_assign
--- Command.Assign "x" (AExp.APlus (AExp.ANat 10) (AExp.ANat 20))
+-- Command.Assign "x" (AExp.APlus (AExp.ANat 11) (AExp.ANat 20))
 
 def eg_command_if : Command := [imp_command| if 1 < 2 then x = 10 else x = 20 fi]
 #print eg_command_if
@@ -431,7 +432,7 @@ def eg_command_while : Command := [imp_command| while x < 3 do x = x + 10 od]
 ```
 
 A placeholder with precedence `p` accepts only notations with precedence at
-least `p` in that place.  Thus the string `a + b + c` cannot be parsed as the
+least `p` in that place.  Thus, the string `a + b + c` cannot be parsed as the
 equivalent of `a + (b + c)` because the right-hand side operand of an `infixl`
 notation has precedence one greater than the notation itself.
 
@@ -454,7 +455,8 @@ elab "[imp_command|" x:imp_command "]" : term => elabCompound x
 def eg_command_seq : Command := [imp_command| x = 1 ;; x = 2 ;; x = 3 ;; x = 4]
 #print eg_command_seq
 -- Command.Seq (Command.Assign "x" (AExp.ANat 1))
---  (Command.Seq (Command.Assign "x" (AExp.ANat 2)) (Command.Assign "x" (AExp.ANat 3)))
+--  (Command.Seq (Command.Assign "x" (AExp.ANat 2))
+--    (Command.Seq (Command.Assign "x" (AExp.ANat 3)) (Command.Assign "x" (AExp.ANat 4))))
 ```
 
 At this point, we have defined the full parsing infrastructure.
