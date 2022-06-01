@@ -114,15 +114,18 @@ The are of course differences as well:
 
 ## Hygiene issues and how to solve them
 If you are familiar with macro systems in other languages like C you
-probably know about so called macro hygiene issues already. A hygiene
-issue is when a macro introduces an identifier that collides with an
+probably know about so called macro hygiene issues already.
+A hygiene issue is when a macro introduces an identifier that collides with an
 identifier from some syntax that it is including. For example:
 -/
 
+-- Applying this macro produces a function that binds a new identifier `x`.
 macro "const" e:term : term => `(fun x => $e)
 
+-- But `x` can also be defined by a user
 def x : Nat := 42
 
+-- Which `x` should be used by the compiler in place of `$e`?
 #eval (const x) 10 -- 42
 
 /-!

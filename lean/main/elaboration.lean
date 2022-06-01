@@ -173,6 +173,9 @@ elab "#findCElab " c:command : command => do
 /-!
 TODO: Maybe we should also add a mini project that demonstrates a
 non # style command aka a declaration, although nothing comes to mind right now.
+TODO:  Define a `conjecture` declaration, similar to `lemma/theorem`, except that 
+it is automatically sorried.  The `sorry` could be a custom one, to reflect that
+the "conjecture" might be expected to be true.
 -/
 
 /-!
@@ -306,22 +309,28 @@ def getCtors (typ : Name) : MetaM (List Name) := do
 
 @[termElab myanon]
 def myanonImpl : TermElab := fun stx typ? => do
-  -- Attempt to postpone execution if the type is not known.
-  -- Term elaborators can only postpone execution once so the elaborator
-  -- doesn't end up in an infinite loop.
+  -- Attempt to postpone execution if the type is not known or is a meta variable.
+  -- Meta variables are used by things like the function elaborator to fill
+  -- out the values of implicit parameters when they haven't gained enough
+  -- information to figure them out yet.
+  -- Term elaborators can only postpone execution once, so the elaborator
+  -- doesn't end up in an infinite loop. Hence, we only try to postpone it,
+  -- otherwise we may cause an error.
   tryPostponeIfNoneOrMVar typ? 
   -- If we haven't found the type after postponing just error
   let some typ := typ? | throwError "expected type must be known"
-  let Expr.const base .. := typ.getAppFn | throwError s!"type is not of the expected form {typ}"
+  if typ.isMVar then
+    throwError "expected type must be known"
+  let Expr.const base .. := typ.getAppFn | throwError s!"type is not of the expected form: {typ}"
   let [ctor] ← getCtors base | throwError "type doesn't have exactly one constructor"
   let args := stx[1].getSepArgs
   let stx ← `($(mkIdent ctor) $args*) -- syntax quotations
   elabTerm stx typ -- call term elaboration recursively
 
-
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
-#check ⟨⟨1, sorry⟩⟩ -- type is not of the expected form ?_uniq.5991
+#check ⟨⟨1, sorry⟩⟩ -- expected type must be known
 #check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
+#check (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
 
 /-!
 As a final note, we can shorten the postponing act by using an additional
