@@ -121,7 +121,7 @@ probably know about so called macro hygiene issues already.
 --  issue is with the repetition of the symbol `x`?  I think that,
 --  whatever the issue is in the example, it would be clearer to declare
 --  it beforehand.  As in "For instance, see how the
---  (symbol `x`/name `const`/whatever else could cause problems)" is handled
+--  (symbol `x`/name `const`/whatever else could cause problems) is handled
 --  in the following example."
  A hygiene
 issue is, when a macro introduced an identifier that collides with an
