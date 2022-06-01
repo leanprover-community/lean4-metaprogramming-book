@@ -169,8 +169,8 @@ macro_rules
 ]
 
 /-!
-As you can see the pretty printing output right now is rather ugly to look at,
-we can do better with an unexpander:
+As you can see, the pretty printing output right now is rather ugly to look at.
+We can do better with an unexpander:
 -/
 
 @[appUnexpander LangExpr.numConst]
@@ -211,7 +211,7 @@ def unexpandLet : Unexpander
 ]
 
 /-!
-That's much better! As always we encourage you to extend the language yourself
+That's much better! As always, we encourage you to extend the language yourself
 with things like parenthesized expressions, more data values, quotations for
 `term` or whatever else comes to your mind.
 -/
