@@ -5,10 +5,10 @@ open Lean Elab Command Term Meta
 # Elaboration
 
 The elaborator is the component in charge of turning the user facing
-`Syntax` into something rest of the compiler can work with. Most of the
-time this means translating `Syntax` into `Expr`s but there are also
-other use cases such as `#check` or `#eval`. Hence the elaborator is
-quite a large piece of code, it lives
+`Syntax` into something with which the rest of the compiler can work.
+Most of the time, this means translating `Syntax` into `Expr`s but
+there are also other use cases such as `#check` or `#eval`. Hence the
+elaborator is quite a large piece of code, it lives
 [here](https://github.com/leanprover/lean4/blob/master/src/Lean/Elab).
 -/
 
@@ -26,12 +26,12 @@ All commands live in the `command` syntax category so in order to declare
 custom commands, their syntax has to be registered in that category.
 
 ### Giving meaning to commands
-The next step is giving some semantics to the syntax, with commands this
+The next step is giving some semantics to the syntax. With commands, this
 is done by registering a so called command elaborator.
 
 Command elaborators have type `CommandElab` which is an alias for:
-`Syntax → CommandElabM Unit`. What they do is take the `Syntax` that
-represents whatever the user used to call the command and produce some
+`Syntax → CommandElabM Unit`. What they do, is take the `Syntax` that
+represents whatever the user wants to call the command and produce some
 sort of side effect on the `CommandElabM` monad, after all the return
 value is always `Unit`. The `CommandElabM` monad has 4 main kinds of
 side effects:
@@ -41,15 +41,15 @@ side effects:
    being: `logInfo`, `logWarning` and `logError`.
 2. Interacting with the `Environment` via the `Monad` extension `MonadEnv`.
    This is the place where all of the relevant information for the compiler
-   is stored, all known declarations, their types, doc string, values etc.
-   The current environment can be obtained via `getEnv` and set it via `setEnv`
+   is stored, all known declarations, their types, doc-strings, values etc.
+   The current environment can be obtained via `getEnv` and set via `setEnv`
    once it has been modified. Note that quite often wrappers around `setEnv`
    like `addDecl` are the correct way to add information to the `Environment`.
 3. Performing `IO`, `CommandElabM` is capable of running any `IO` operation.
-   For example reading from files and based on their contents perform a
+   For example reading from files and based on their contents perform
    declarations.
-4. Throwing errors, since it can run any kind of `IO` it is only natural
-   to be able to throw errors via `throwError`.
+4. Throwing errors, since it can run any kind of `IO`, it is only natural
+   that it can throw errors via `throwError`.
 
 Furthermore there are a bunch of other `Monad` extensions that are supported
 by `CommandElabM`:
@@ -62,24 +62,25 @@ by `CommandElabM`:
 ### Command elaboration
 Now that we understand the type of command elaborators let's take a brief
 look at how the elaboration process actually works:
-1. Otherwise check whether any macros can be applied to the current `Syntax`.
+1. Check whether any macros can be applied to the current `Syntax`.
    If there is a macro that does apply and does not throw an error
-   the resulting `Syntax` is recursively elaborated as a command again
-2. If no macro can be applied we search for all `CommandElab`s that have been
+   the resulting `Syntax` is recursively elaborated as a command again.
+2. If no macro can be applied, we search for all `CommandElab`s that have been
    registered for the `SyntaxKind` of the `Syntax` we are elaborating,
    using the `commandElabAttribute`.
 3. All of these `CommandElab` are then tried in order until one of them does not throw an
-   `unsupportedSyntaxException`, this indicates that the elaborator "feels responsible"
+   `unsupportedSyntaxException`, Lean's way of indicating that the elaborator
+   "feels responsible"
    for this specific `Syntax` construct. Note that it can still throw a regular
    error to indicate to the user that something is wrong. If no responsible
-   elaborator is found the command elaboration is aborted with a `unexpected syntax`
+   elaborator is found, then the command elaboration is aborted with an `unexpected syntax`
    error message.
 
 As you can see the general idea behind the procedure is quite similar to ordinary macro expansion.
 
 ### Making our own
-Now that we know both what a `CommandElab` is and how they are used we can
-start into looking to write our own. The steps for this, as we learned above, are:
+Now that we know both what a `CommandElab` is and how they are used, we can
+start looking into writing our own. The steps for this, as we learned above, are:
 1. Declaring the syntax
 2. Declaring the elaborator
 3. Registering the elaborator as responsible for the syntax via `commandElabAttribute`
@@ -105,9 +106,9 @@ elab "#mycommand2" : command =>
 #mycommand2 -- Hello World
 
 /-!
-Note that due to the fact that command elaboration supports multiple
-registered elaborators for the same syntax we can in fact overload
-syntax if we want to.
+Note that, due to the fact that command elaboration supports multiple
+registered elaborators for the same syntax, we can in fact overload
+syntax, if we want to.
 -/
 @[commandElab mycommand1]
 def myNewImpl : CommandElab := fun stx => do
@@ -118,18 +119,19 @@ def myNewImpl : CommandElab := fun stx => do
 /-!
 Furthermore it is also possible to only overload parts of syntax by
 throwing an `unsupportedSyntaxException` in the cases we want the default
-handler to deal with or just letting the `elab` command handle it
+handler to deal with it or just letting the `elab` command handle it.
 -/
 
 /-
-Note that this is not extending the original #check syntax but adding a new `SyntaxKind`
-for this specific syntax construct, however it behaves basically the same to the user.
+In the following example, we are not extending the original `#check` syntax,
+but adding a new `SyntaxKind` for this specific syntax construct.
+However, from the point of view of the user, the effect is basically the same.
 -/
 elab "#check" "mycheck" : command => do
   logInfo "Got ya!"
 
 /-
-This is actually extending the original #check
+This is actually extending the original `#check`
 -/
 @[commandElab Lean.Parser.Command.check] def mySpecialCheck : CommandElab := fun stx => do
   if let some str := stx[1].isStrLit? then
@@ -146,7 +148,7 @@ This is actually extending the original #check
 As a final mini project for this section let's build a command elaborator
 that is actually useful. It will take a command and use the same mechanisms
 as `elabCommand` (the entry point for command elaboration) to tell us
-which macros or elaborators are relevant to the command we gave it
+which macros or elaborators are relevant to the command we gave it.
 
 We will not go through the effort of actually reimplementing `elabCommand` though
 -/
@@ -176,17 +178,17 @@ non # style command aka a declaration, although nothing comes to mind right now.
 /-!
 ## Term elaboration
 A term is a `Syntax` object that represents some sort of `Expr`.
-Term elaborators are the ones, that do the work for most of the code we write,
-most notably they elaborate all the values of things like definitions,
+Term elaborators are the ones that do the work for most of the code we write.
+Most notably they elaborate all the values of things like definitions,
 types (since these are also just `Expr`) etc.
 
 All terms live in the `term` syntax category (which we have seen in action
-in the macro chatper already) so in order to declare custom terms, their
-syntax has to be registered in that category.
+in the macro chapter already). So, in order to declare custom terms, their
+syntax needs to be registered in that category.
 
 ### Giving meaning to terms
-As with command elaboration the next step is giving some semantics to the syntax,
-with terms this is done by registering a so called term elaborator.
+As with command elaboration, the next step is giving some semantics to the syntax.
+With terms, this is done by registering a so called term elaborator.
 
 Term elaborators have type `TermElab` which is an alias for:
 `Syntax → Option Expr → TermElabM Expr`. This type is already
@@ -195,37 +197,38 @@ quite different from command elaboration:
   to create this term
 - The `Option Expr` is the expected type of the term, since this cannot
   always be known it is only an `Option` argument
-- Unlike command elaboration term elaboration is not only executed
-  because of its side effects, the `TermElabM Expr` return value does
-  actually contain something of interest, the `Expr` that represents
+- Unlike command elaboration, term elaboration is not only executed
+  because of its side effects -- the `TermElabM Expr` return value does
+  actually contain something of interest, namely, the `Expr` that represents
   the `Syntax` object.
 
-`TermElabM` is basically an upgrade to `CommandElabM` in every regard,
-it supports al the capablities we mentioned above and two more.
+`TermElabM` is basically an upgrade of `CommandElabM` in every regard:
+it supports all the capabilities we mentioned above, plus two more.
 The first one is quite simple: On top of running `IO` code it is also
-capable of running `MetaM` code so `Expr`s can be constructed nicely.
+capable of running `MetaM` code, so `Expr`s can be constructed nicely.
 The second one is very specific to the term elaboration loop.
 
 ### Term elaboration
-The basic idea of term elaboration is the same as command elaboration,
+The basic idea of term elaboration is the same as command elaboration:
 expand macros and recurse or run term elaborators that have been registered
 for the `Syntax` via the `termElabAttribute` (they might in turn run term elaboration)
-until we are done. There is however one special thing a term elaborator
+until we are done. There is, however, one special action that a term elaborator
 can do during its execution.
 
-A term elaborator may throw `Except.postpone`, this indicates it requires more
-information to continue its work. In order to represent this missing information
-Lean uses so called synthetic meta variables, as you know from before metavariables
-are holes in `Expr`s that are waiting to be filled. The special thing about synthetic
-ones is, that they have a certain way associated that is to be used to solve them,
-the `SyntheticMVarKind`, right now there are four of these:
+A term elaborator may throw `Except.postpone`. This indicates that
+the term elaborator requires more
+information to continue its work. In order to represent this missing information,
+Lean uses so called synthetic meta variables. As you know from before, metavariables
+are holes in `Expr`s that are waiting to be filled in. Synthetic meta variables are 
+different in that they have special methods that are used to solve them,
+registered in `SyntheticMVarKind`. Right now, there are four of these:
 - `typeClass`, the meta variable should be solved with typeclass synthesis
 - `coe`, the meta variable should be solved via coercion (a special case of typeclass)
-- `tactic`, the meta variable is a tactic term that should be solved by running the tactic
+- `tactic`, the meta variable is a tactic term that should be solved by running a tactic
 - `postponed`, the ones that are created at `Except.postpone`
 
 Once such a synthetic meta variable is created, the next higher level term elaborator will continue.
-At some point execution of the term elaborator that postponed execution will be resumed,
+At some point, execution of postponed meta variables will be resumed by the term elaborator,
 in hopes that it can now complete its execution. We can try to see this in
 action with the following example:
 -/
@@ -234,14 +237,14 @@ action with the following example:
 /-!
 What happened here is that the elaborator for function applications started
 at `List.foldr` which is a generic function so it created meta variables
-for the implicit type parameters. Then it attempted to elaborate the first argument `.add`.
+for the implicit type parameters. Then, it attempted to elaborate the first argument `.add`.
 
 In case you don't know how `.name` works, the basic idea is that quite
-often (like in this case) Lean should be able to infer the output type
-of a function (in this case `Nat`), the `.name` feature will then simply
+often (like in this case) Lean should be able to infer the output type (in this case `Nat`)
+of a function (in this case `Nat.add`).  In such cases, the `.name` feature will then simply
 search for a function named `name` in the namespace `Nat`. This is especially
 useful when you want to use constructors of a type without referring to its
-namespace or opening it but can also be used like above.
+namespace or opening it, but can also be used like above.
 
 Now back to our example, while Lean does at this point already know that `.add`
 needs to have type: `?m1 → ?m2 → ?m2` (where `?x` is notation for a meta variable)
@@ -251,7 +254,7 @@ in place of `.add`), the elaboration of the other two arguments then yields the 
 `?m2` has to be `Nat` so once the `.add` elaborator is continued it can work with
 this information to complete elaboration.
 
-We can also easily provoke cases where this does not work out, for example:
+We can also easily provoke cases where this does not work out. For example:
 -/
 
 #check set_option trace.Elab.postpone true in List.foldr .add
@@ -286,7 +289,7 @@ elab "myterm 2" : term => do
 
 /-!
 ### Mini project
-As a final min project for this chapter we will recreate one of the most
+As a final mini project for this chapter we will recreate one of the most
 commonly used Lean syntax sugars, the `⟨a,b,c⟩` notation as a short hand
 for single constructor types:
 -/
@@ -305,7 +308,7 @@ def getCtors (typ : Name) : MetaM (List Name) := do
 def myanonImpl : TermElab := fun stx typ? => do
   -- Attempt to postpone execution if the type is not known.
   -- Term elaborators can only postpone execution once so the elaborator
-  -- doesnt end up in an infinite loop.
+  -- doesn't end up in an infinite loop.
   tryPostponeIfNoneOrMVar typ? 
   -- If we haven't found the type after postponing just error
   let some typ := typ? | throwError "expected type must be known"
@@ -318,6 +321,7 @@ def myanonImpl : TermElab := fun stx typ? => do
 
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
 #check ⟨⟨1, sorry⟩⟩ -- type is not of the expected form ?_uniq.5991
+#check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
 
 /-!
 As a final note, we can shorten the postponing act by using an additional
