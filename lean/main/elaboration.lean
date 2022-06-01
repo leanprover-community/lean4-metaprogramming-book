@@ -289,7 +289,7 @@ elab "myterm 2" : term => do
 
 /-!
 ### Mini project
-As a final min project for this chapter we will recreate one of the most
+As a final mini project for this chapter we will recreate one of the most
 commonly used Lean syntax sugars, the `⟨a,b,c⟩` notation as a short hand
 for single constructor types:
 -/
@@ -308,7 +308,7 @@ def getCtors (typ : Name) : MetaM (List Name) := do
 def myanonImpl : TermElab := fun stx typ? => do
   -- Attempt to postpone execution if the type is not known.
   -- Term elaborators can only postpone execution once so the elaborator
-  -- doesnt end up in an infinite loop.
+  -- doesn't end up in an infinite loop.
   tryPostponeIfNoneOrMVar typ? 
   -- If we haven't found the type after postponing just error
   let some typ := typ? | throwError "expected type must be known"
@@ -321,6 +321,7 @@ def myanonImpl : TermElab := fun stx typ? => do
 
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
 #check ⟨⟨1, sorry⟩⟩ -- type is not of the expected form ?_uniq.5991
+#check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
 
 /-!
 As a final note, we can shorten the postponing act by using an additional
