@@ -173,9 +173,9 @@ elab "#findCElab " c:command : command => do
 /-!
 TODO: Maybe we should also add a mini project that demonstrates a
 non # style command aka a declaration, although nothing comes to mind right now.
---  How about a `conjecture` declaration, similar to `lemma/theorem`, except that 
---  it is automatically sorried, maybe with a custom `sorry`, to reflect that it is
---  expected to be true?
+TODO:  Define a `conjecture` declaration, similar to `lemma/theorem`, except that 
+it is automatically sorried.  The `sorry` could be a custom one, to reflect that
+the "conjecture" might be expected to be true.
 -/
 
 /-!
