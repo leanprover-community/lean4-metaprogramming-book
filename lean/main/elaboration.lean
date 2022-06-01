@@ -178,17 +178,17 @@ non # style command aka a declaration, although nothing comes to mind right now.
 /-!
 ## Term elaboration
 A term is a `Syntax` object that represents some sort of `Expr`.
-Term elaborators are the ones, that do the work for most of the code we write,
-most notably they elaborate all the values of things like definitions,
+Term elaborators are the ones that do the work for most of the code we write.
+Most notably they elaborate all the values of things like definitions,
 types (since these are also just `Expr`) etc.
 
 All terms live in the `term` syntax category (which we have seen in action
-in the macro chatper already) so in order to declare custom terms, their
-syntax has to be registered in that category.
+in the macro chapter already). So, in order to declare custom terms, their
+syntax needs to be registered in that category.
 
 ### Giving meaning to terms
-As with command elaboration the next step is giving some semantics to the syntax,
-with terms this is done by registering a so called term elaborator.
+As with command elaboration, the next step is giving some semantics to the syntax.
+With terms, this is done by registering a so called term elaborator.
 
 Term elaborators have type `TermElab` which is an alias for:
 `Syntax → Option Expr → TermElabM Expr`. This type is already
@@ -197,37 +197,38 @@ quite different from command elaboration:
   to create this term
 - The `Option Expr` is the expected type of the term, since this cannot
   always be known it is only an `Option` argument
-- Unlike command elaboration term elaboration is not only executed
-  because of its side effects, the `TermElabM Expr` return value does
-  actually contain something of interest, the `Expr` that represents
+- Unlike command elaboration, term elaboration is not only executed
+  because of its side effects -- the `TermElabM Expr` return value does
+  actually contain something of interest, namely, the `Expr` that represents
   the `Syntax` object.
 
-`TermElabM` is basically an upgrade to `CommandElabM` in every regard,
-it supports al the capablities we mentioned above and two more.
+`TermElabM` is basically an upgrade of `CommandElabM` in every regard:
+it supports all the capabilities we mentioned above, plus two more.
 The first one is quite simple: On top of running `IO` code it is also
-capable of running `MetaM` code so `Expr`s can be constructed nicely.
+capable of running `MetaM` code, so `Expr`s can be constructed nicely.
 The second one is very specific to the term elaboration loop.
 
 ### Term elaboration
-The basic idea of term elaboration is the same as command elaboration,
+The basic idea of term elaboration is the same as command elaboration:
 expand macros and recurse or run term elaborators that have been registered
 for the `Syntax` via the `termElabAttribute` (they might in turn run term elaboration)
-until we are done. There is however one special thing a term elaborator
+until we are done. There is, however, one special action that a term elaborator
 can do during its execution.
 
-A term elaborator may throw `Except.postpone`, this indicates it requires more
-information to continue its work. In order to represent this missing information
-Lean uses so called synthetic meta variables, as you know from before metavariables
-are holes in `Expr`s that are waiting to be filled. The special thing about synthetic
-ones is, that they have a certain way associated that is to be used to solve them,
-the `SyntheticMVarKind`, right now there are four of these:
+A term elaborator may throw `Except.postpone`. This indicates that
+the term elaborator requires more
+information to continue its work. In order to represent this missing information,
+Lean uses so called synthetic meta variables. As you know from before, metavariables
+are holes in `Expr`s that are waiting to be filled in. Synthetic meta variables are 
+different in that they have special methods that are used to solve them,
+registered in `SyntheticMVarKind`. Right now, there are four of these:
 - `typeClass`, the meta variable should be solved with typeclass synthesis
 - `coe`, the meta variable should be solved via coercion (a special case of typeclass)
-- `tactic`, the meta variable is a tactic term that should be solved by running the tactic
+- `tactic`, the meta variable is a tactic term that should be solved by running a tactic
 - `postponed`, the ones that are created at `Except.postpone`
 
 Once such a synthetic meta variable is created, the next higher level term elaborator will continue.
-At some point execution of the term elaborator that postponed execution will be resumed,
+At some point, execution of postponed meta variables will be resumed by the term elaborator,
 in hopes that it can now complete its execution. We can try to see this in
 action with the following example:
 -/
@@ -236,14 +237,14 @@ action with the following example:
 /-!
 What happened here is that the elaborator for function applications started
 at `List.foldr` which is a generic function so it created meta variables
-for the implicit type parameters. Then it attempted to elaborate the first argument `.add`.
+for the implicit type parameters. Then, it attempted to elaborate the first argument `.add`.
 
 In case you don't know how `.name` works, the basic idea is that quite
-often (like in this case) Lean should be able to infer the output type
-of a function (in this case `Nat`), the `.name` feature will then simply
+often (like in this case) Lean should be able to infer the output type (in this case `Nat`)
+of a function (in this case `Nat.add`).  In such cases, the `.name` feature will then simply
 search for a function named `name` in the namespace `Nat`. This is especially
 useful when you want to use constructors of a type without referring to its
-namespace or opening it but can also be used like above.
+namespace or opening it, but can also be used like above.
 
 Now back to our example, while Lean does at this point already know that `.add`
 needs to have type: `?m1 → ?m2 → ?m2` (where `?x` is notation for a meta variable)
@@ -253,7 +254,7 @@ in place of `.add`), the elaboration of the other two arguments then yields the 
 `?m2` has to be `Nat` so once the `.add` elaborator is continued it can work with
 this information to complete elaboration.
 
-We can also easily provoke cases where this does not work out, for example:
+We can also easily provoke cases where this does not work out. For example:
 -/
 
 #check set_option trace.Elab.postpone true in List.foldr .add
