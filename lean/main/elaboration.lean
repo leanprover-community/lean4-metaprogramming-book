@@ -321,7 +321,6 @@ def myanonImpl : TermElab := fun stx typ? => do
   let stx ← `($(mkIdent ctor) $args*) -- syntax quotations
   elabTerm stx typ -- call term elaboration recursively
 
-
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
 #check ⟨⟨1, sorry⟩⟩ -- type is not of the expected form ?_uniq.5991
 #check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
