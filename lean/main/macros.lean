@@ -83,7 +83,7 @@ macro_rules
   | `($l:term RXOR $r:term) => `($l && !$r)
 
 /-!
-As you can see, it figures out lot's of things on it's own for us:
+As you can see, it figures out lot's of things on its own for us:
 - the name of the syntax declaration
 - the `macro` attribute registration
 - the `throwUnsupported` wildcard
@@ -92,7 +92,7 @@ apart from this it just works like a function that is using pattern
 matching syntax, we can in theory encode arbitrarily complex macro
 functions on the right hand side.
 
-If this is still not short enough for you there is a next step using the
+If this is still not short enough for you, there is a next step using the
 `macro` macro:
 -/
 
@@ -104,13 +104,13 @@ macro l:term:10 " ⊕ " r:term:11 : term => `((!$l && $r) || ($l && !$r))
 #eval false ⊕ false -- false
 
 /-!
-As you can see `macro` is quite close to `notation` already:
+As you can see, `macro` is quite close to `notation` already:
 - it performed syntax declaration for us
-- automatically wrote a `macro_rules` style function to match on it
+- it automatically wrote a `macro_rules` style function to match on it
 
 The are of course differences as well:
 - `notation` is limited to the `term` syntax category
-- `notation` can not have arbitrary macro code on the right hand side
+- `notation` cannot have arbitrary macro code on the right hand side
 
 ## Hygiene issues and how to solve them
 If you are familiar with macro systems in other languages like C you
