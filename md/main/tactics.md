@@ -99,7 +99,7 @@ And we no longer have the error `unsolved goals: ⊢ 1 = 2`.
 
 In this section, we will learn how to access the hypotheses to prove a goal. In
 particular, we shall attempt to implement a tactic `custom_trivial`, which looks
-for an exact match of the goal amongst the hypotheses, and solves the theorem if
+for an exact match of the goal among the hypotheses, and solves the theorem if
 possible.
 
 In the example below, we expect `custom_trivial` to use `(H2 : 2 = 2)` to solve

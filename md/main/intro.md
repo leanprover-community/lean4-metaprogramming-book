@@ -30,7 +30,7 @@ __object-level__.
 
 In most systems, the meta-level activities are done in a different language to
 the one that we use to write code. In Isabelle, the meta-level language is ML
-and Scala. In Coq, it's OCAML. In AGDA it's Haskell. In Lean 4, the meta code is
+and Scala. In Coq, it's OCaml. In Agda it's Haskell. In Lean 4, the meta code is
 mostly written in Lean itself, with a few components written in C++.
 
 One cool thing about Lean, though, is that it allows us to define custom syntax
@@ -50,7 +50,7 @@ use the `partial` keyword if we're convinced that our function terminates. In
 the worst case scenario, our function gets stuck in a loop but the kernel is
 not reached/affected.
 
-Let's see some exemple use cases of metaprogramming in Lean.
+Let's see some example use cases of metaprogramming in Lean.
 
 ## Metaprogramming examples
 
