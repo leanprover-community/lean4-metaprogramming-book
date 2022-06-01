@@ -32,8 +32,8 @@ Arithmetic expressions are naturals, variables, or sums of other
 arithmetic expressions.
 -/
 inductive AExp
-  | ANat: Nat → AExp
-  | AVar: String → AExp
+  | ANat:  Nat → AExp
+  | AVar:  String → AExp
   | APlus: AExp → AExp → AExp
   deriving Inhabited
 
@@ -46,8 +46,8 @@ two arithmetic expressions.
 -/
 inductive BExp
   | BBool: Bool → BExp
-  | BVar: String → BExp
-  | BAnd: BExp → BExp → BExp
+  | BVar:  String → BExp
+  | BAnd:  BExp → BExp → BExp
   | BLess: AExp → AExp → BExp
   deriving Inhabited
 
@@ -59,11 +59,11 @@ command to assign a value to a variable, a `seq`(`;;`) to sequence commands,
 an `if` for conditionals, and `while` for looping.
 -/
 inductive Command
-  | Skip: Command
+  | Skip:   Command
   | Assign: String → AExp → Command
-  | Seq: Command → Command → Command
-  | If: BExp → Command → Command → Command
-  | While: BExp → Command → Command
+  | Seq:    Command → Command → Command
+  | If:     BExp → Command → Command → Command
+  | While:  BExp → Command → Command
   deriving Inhabited
 
 
@@ -82,7 +82,7 @@ that is the focus of this section.
 
 
 declare_syntax_cat imp_aexp
-syntax num : imp_aexp
+syntax num   : imp_aexp
 syntax ident : imp_aexp
 syntax imp_aexp "+" imp_aexp : imp_aexp
 
