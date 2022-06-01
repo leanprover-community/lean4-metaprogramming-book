@@ -2,7 +2,7 @@
 /-!
 # Monads used in Lean 4
 
-Here is a list of monads that are used in Lean 4 that you might run in to. Some have already been discussed above.
+Here is a list of monads that are used in Lean 4 that you might run into. Some have already been discussed above.
 Monad stacks can be quite tall in Lean 4. For example if we were to write out the full defininition of `TacticM`:
 
 ```lean
@@ -32,7 +32,7 @@ This state is a little strange.
 There is a magic definition `IO.RealWorld : Type := Unit`, that represents the 'io state' of your application.
 You should never actually use `IO.RealWorld`.
 A description of how it works in Haskell is given [here](https://www.well-typed.com/blog/2014/06/understanding-the-realworld/).
-To summarise: it's essentially a placeholder for for the current state of everything outside your app.
+To summarise: it's essentially a placeholder for the current state of everything outside your app.
 It seems to just be some bookkeeping for the compiler (TODO: check with authorities), since if you are passing this `() : IO.Realworld` object around,
 the optimiser will never try to reorder operations and so on.
 You should always use `EIO` and items defined in terms of `EIO`, because of course you can't reset the state of reality.
@@ -84,7 +84,7 @@ It works similarly to a combined `TermElabM` and `CoreM`. It is used for elabora
 ## `MacroM`
 
 A macro is a function `Syntax → MacroM Syntax`. The macro state and context contains information
-needed to expand macros hygenically. You can learn more about macros in [[main/macros]] and [The Lean manual](https://leanprover.github.io/lean4/doc/macro_overview.html).
+needed to expand macros hygienically. You can learn more about macros in [[main/macros]] and [The Lean manual](https://leanprover.github.io/lean4/doc/macro_overview.html).
 
 ## `RequestM`
 
