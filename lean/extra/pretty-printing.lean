@@ -145,15 +145,15 @@ So, for easy syntax, you will never have to do this yourself.
 -/
 
 declare_syntax_cat lang
-syntax num : lang
+syntax num   : lang
 syntax ident : lang
 syntax "let " ident " := " lang " in " lang: lang
 syntax "[Lang| " lang "]" : term
 
 inductive LangExpr
   | numConst : Nat → LangExpr
-  | ident : String → LangExpr
-  | letE : String → LangExpr → LangExpr → LangExpr
+  | ident    : String → LangExpr
+  | letE     : String → LangExpr → LangExpr → LangExpr
 
 macro_rules
   | `([Lang| $x:num ]) => `(LangExpr.numConst $x)
