@@ -87,7 +87,7 @@ syntax ident : imp_aexp
 syntax imp_aexp "+" imp_aexp : imp_aexp
 
 /- 
-Recall that if we were doing this via lean macros, 
+Recall that if we were doing this via Lean macros, 
 we would write out an "interpretation" macro such as `[imp_aexp|...]`,
 and the declare the translation as a macro rule:
 -/
@@ -280,7 +280,7 @@ We repeat the same process, this time for `BExp`.
 This time, we show a different method to writing the elaboration
 function `elab_bexp: Syntax → TermElabM Expr`, where we write
 the function for all `BExp`s at once. This allows us to
-write it as a regular lean function, and use regular recursion
+write it as a regular Lean function, and use regular recursion
 to elaborate our `BExp`.
 -/
 
