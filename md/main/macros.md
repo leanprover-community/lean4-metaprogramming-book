@@ -117,18 +117,9 @@ The are of course differences as well:
 
 ## Hygiene issues and how to solve them
 If you are familiar with macro systems in other languages like C you
-probably know about so called macro hygiene issues already.
---  I do not really understand the next sentence, nor the example.
---  Is the example clashing with `Expr.const`?  The two `const`s have
---  different namespaces, though, right?  Reading further, maybe the
---  issue is with the repetition of the symbol `x`?  I think that,
---  whatever the issue is in the example, it would be clearer to declare
---  it beforehand.  As in "For instance, see how the
---  (symbol `x`/name `const`/whatever else could cause problems) is handled
---  in the following example."
- A hygiene
-issue is, when a macro introduced an identifier that collides with an
-identifier from some syntax that it is including, for example:
+probably know about so called macro hygiene issues already. A hygiene
+issue is when a macro introduces an identifier that collides with an
+identifier from some syntax that it is including. For example:
 
 ```lean
 macro "const" e:term : term => `(fun x => $e)

@@ -325,9 +325,6 @@ def myanonImpl : TermElab := fun stx typ? => do
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
 #check ⟨⟨1, sorry⟩⟩ -- type is not of the expected form ?_uniq.5991
 #check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
-
--- I wanted to find an example for each type of error above.  I suggested one for
--- "exactly one constructor", but could not find one for "expected type must be known"
 ```
 
 As a final note, we can shorten the postponing act by using an additional
