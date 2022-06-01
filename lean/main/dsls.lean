@@ -246,7 +246,7 @@ approach does not have anything more interesting to say.
 
 def elab_aexp_plus : Syntax → TermElabM Expr
   | `(imp_aexp| $x:imp_aexp + $y:imp_aexp) => do 
-    -- recrsively expand xExpr, yExpr via `Term.elabTerm`
+    -- recursively expand xExpr, yExpr via `Term.elabTerm`
     let xExpr ← Term.elabTerm (← `([imp_aexp'| $x])) (expectedType? := none)
     let yExpr ← Term.elabTerm (← `([imp_aexp'| $y])) (expectedType? := none)
     mkAppM ``AExp.APlus #[xExpr, yExpr]
@@ -277,7 +277,7 @@ def eg_aexp_plus_elab: AExp := [imp_aexp'| foo + bar]
 #### Parsing BExp
 
 We repeat the same process, this time for `BExp`.
-This time, we show a different method to writing the elaboration
+This time, we show a different method of writing the elaboration
 function `elab_bexp: Syntax → TermElabM Expr`, where we write
 the function for all `BExp`s at once. This allows us to
 write it as a regular Lean function, and use regular recursion
@@ -290,7 +290,7 @@ syntax imp_aexp "<" imp_aexp : imp_bexp
 syntax imp_bexp "&&" imp_bexp : imp_bexp
 
 /-
-We first create a helper to function
+We first create a helper function
 to convert Booleans into `Expr`s.
 -/
 def mkBoolLit: Bool → Expr
@@ -311,7 +311,7 @@ partial def elab_bexp : Syntax → TermElabM Expr
     | n => mkAppM ``BExp.BVar #[mkStrLit str]
 
 /-
-To elaborate the less than (`<`) operator on `aexp`s, we wrie a helper called
+To elaborate the less than (`<`) operator on `aexp`s, we write a helper called
 `elab_aexp`, that calls `elabTerm` on the term `[imp_aexp'| $s]`. This produces
 an `Expr` node, which we use to build a `BExp.BLess`
 -/
@@ -324,7 +324,7 @@ an `Expr` node, which we use to build a `BExp.BLess`
 
 /-
 To elaborate the logical and (`&&`) operator on `bexp`s, we recursively call
-`elab_bexp` to elaborate the left and the right hand side, and we then finally
+`elab_bexp` to elaborate the left and the right hand side.  Finally, we
 create a `BExp.BAnd` term.
 -/
   | `(imp_bexp| $x:imp_bexp && $y:imp_bexp) => do
@@ -360,7 +360,8 @@ def eg_bexp_lt_1 : BExp := [imp_bexp| 1 < 2]
 
 def eg_bexp_lt_2 : BExp := [imp_bexp| 1 + 1 < 2 + 2]
 #print eg_bexp_lt_2
--- BExp.BLess (AExp.ANat 1) (AExp.ANat 2)
+-- BExp.BLess (AExp.APlus (AExp.ANat 1) (AExp.ANat 1)) (AExp.APlus (AExp.ANat 2) (AExp.ANat 2))
+
 
 def eg_bexp_and_1: BExp := [imp_bexp| true && true]
 #print eg_bexp_and_1
@@ -416,7 +417,7 @@ elab "[imp_command|" s:imp_command "]" : term => elabCommand s
 
 def eg_command_assign : Command := [imp_command| x = 11 + 20]
 #print eg_command_assign
--- Command.Assign "x" (AExp.APlus (AExp.ANat 10) (AExp.ANat 20))
+-- Command.Assign "x" (AExp.APlus (AExp.ANat 11) (AExp.ANat 20))
 
 def eg_command_if : Command := [imp_command| if 1 < 2 then x = 10 else x = 20 fi]
 #print eg_command_if
@@ -432,7 +433,7 @@ def eg_command_while : Command := [imp_command| while x < 3 do x = x + 10 od]
 -- | TODO: is this too low level? Should we just use sepBy and call it a day?
 /-
 A placeholder with precedence `p` accepts only notations with precedence at
-least `p` in that place.  Thus the string `a + b + c` cannot be parsed as the
+least `p` in that place.  Thus, the string `a + b + c` cannot be parsed as the
 equivalent of `a + (b + c)` because the right-hand side operand of an `infixl`
 notation has precedence one greater than the notation itself.
 -/
@@ -453,7 +454,8 @@ elab "[imp_command|" x:imp_command "]" : term => elabCompound x
 def eg_command_seq : Command := [imp_command| x = 1 ;; x = 2 ;; x = 3 ;; x = 4]
 #print eg_command_seq
 -- Command.Seq (Command.Assign "x" (AExp.ANat 1))
---  (Command.Seq (Command.Assign "x" (AExp.ANat 2)) (Command.Assign "x" (AExp.ANat 3)))
+--  (Command.Seq (Command.Assign "x" (AExp.ANat 2))
+--    (Command.Seq (Command.Assign "x" (AExp.ANat 3)) (Command.Assign "x" (AExp.ANat 4))))
 
 /-
 At this point, we have defined the full parsing infrastructure.
