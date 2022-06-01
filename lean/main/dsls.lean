@@ -231,8 +231,7 @@ will be invoked in succession:
 -/
 
 def eg_AExp_fail: AExp :=
-  [imp_aexp'| 42 + 43]  -- something goes wrong in the Infoview?  I see the commented text
-                        -- below appear twice
+  [imp_aexp'| 42 + 43]
 -- elab_aexp_ident failed.
 -- elab_aexp_num failed
 
