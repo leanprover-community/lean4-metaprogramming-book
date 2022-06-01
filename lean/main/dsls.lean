@@ -89,7 +89,7 @@ syntax imp_aexp "+" imp_aexp : imp_aexp
 /- 
 Recall that if we were doing this via Lean macros, 
 we would write out an "interpretation" macro such as `[imp_aexp|...]`,
-and the declare the translation as a macro rule:
+and then declare the translation as a macro rule:
 -/
 
 syntax "[imp_aexp|" imp_aexp "]" : term
@@ -98,7 +98,7 @@ macro_rules
   | `([imp_aexp| $n:num ]) => `(AExp.ANat $n)
 
 def eg_AExp_num_macro: AExp := [imp_aexp| 42]
-#reduce eg_AExp_num_macro
+#reduce eg_AExp_num_macro  -- AExp.ANat 42
 
 /-
 In contrast to this approach, when we write an `elab`orator,
@@ -119,7 +119,7 @@ category is `<syntax-category>`, which match the `<match-pattern>`.
 
 To write a low level `elab`orator for `num`,
 we write a combinator `mkApp': Name → Expr → Expr`
-that create an `Expr` denoting the function application of a 
+that creates an `Expr` denoting the function application of a 
 name `name` to an expression `e`.
 -/
 
@@ -157,7 +157,7 @@ def eg_AExp_num_elab: AExp := [imp_aexp'| 42]
 -- AExp.ANat 42
 
 /-
-Let's write a macro_rules for converting identifiers.
+Let's write a `macro_rules` for converting identifiers.
 We see that we need to grab the string as `nameStr`, then
 quote the string back into `Syntax`, and then we finally build
 the `AExp.Avar`.
@@ -192,7 +192,7 @@ a `s:imp_aexp` with `elab_aexp_ident`.
 elab "[imp_aexp'|" s:imp_aexp "]" : term =>
   elab_aexp_ident s
 
-def eg_AExp_ident_elab: AExp :=
+def eg_AExp_ident_elab: AExp :=  -- elab_AExp_num failed
   [imp_aexp'|  foo]
 
 #reduce eg_AExp_ident_elab
@@ -203,8 +203,8 @@ We test that our new elaboration rule did not interfere with
 our previous rule to parse numbers:
 -/
 def eg_AExp_num2_elab: AExp := [imp_aexp'|  43]
-#reduce eg_AExp_num2_elab
 -- elab_aexp_ident failed.
+#reduce eg_AExp_num2_elab
 -- AExp.AVar "43"
 
 /-
@@ -221,7 +221,7 @@ This is because, as we discussed above, introducing new `elab` rules ensures
 that these rules are run in sequence, and this allows for the Lean syntax
 to be extended gracefully in an open-ended fashion.
 
-We can see from the output that Lean did try to runthe rule `elab_aexp_ident` which failed.
+We can see from the output that Lean did try to run the rule `elab_aexp_ident` which failed.
 It then fell back to running `elab_aexp_num`, which succeeded.
 -/
 
