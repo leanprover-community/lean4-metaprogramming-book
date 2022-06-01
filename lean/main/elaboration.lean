@@ -313,8 +313,8 @@ def myanonImpl : TermElab := fun stx typ? => do
   -- Meta variables are used by things like the function elaborator to fill
   -- out the values of implicit parameters when they haven't gained enough
   -- information to figure them out yet.
-  -- Term elaborators can only postpone execution once so the elaborator
-  -- doesn't end up in an infinite loop, hence we only try to postpone it
+  -- Term elaborators can only postpone execution once, so the elaborator
+  -- doesn't end up in an infinite loop. Hence, we only try to postpone it,
   -- otherwise we may cause an error.
   tryPostponeIfNoneOrMVar typ? 
   -- If we haven't found the type after postponing just error
