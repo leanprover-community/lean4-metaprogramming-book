@@ -115,8 +115,8 @@ The are of course differences as well:
 ## Hygiene issues and how to solve them
 If you are familiar with macro systems in other languages like C you
 probably know about so called macro hygiene issues already. A hygiene
-issue is, when a macro introduced an identifier that collides with an
-identifier from some syntax that it is including, for example:
+issue is when a macro introduces an identifier that collides with an
+identifier from some syntax that it is including. For example:
 -/
 
 macro "const" e:term : term => `(fun x => $e)
