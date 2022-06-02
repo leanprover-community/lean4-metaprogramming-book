@@ -1,9 +1,6 @@
 /-
 # `MetaM`
 
---todo
--- better thread of thought
-
 ## Smart constructors for expressions
 
 The `MetaM` monad provides even more smart constructors to help us build

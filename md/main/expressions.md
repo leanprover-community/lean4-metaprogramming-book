@@ -1,10 +1,5 @@
 # Expressions
 
---todo
-* matching (there's some content in `temp`)
-* normalisation, transparency
-* discrimination trees
-
 Expressions (terms of type `Expr`) carry the data used to communicate with the
 Lean kernel for core tasks such as type inference and definitional equality
 checks.
