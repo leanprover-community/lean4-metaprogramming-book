@@ -504,6 +504,60 @@ theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
 -- { left := Eq.refl 1, right := Eq.refl 2 }
 
 /-
+## Printing Messages and Formatting Strings
+
+As you saw, we used `dbg_trace f!"..."` or `dbg_trace "..."` to get Lean to print out
+to give information to the user.  `dbg_trace` prints in the Infoview what it receives
+from `f!"..."` or simply `"..."`.  There are in fact two more option for formatting
+strings, namely `s!"..."` and `m!"..."`.
+
+`dbg_trace <arg>` prints a formatted version of `<arg>`.
+
+If the argument `<arg>` of `dbg_trace` is already a `String`, then `dbg_trace` prints it.
+If the argument `<arg>` of `dbg_trace` is not a `String`, then `dbg_trace` prints
+`toString <arg>` (or fails, if `toString` is not defined on `<arg>`).
+
+To format strings, these are some options.
+
+* `f!"..."` interprets `...` using `Std.ToFormat`.  It outputs a `Std.Format`.
+* `s!"..."` interprets `...` using `ToString`.  It outputs a `String`.
+* `m!"..."` interprets `...` using `Lean.ToMessageData`.  It outputs a `Lean.MessageData`.
+
+When combining these options with `dbg_trace`, the `s!` option is equivalent to
+directly passing the string itself, since `dbg_trace "..."` and `dbg_trace s!"..."`
+macro expand to the same command.  `dbg_trace f!"..."`, which gets converted to
+`dbg_trace toString f!"..."`, may produce different outputs and can be easier to read.
+For example
+
+ In Lean, there are 
+-/
+
+elab "traces" : tactic => do
+  let array := List.replicate 5 (List.range 8)
+  dbg_trace f!"with f:\n{array}"
+  dbg_trace s!"with s:\n{array}"
+  dbg_trace "neither f nor s:\n{array}"
+
+example : true := by
+  traces
+  trivial
+-- with f:
+-- [[0, 1, 2, 3, 4, 5, 6, 7],
+--  [0, 1, 2, 3, 4, 5, 6, 7],
+--  [0, 1, 2, 3, 4, 5, 6, 7],
+--  [0, 1, 2, 3, 4, 5, 6, 7],
+--  [0, 1, 2, 3, 4, 5, 6, 7]]
+-- with s:
+-- [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
+-- neither f nor s:
+-- [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
+
+/-
+As you can see, the `f!` option produced a more readable output.  Also, the
+presence of `s!` is irrelevant in terms of the final output.
+-/
+
+/-
 ## FAQ
 
 In this section, we collect common patterns that are used during writing tactics,
