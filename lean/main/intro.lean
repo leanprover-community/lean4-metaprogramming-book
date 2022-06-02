@@ -192,3 +192,135 @@ To require the proof of the new hypothesis as a goal, we call `replaceMainGoal`
 passing a list with `p.mvarId!` in the head. And then we can use the
 `rotate_left` tactic to move the recently added top goal to the bottom.
 -/
+
+
+/-
+## Printing Messages and Formatting Strings
+
+As you saw, we used `logInfo "..."` above to get Lean to print out
+information to the user.  In the examples above, we only printed a
+string of characters.  However, in case we want to print some actual
+expressions, then it can be useful to format them for easier reading.
+-/
+elab "#mylog " termStx:term " : " typeStx:term : command =>
+  open Lean.Elab Command Term in
+  liftTermElabM `assertTypeCmd
+    try
+      let tp ← elabType typeStx
+      let tm ← elabTermEnsuringType termStx tp
+      synthesizeSyntheticMVarsNoPostponing
+      logInfo   "no options:\n'{tm}' has type '{tp}'\n"  -- bare printing of a string
+      logInfo   "no options:\n'{termStx}' has type '{typeStx}'\n"  -- bare printing of a string
+      logInfo s!"s! option:\n'{tm}' has type '{tp}'\n"  -- some processing before printing
+      logInfo s!"s! option, terms:\n'{termStx}' has type '{typeStx}'\n"  -- some processing before printing
+      logInfo m!"m! option:\n'{tm}' has type '{tp}'\n"  -- more processing before printing
+      logInfo m!"m! option, terms:\n'{termStx}' has type '{typeStx}'\n"  -- more processing before printing
+    catch | _ => throwError "failure"
+
+#mylog -1 : Int
+--  no options:
+--  '{tm}' has type '{tp}'
+
+--  no options:
+--  '{termStx}' has type '{typeStx}'
+
+--  s! option:
+--  'Neg.neg.{?_uniq.7958} ?_uniq.7959 ?_uniq.7960 (OfNat.ofNat.{0} ?_uniq.7962 1 ?_uniq.7963)' has type 'Int'
+
+--  s! option, terms:
+--  '(«term-_» "-" (num "1"))' has type '`Int'
+
+--  m! option:
+--  '-1' has type 'Int'
+
+--  m! option, terms:
+--  '-1' has type 'Int'
+
+/-
+Go ahead and experiment with "wilder" examples, for instance
+```lean
+#mylog 1+1 : _
+#mylog List.replicate 5 (List.range 8) : List (List Nat)
+#mylog ["I","♥","28"] : List String
+```
+
+Besides `logInfo`, that is intended for producing "permanent" messages,
+Lean also has a "debug trace" command, `dbg_trace`.  This command is
+similar to `logInfo`.  Below is a quick comparison, where we define a
+tactic: tactics appear later, we use them now simply to highlight some
+differences between `logInfo` and `dbg_trace`.
+-/
+
+elab "traces" : tactic => do
+  let array := List.replicate 5 (List.range 8)
+  Lean.Elab.logInfo "logInfo nothing:\n{array}"
+  Lean.Elab.logInfo s!"logInfo with s:\n{array}"
+  Lean.Elab.logInfo f!"logInfo with f:\n{array}"
+  Lean.Elab.logInfo m!"logInfo with m:\n{array}"
+  dbg_trace f!"debug with f:\n{array}"
+  dbg_trace "debug neither f nor s:\n{array}"
+
+example : true :=
+--  debug with f:
+--  [[0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7]]
+--  debug neither f nor s:
+--  [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
+by traces
+--  logInfo nothing:
+--  {array}
+
+--  logInfo with s:
+--  [[0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7], [0, 1, 2, 3, 4, 5, 6, 7]]
+
+--  logInfo with f:
+--  [[0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7]]
+
+--  logInfo with m:
+--  [[0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7]]
+   trivial
+
+/-
+As you can see, `dbg_trace` is displayed earlier than `logInfo`: it is printed
+at `example` rather than at the actual tactic `traces`.
+
+`dbg_trace <arg>` prints a slightly formatted version of `<arg>`.
+That is, `dbg_trace "..."` gets macro expanded to `dbg_trace s!"..."`.
+Thus, using the `s!` option on a string or using nothing results in the same output,
+when the string is passed to `dbg_trace`.
+
+There are in fact three options for formatting strings,
+namely `f!"..."`, `s!"..."` and `m!"..."`.
+
+* `f!"..."` interprets `...` using `Std.ToFormat`.  It outputs a `Std.Format`.
+* `s!"..."` interprets `...` using `ToString`.  It outputs a `String`.
+* `m!"..."` interprets `...` using `Lean.ToMessageData`.  It outputs a `Lean.MessageData`.
+
+If the argument `<arg>` of `dbg_trace` is already a `String`, then `dbg_trace` prints it.
+If the argument `<arg>` of `dbg_trace` is not a `String`, then `dbg_trace` prints
+`toString <arg>` (or fails, if `toString` is not defined on `<arg>`).
+Since `m!` produces `MessageData` and there is no `ToString` on `MessageData`,
+the `m!` formatting option is not available for `dbg_trace`.
+
+`dbg_trace f!"..."`, which gets converted to `dbg_trace toString f!"..."`,
+may produce different outputs and can be easier to read.  We saw an example of this
+above, with the formatting of
+```lean
+[[0, 1, 2, 3, 4, 5, 6, 7],
+ [0, 1, 2, 3, 4, 5, 6, 7],
+ [0, 1, 2, 3, 4, 5, 6, 7],
+ [0, 1, 2, 3, 4, 5, 6, 7],
+ [0, 1, 2, 3, 4, 5, 6, 7]]
+```
+-/
