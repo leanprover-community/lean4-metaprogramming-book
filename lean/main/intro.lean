@@ -192,3 +192,66 @@ To require the proof of the new hypothesis as a goal, we call `replaceMainGoal`
 passing a list with `p.mvarId!` in the head. And then we can use the
 `rotate_left` tactic to move the recently added top goal to the bottom.
 -/
+
+
+/-
+## Printing Messages and Formatting Strings
+
+As you saw, we used `logInfo "..."` above to get Lean to print out
+information to the user.  In the examples above, we only printed a
+string of characters.  However, in case we want to print some actual
+expressions, then it can be useful to format them for easier reading.
+-/
+elab "#mylog " termStx:term " : " typeStx:term : command =>
+  open Lean.Elab Command Term in
+  liftTermElabM `assertTypeCmd
+    try
+      let tp ← elabType typeStx
+      let tm ← elabTermEnsuringType termStx tp
+      synthesizeSyntheticMVarsNoPostponing
+      logInfo m!"'{tm}' has type '{tp}'"
+    catch | _ => throwError "failure"
+
+#mylog -1 : Int
+--  '-1' has type 'Int'
+
+/-
+Go ahead and experiment with "wilder" examples, for instance
+```lean
+#mylog 1+1 : _
+#mylog List.replicate 5 (List.range 8) : List (List Nat)
+#mylog ["I","♥","28"] : List String
+```
+
+Besides `logInfo`, that is intended for producing "permanent" messages,
+Lean also has a "debug trace" command, `dbg_trace`.  This command is
+similar to `logInfo`.  Below is a quick comparison, where we define a
+tactic: tactics appear later, we use them now simply to highlight some
+differences between `logInfo` and `dbg_trace`.
+-/
+
+elab "traces" : tactic => do
+  let array := List.replicate 5 (List.range 8)
+  Lean.Elab.logInfo m!"logInfo:\n{array}"
+  dbg_trace f!"debug:\n{array}"
+
+example : true :=
+--  debug:
+--  [[0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7]]
+by traces
+--  logInfo:
+--  [[0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7],
+--   [0, 1, 2, 3, 4, 5, 6, 7]]
+   trivial
+
+/-
+As you can see, `dbg_trace` is displayed earlier than `logInfo`: it is printed
+at `example` rather than at the actual tactic `traces`.
+-/
