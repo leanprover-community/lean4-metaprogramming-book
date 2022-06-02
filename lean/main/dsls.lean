@@ -235,7 +235,7 @@ def eg_AExp_fail: AExp :=
 -- elab_aexp_ident failed.
 -- elab_aexp_num failed
 .
--- the `.` above is to prevent the error message from the previous `def` to
+-- the `.` above stops the error message from the previous `def` to
 -- read also the comments appearing below it.
 /-
 Clearly, both parses `elab_aexp_ident` and `elab_aexp_num`
