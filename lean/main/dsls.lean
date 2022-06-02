@@ -232,9 +232,10 @@ will be invoked in succession:
 
 def eg_AExp_fail: AExp :=
   [imp_aexp'| 42 + 43]
+.
 -- elab_aexp_ident failed.
 -- elab_aexp_num failed
-.
+
 -- the `.` above stops the error message from the previous `def` to
 -- read also the comments appearing below it.
 /-
