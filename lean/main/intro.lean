@@ -254,8 +254,4 @@ by traces
 /-
 As you can see, `dbg_trace` is displayed earlier than `logInfo`: it is printed
 at `example` rather than at the actual tactic `traces`.
-
-Recall that there are in fact three options for formatting strings,
-namely `f!"..."`, `s!"..."` and `m!"..."`.
-`dbg_trace` does not accept the output of `m!"..."`.
 -/
