@@ -53,18 +53,11 @@ let goal_type := goal_decl.type
 
 * Print a "permanent" message in normal usage:
 
-  `Lean.Elab.logInfo "Hi, I will print\n{Syntax}"`
-  parses the `\n` as a line break, but will print literally everything else
-
-  `Lean.Elab.logInfo s!"Hi, I will print\n{Syntax}"`
-  parses the `\n` as a line break and will partially interpret `{Syntax}`.
-  Other options, besides `s!` are `f!` (producing a `Format`) and `m!` (producing a `MessageData`).
+  `Lean.Elab.logInfo f!"Hi, I will print\n{Syntax}"`
+  parses the `\n` as a line break and will interpret `{Syntax}`.
 * Print a message while debugging:
 
-  `dbg_trace f!"1) goal: {Syntax_that_will_be_interpreted}"`
-
-  `dbg_trace "1) goal: {Syntax_that_will_be_interpreted}"`, omitting
-  the `f!`, also works.  However, the `f!` option tends to produce better output.
+  `dbg_trace f!"1) goal: {Syntax_that_will_be_interpreted}"`.
 * Throw an error: `Lean.Meta.throwTacticEx name mvar message_data`
   where `name : Lean.Name` is the name of a tactic and `mvar` contains error data.
   
