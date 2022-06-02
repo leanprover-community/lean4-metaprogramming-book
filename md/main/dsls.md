@@ -32,12 +32,16 @@ We begin by defining our atomic literal value.
 inductive IMPLit
   | nat  : Nat  → IMPLit
   | bool : Bool → IMPLit
+```
 
+This is our only unary operator
+
+```lean
 inductive IMPUnOp
   | not
 ```
 
-Let's define our binary operations.
+These are our binary operations.
 
 ```lean
 inductive IMPBinOp
@@ -77,7 +81,10 @@ syntax "true"    : imp_lit
 syntax "false"   : imp_lit
 
 def elabIMPLit : Syntax → MetaM Expr
+  -- `mkAppM` creates an `Expr.app`, given the function `Name` and the args
+  -- `mkNatLit` creates an `Expr` from a `Nat`
   | `(imp_lit| $n:num) => mkAppM ``IMPLit.nat  #[mkNatLit n.toNat]
+  -- `mkConst` creates an `Expr.const` given the constant `Name`
   | `(imp_lit| true  ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.true]
   | `(imp_lit| false ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.false]
   | _ => throwUnsupportedSyntax
@@ -107,7 +114,13 @@ declare_syntax_cat imp_binop
 syntax "+"       : imp_binop
 syntax "and"     : imp_binop
 syntax "<"       : imp_binop
+```
 
+The following function could very well be pure (`Syntax → Expr`), but we're
+staying in `MetaM` because it allows us to easily throw an error for match
+completion.
+
+```lean
 def elabIMPBinOp : Syntax → MetaM Expr
   | `(imp_binop| +)   => return mkConst ``IMPBinOp.add
   | `(imp_binop| and) => return mkConst ``IMPBinOp.and
@@ -139,7 +152,10 @@ consumption alone.
 
 ```lean
 partial def elabIMPExpr : Syntax → MetaM Expr
-  | `(imp_expr| $l:imp_lit) => do mkAppM ``IMPExpr.lit #[← elabIMPLit l]
+  | `(imp_expr| $l:imp_lit) => do
+    let l ← elabIMPLit l
+    mkAppM ``IMPExpr.lit #[l]
+  -- `mkStrLit` creates an `Expr` from a `String`
   | `(imp_expr| $i:ident) => mkAppM ``IMPExpr.var #[mkStrLit i.getId.toString]
   | `(imp_expr| $b:imp_unop $e:imp_expr) => do
     let b ← elabIMPUnOp b
