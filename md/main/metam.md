@@ -1,7 +1,3 @@
-```lean
-import Lean
-```
-
 # `MetaM`
 
 --todo
@@ -16,6 +12,8 @@ expressions more easily. In this chapter we will visit some of those.
 But first, let's recap the definition of `natExpr`
 
 ```lean
+import Lean
+
 open Lean Meta
 
 def natExpr : Nat → Expr

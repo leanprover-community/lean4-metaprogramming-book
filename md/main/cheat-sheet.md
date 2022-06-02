@@ -50,14 +50,12 @@ let goal_type := goal_decl.type
 
 ##  Printing and errors
 
-* Print a message: `dbg_trace f!"1) goal: {goal.name}"`
-  
-  Use as `dbg_trace f!"1) goal: {goal.name}"`
-  when `goal : Lean.MVarId` is in context.
-  
-  What is the role of `f!`?  I see no difference using
-  `dbg_trace "text"`, `dbg_trace f!"text"`, `dbg_trace s!"text"`
-  Other characters seem to not be defined.
+* Print a "permanent" message in normal usage:
+
+  `Lean.Elab.logInfo f!"Hi, I will print\n{Syntax}"`
+* Print a message while debugging:
+
+  `dbg_trace f!"1) goal: {Syntax_that_will_be_interpreted}"`.
 * Throw an error: `Lean.Meta.throwTacticEx name mvar message_data`
   where `name : Lean.Name` is the name of a tactic and `mvar` contains error data.
   

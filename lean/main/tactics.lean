@@ -1,5 +1,3 @@
-import Lean.Elab.Tactic
-
 /-
 # Tactics
 
@@ -33,6 +31,8 @@ theorem wrong : 1 = 2 := by
 
 We begin by declaring such a tactic:
 -/
+
+import Lean.Elab.Tactic
 
 elab "custom_sorry_0" : tactic => do
   let goal ← Lean.Elab.Tactic.getMainGoal
@@ -183,7 +183,7 @@ theorem test_list_local_decls_1 (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
 -- + local decl: name: test_list_local_decls_1 | expr: _uniq.3339
 -- + local decl: name: H1 | expr: _uniq.3340
 -- + local decl: name: H2 | expr: _uniq.3341
-  sorry
+  rfl
 
 /-
 Recall that we are looking for a local declaration that has the same type as the
@@ -204,7 +204,7 @@ theorem test_list_local_decls_2 (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
   -- + local decl: name: test_list_local_decls_2 | expr: _uniq.4263 | type: (Eq.{1} Nat ...)
   -- + local decl: name: H1 | expr: _uniq.4264 | type: Eq.{1} Nat ...)
   -- + local decl: name: H2 | expr: _uniq.4265 | type: Eq.{1} Nat ...)
-  sorry
+  rfl
 
 /-
 We check if the type of the `LocalDefinition` is equal to the goal type with
@@ -231,7 +231,7 @@ theorem test_list_local_decls_3 (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
 -- + local decl[EQUAL? false]: name: test_list_local_decls_3
 -- + local decl[EQUAL? true]: name: H1
 -- + local decl[EQUAL? false]: name: H2
-  sorry
+  rfl
 
 /-
 Finally, we put all of these parts together to write a tactic that loops over
@@ -257,7 +257,7 @@ elab "custom_trivial_1" : tactic => do
 theorem trivial_correct_1 (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
   custom_trivial_1
 -- matching_expr: some _uniq.6241
-  sorry
+  rfl
 
 #print trivial_correct_1
 -- theorem trivial_correct_1 : 1 = 1 → 2 = 2 → 2 = 2 :=
@@ -266,7 +266,7 @@ theorem trivial_correct_1 (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
 theorem trivial_wrong_1 (H1 : 1 = 1): 2 = 2 := by
   custom_trivial_1
 -- matching_expr: none
-  sorry
+  rfl
 
 #print trivial_wrong_1
 -- theorem trivial_wrong_1 : 1 = 1 → 2 = 2 :=
@@ -390,7 +390,7 @@ theorem test_faq_have : True := by
 -- n : Nat := 5
 -- h : n = n
 -- ⊢ True
-  sorry
+  trivial
 
 /-
 ## Tactics by Macro Expansion
@@ -526,7 +526,7 @@ elab "faq_main_goal" : tactic => do
 theorem test_faq_main_goal: 1 = 1 := by
   faq_main_goal
 -- goal: _uniq.9298
-  sorry
+  rfl
 
 /-
 **Q: How do I get the list of goals?**
@@ -546,7 +546,7 @@ theorem test_faq_get_goals (b: Bool): b = true := by
 -- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
 -- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
   sorry
-  sorry
+  rfl
 
 /-
 **Q: How do I get the current hypotheses for a goal?**
@@ -570,7 +570,7 @@ theorem test_faq_get_hypotheses (H1 : 1 = 1) (H2 : 2 = 2): 3 = 3 := by
   -- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
   -- local decl: name: H1 | expr: _uniq.10815 | type: ...
   -- local decl: name: H2 | expr: _uniq.10816 | type: ...
-  sorry
+  rfl
 
 /-
 **Q: How do I evaluate a tactic?**

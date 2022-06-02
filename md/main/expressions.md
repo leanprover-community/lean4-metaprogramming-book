@@ -1,7 +1,3 @@
-```lean
-import Lean
-```
-
 # Expressions
 
 --todo
@@ -24,6 +20,8 @@ represent all Lean terms at the meta level. Let's check the precise definition
 of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 
 ```lean
+import Lean
+
 namespace Playground
 
 inductive Expr where

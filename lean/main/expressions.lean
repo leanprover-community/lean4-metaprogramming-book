@@ -1,6 +1,4 @@
-import Lean
-
-/-!
+/-
 # Expressions
 
 --todo
@@ -22,6 +20,8 @@ That example gives us an idea of what we're aiming at: we use expressions to
 represent all Lean terms at the meta level. Let's check the precise definition
 of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 -/
+
+import Lean
 
 namespace Playground
 

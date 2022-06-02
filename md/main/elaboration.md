@@ -1,8 +1,3 @@
-```lean
-import Lean
-open Lean Elab Command Term Meta
-```
-
 # Elaboration
 
 The elaborator is the component in charge of turning the user facing
@@ -87,6 +82,10 @@ start looking into writing our own. The steps for this, as we learned above, are
 Let's see how this is done:
 
 ```lean
+import Lean
+
+open Lean Elab Command Term Meta
+
 syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 
 @[commandElab mycommand1]

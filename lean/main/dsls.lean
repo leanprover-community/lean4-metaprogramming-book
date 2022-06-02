@@ -66,7 +66,6 @@ inductive Command
   | While:  BExp → Command → Command
   deriving Inhabited
 
-
 /-
 ## Embedding a DSL via Low-level Syntax Elaboration
 

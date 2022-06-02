@@ -1,15 +1,18 @@
-import Lean
-/-! # Syntax
+/- # Syntax
 This chapter is concerned with the means to declare and operate on syntax
 in Lean. Since there are a multitude of ways to operate on it, we will
 not go into great detail about this yet and postpone quite a bit of this to
 later chapters.
 
 ## Declaring Syntax
+
 ### Declaration helpers
+
 Some readers might be familiar with the `infix` or even the `notation`
 commands, for those that are not here is a brief recap:
 -/
+
+import Lean
 
 -- XOR, denoted \oplus
 infixl:60 " ⊕ " => fun l r => (!l && r) || (l && !r)

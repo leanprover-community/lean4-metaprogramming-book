@@ -1,6 +1,6 @@
-import Lean
-open Lean
-/-! # Macros
+/-
+# Macros
+
 ## What is a macro
 Macros in Lean are `Syntax → MacroM Syntax` functions. `MacroM` is the macro
 monad which allows macros to have some static guarantees we will discuss in the
@@ -14,6 +14,10 @@ name and bind a function of type `Lean.Macro` to it. Let's try to reproduce
 the `LXOR` notation from the `Syntax` chapter:
 -/
 
+import Lean
+
+open Lean
+
 syntax:10 (name := lxor) term:10 " LXOR " term:11 : term
 
 @[macro lxor] def lxorImpl : Macro
@@ -25,7 +29,7 @@ syntax:10 (name := lxor) term:10 " LXOR " term:11 : term
 #eval false LXOR true -- true
 #eval false LXOR false -- false
 
-/-!
+/-
 That was quite easy! The `Macro.throwUnsupported` function can be used by a macro
 to indicate that "it doesn't feel responsible for this syntax". In this case
 it's merely used to fill a wildcard pattern that should never be reached anyways.
@@ -46,7 +50,7 @@ is it does not `Macro.throwUnsupported`. Let's see this in action:
 #eval true LXOR true -- true, handled by new macro
 #eval true LXOR false -- false, still handled by the old
 
-/-!
+/-
 This capability is obviously *very* powerful! It should not be used
 lightly and without careful thinking since it can introduce weird
 behaviour while writing code later on. The following example illustrates
@@ -58,7 +62,7 @@ this weird behaviour:
 def foo := true
 #eval foo LXOR foo -- false, handled by old macro, after all the identifiers have a different name
 
-/-!
+/-
 Without knowing exactly how this macro is implemented this behaviour
 will be very confusing to whoever might be debugging an issue based on this.
 The rule of thumb for when to use a macro vs. other mechanisms like
@@ -82,7 +86,7 @@ syntax:10 term:10 " RXOR " term:11 : term
 macro_rules
   | `($l:term RXOR $r:term) => `($l && !$r)
 
-/-!
+/-
 As you can see, it figures out lot's of things on its own for us:
 - the name of the syntax declaration
 - the `macro` attribute registration
@@ -103,7 +107,7 @@ macro l:term:10 " ⊕ " r:term:11 : term => `((!$l && $r) || ($l && !$r))
 #eval false ⊕ true -- true
 #eval false ⊕ false -- false
 
-/-!
+/-
 As you can see, `macro` is quite close to `notation` already:
 - it performed syntax declaration for us
 - it automatically wrote a `macro_rules` style function to match on it
@@ -128,7 +132,7 @@ def x : Nat := 42
 -- Which `x` should be used by the compiler in place of `$e`?
 #eval (const x) 10 -- 42
 
-/-!
+/-
 Given the fact that macros perform only syntactic translations one might
 expect the above `eval` to return 10 instead of 42: after all, the resulting
 syntax should be `(fun x => x) 10`. While this was of course not the intention
@@ -191,7 +195,7 @@ class MonadQuotation (m : Type → Type) extends MonadRef m where
 
 end Playground
 
-/-!
+/-
 Since `MonadQuotation` is based on `MonadRef`, let's take a look at `MonadRef`
 first. The idea here is quite simple: `MonadRef` is meant to be seen as an extension
 to the `Monad` typeclass which
@@ -236,7 +240,7 @@ macro_rules
 #eval error_position all -- the error is indicated at `error_position all`
 #eval error_position first -- the error is only indicated at `error_position`
 
-/-!
+/-
 Obviously controlling the positions of errors in this way is quite important
 for a good user experience.
 
@@ -261,8 +265,7 @@ macro_rules
 
 #eval [Arith| (12 + 3) - 4] -- 11
 
-/-!
-Again feel free to play around with it. If you want to build more complex
+/-! Again feel free to play around with it. If you want to build more complex
 things, like expressions with variables, maybe consider building an inductive type
 using macros instead. Once you got your arithmetic expression term
 as an inductive, you could then write a function that takes some form of

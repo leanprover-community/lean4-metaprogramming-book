@@ -1,7 +1,4 @@
-import Lean
-open Lean Elab Command Term Meta
-
-/-!
+/-
 # Elaboration
 
 The elaborator is the component in charge of turning the user facing
@@ -10,9 +7,7 @@ Most of the time, this means translating `Syntax` into `Expr`s but
 there are also other use cases such as `#check` or `#eval`. Hence the
 elaborator is quite a large piece of code, it lives
 [here](https://github.com/leanprover/lean4/blob/master/src/Lean/Elab).
--/
 
-/-!
 ## Command elaboration
 A command is the highest level of `Syntax`, a Lean file is made
 up of a list of commands. The most commonly used commands are declarations,
@@ -87,6 +82,10 @@ start looking into writing our own. The steps for this, as we learned above, are
 
 Let's see how this is done:
 -/
+
+import Lean
+
+open Lean Elab Command Term Meta
 
 syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 

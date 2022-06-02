@@ -1,9 +1,5 @@
-```lean
-import Lean
-open Lean
-```
-
 # Macros
+
 ## What is a macro
 Macros in Lean are `Syntax → MacroM Syntax` functions. `MacroM` is the macro
 monad which allows macros to have some static guarantees we will discuss in the
@@ -17,6 +13,10 @@ name and bind a function of type `Lean.Macro` to it. Let's try to reproduce
 the `LXOR` notation from the `Syntax` chapter:
 
 ```lean
+import Lean
+
+open Lean
+
 syntax:10 (name := lxor) term:10 " LXOR " term:11 : term
 
 @[macro lxor] def lxorImpl : Macro
