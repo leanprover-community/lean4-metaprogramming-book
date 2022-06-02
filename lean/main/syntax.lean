@@ -1,4 +1,5 @@
 /- # Syntax
+
 This chapter is concerned with the means to declare and operate on syntax
 in Lean. Since there are a multitude of ways to operate on it, we will
 not go into great detail about this yet and postpone quite a bit of this to
