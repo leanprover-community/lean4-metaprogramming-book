@@ -1,0 +1,52 @@
+name: Book
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  book:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Dependencies
+      run: brew install pandoc mactex-no-gui homebrew/homebrew-cask-fonts/font-dejavu pygments
+
+    - name: Download the Book Template
+      run: |
+        curl -L https://github.com/Wandmalfarbe/pandoc-latex-template/releases/download/v2.0.0/Eisvogel.tar.gz | tar -xz eisvogel.latex
+
+    - name: Build Some LaTeX
+      run: |
+        pandoc --to latex md/cover.md $(grep -o '\(md/.*\.md\)' README.md | tr -d '(' | tr -d ')') --toc --template ./eisvogel.latex --top-level-division=chapter -V documentclass=book -V classoption=oneside --no-highlight |
+          sed -e 's/\\begin{verbatim}/\\begin{minted}{Lean}/' -e 's/{verbatim}/{minted}/' -e's/% Listings/\\usepackage{minted}\n\\newmintinline[lean]{pygments\/lean4.py:Lean4Lexer -x}{bgcolor=white}\n\\newminted[leancode]{pygments\/lean4.py:Lean4Lexer -x}{fontsize=\\footnotesize}\n\\setminted{fontsize=\\footnotesize, breaklines}\n/' >out.tex
+
+    - name: Build a PDF
+      # Running twice appears to be necessary to not get a blank TOC?!
+      run: /Library/TeX/texbin/lualatex -shell-escape out.tex && /Library/TeX/texbin/lualatex -shell-escape out.tex
+
+    - name: Rename
+      run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
+
+    - name: Delete old release assets
+      uses: mknejp/delete-release-assets@v1
+      with:
+        token: ${{ github.token }}
+        tag: latest
+        fail-if-no-assets: false
+        fail-if-no-release: false
+        assets: |
+          *.tex
+          *.pdf
+
+    - name: Upload Outputs
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        generate_release_notes: true
+        files: |
+          Metaprogramming in Lean 4.tex
+          Metaprogramming in Lean 4.pdf
