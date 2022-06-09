@@ -10,11 +10,9 @@ monofont: "DejaVu Sans Mono"
 book: true
 header-right: "."
 titlepage: true
-titlepage-color: "083045"
-titlepage-text-color: "F4F6F7"
-titlepage-rule-color: "EDD369"
+titlepage-color: "FFFFFF"
+titlepage-text-color: "5F5F5F"
+titlepage-rule-color: "435488"
 keywords: [Lean, theorem proving, mathematics, math, maths, tutorial]
 ...
-
-
 -/
