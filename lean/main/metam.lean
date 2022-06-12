@@ -1,5 +1,355 @@
-/-
+import Lean
+
+/-!
 # `MetaM`
+
+The Lean 4 metaprogramming API is organised around a small zoo of monads. The
+four main ones are:
+
+- `CoreM` gives access to the *environment*, i.e. the set of things that
+  have been declared or imported at the current point in the program.
+- `MetaM` gives access to the *metavariable context*, i.e. the set of
+  metavariables that are currently declared and the values assigned to them (if
+  any).
+- `TermElabM` gives access to various information used during elaboration.
+- `TacticM` gives access to the list of current goals.
+
+These monads extend each other, so a `MetaM` operation also has access to the
+environment and a `TermElabM` computation can use metavariables. There are also
+other monads which do not neatly fit into this hierarchy, e.g. `CommandElabM`
+extends `MetaM` but neither extends nor is extended by `TermElabM`.
+
+This chapter demonstrates a number of useful operations in the `MetaM` monad.
+`MetaM` is of particular importance because it allows us to give meaning to
+every expression: the environment (from `CoreM`) gives meaning to constants like
+`Nat.zero` or `List.map` and the metavariable context gives meaning to both
+metavariables and local hypotheses. -/
+
+open Lean Lean.Expr Lean.Meta
+
+/-!
+## Computation
+
+Computation is a core concept of dependent type theory. The terms `2`, `Nat.succ
+1` and `1 + 1` are all "the same" in the sense that they compute the same value.
+We call them *definitionally equal*. The problem with this, from a
+metaprogramming perspective, is that definitionally equal terms may be
+represented by entirely different expressions, but still our users would usually
+expect that a tactic which works for `2` also works for `1 + 1`. So when we
+write our tactics, we must do additional work to ensure that definitionally
+equal terms are treated similarly.
+
+### Full Normalisation
+
+The simplest thing we can do with computation is to bring a term into normal
+form. With some exceptions for numeric types, the normal form of a term `t` of
+type `T` is a sequence of applications of `T`'s constructors. E.g. the normal
+form of a list is a sequence of applications of `List.cons` and `List.nil`.
+
+The function that normalises a term (i.e. brings it into normal form) is
+`Lean.Meta.reduce` with type signature
+
+```lean
+reduce (e : Expr) (explicitOnly skipTypes skipProofs := true) : MetaM Expr
+```
+
+We can use it like this:
+-/
+
+def someNumber : Nat := (· + 2) $ 3
+
+#eval mkConst ``someNumber
+-- Lean.Expr.const `someNumber [] (...)
+
+#eval reduce (mkConst ``someNumber)
+-- Lean.Expr.lit (Lean.Literal.natVal 5) (...)
+
+/-!
+Incidentally, this shows that the normal form of a term of type `Nat` is not
+always an application of the constructors of `Nat`; it can also be a literal.
+Also note that `#eval` can be used not only to evaluate a term, but also to
+execute a `MetaM` program.
+
+The optional arguments of `reduce` allow us to skip certain parts of an
+expression. E.g. `reduce e (explicitOnly := true)` does not normalise any
+implicit arguments in the expression `e`. This yields better performance: since
+normal forms can be very big, it may be a good idea to skip parts of an
+expression that the user is not going to see anyway.
+
+The `#reduce` command is essentially an application of `reduce`:
+-/
+
+#reduce someNumber
+-- 5
+
+/-!
+### Transparency
+
+An ugly but important detail of Lean 4 metaprogramming is that any given
+expression does not have a single normal form. Rather, it has a normal form up
+to a given *transparency*.
+
+A transparency is a value of `Lean.Meta.TransparencyMode`, an enumeration with
+four values: `reducible`, `instances`, `default` and `all`. Any computation in
+the `MetaM` has access to an ambient `TransparencyMode` which can be obtained
+with `Lean.Meta.getTransparency`.
+
+The current transparency determines which constants get unfolded during
+normalisation, e.g. by `reduce`. (To unfold a constant means to replace it with
+its definition.) The four settings unfold progressively more constants:
+
+- `reducible`: unfold only constants tagged with the `@[reducible]` attribute.
+  Note that `abbrev` is a shorthand for `@[reducible] def`.
+- `instances`: unfold reducible constants and constants tagged with the
+  `@[instance]` attribute. Again, the `instance` command is a shorthand for
+  `@[instance] def`.
+- `default`: unfold all constants except those tagged as `@[irreducible]`.
+- `all`: unfold all constants, even those tagged as `@[irreducible]`.
+
+The ambient transparency is usually `default`. To execute an operation with a
+specific transparency, use `Lean.Meta.withTransparency`. There are also
+shorthands for specific transparencies, e.g. `Lean.Meta.withReducible`.
+
+Putting everything together for an example (where we use `Lean.Meta.ppExpr` to
+pretty-print an expression): -/
+
+def traceConstWithTransparency (md : TransparencyMode) (c : Name) :
+    MetaM Format := do
+  ppExpr (← withTransparency md $ reduce (mkConst c))
+
+@[irreducible] def irreducibleDef : Nat      := 1
+def                defaultDef     : Nat      := irreducibleDef + 1
+abbrev             reducibleDef   : Nat      := defaultDef + 1
+
+#eval traceConstWithTransparency .reducible ``reducibleDef
+-- defaultDef + 1
+
+#eval traceConstWithTransparency .instances ``reducibleDef
+-- Nat.add defaultDef 1
+
+/-!
+Note that the instance `HAdd Nat Nat`, which is used for the `+` notation,
+has also been unfolded.
+-/
+
+#eval traceConstWithTransparency .default ``reducibleDef
+-- Nat.succ (Nat.succ irreducibleDef)
+
+/-!
+Here the `Nat.add` function has been unfolded as well.
+-/
+
+#eval traceConstWithTransparency .all ``reducibleDef
+-- 3
+
+/-!
+The `#eval` commands illustrate that the same term, `reducibleDef`, can have a
+different normal form for each transparency.
+
+Why all this ceremony? Essentially for performance: if we allowed normalisation
+to always unfold every constant, operations such as type class search would
+become prohibitively expensive. The tradeoff is that we must choose the
+appropriate transparency for each operation that involves normalisation.
+
+
+### Weak Head Normalisation
+
+Transparency addresses some of the performance issues with normalisation. But
+even more important is to recognise that for many purposes, we don't need to
+fully normalise terms at all. Suppose we are building a tactic that
+automatically splits hypotheses of the form `P ∧ Q`. We might want this tactic
+to recognise a hypothesis `h : X` if `X` is defined as `P ∧ Q ∧ R`. But if `P`
+is additionally defined as `Y ∨ Z`, the specific `Y` and `Z` do not concern us.
+
+This situation is so common that the fully normalising `reduce` is in fact
+rarely used. Instead, the normalisation workhorse of Lean is `whnf`, which
+reduces an expression to *weak head normal form* (WHNF).
+
+Roughly speaking, an expression `e` is in weak-head normal form when it has the
+form
+
+```text
+e = f x₁ ... xₙ   (n ≥ 0)
+```
+
+and `f` is either irreducible (at the current transparency) or is applied to too
+few arguments. To conveniently check the WHNF of an expression, we define a
+function `whnf'` which uses some advanced tech; don't worry about its
+implementation for now.
+-/
+
+open Lean.Elab.Term in
+def whnf' (e : TermElabM Syntax) (md := TransparencyMode.default) :
+    TermElabM Format := do
+  let e ← elabTermAndSynthesize (← e) none
+  ppExpr (← whnf e)
+
+/-!
+Now, here are some examples of expressions in WHNF.
+
+Constructor applications are in WHNF (with some exceptions for numeric types):
+-/
+
+#eval whnf' `(List.cons 1 [])
+-- [1]
+
+/-!
+The *arguments* of an application in WHNF may or may not be in WHNF themselves:
+-/
+
+#eval whnf' `(List.cons (1 + 1) [])
+-- [1 + 1]
+
+/-!
+Functions applied to too few arguments are in WHNF:
+-/
+
+#eval whnf' `(Nat.add 1)
+-- Nat.add 1
+
+/-!
+Applications of constants are in WHNF if the current transparency does not
+allow us to unfold the constants:
+-/
+
+#eval withTransparency .reducible $ whnf' `(Nat.add 1 1)
+-- Nat.add 1 1
+
+/-!
+Lambdas are in WHNF:
+-/
+
+#eval whnf' `(λ x : Nat => x)
+-- fun x => x
+
+/-!
+Foralls are in WHNF:
+-/
+
+#eval whnf' `(∀ x, x > 0)
+-- ∀ (x : Nat), x > 0
+
+/-!
+Sorts are in WHNF:
+-/
+
+#eval whnf' `(Type 3)
+-- Type 3
+
+/-!
+Literals are in WHNF:
+-/
+
+#eval whnf' `((15 : Nat))
+-- 15
+
+/-!
+Here are some more expressions in WHNF which are a bit tricky to test:
+
+```lean
+?x 0 1  -- Assuming the metavariable `?x` is unassigned, it is in WHNF.
+h 0 1   -- Assuming `h` is a local hypothesis, it is in WHNF.
+```
+
+On the flipside, here are some expressions that are not in WHNF.
+
+Functions applied to all their arguments are not in WHNF:
+-/
+
+#eval whnf' `(Nat.add 1 1)
+-- `Nat.succ (Nat.add 1 0)`
+
+/-!
+`let` bindings are not in WHNF:
+-/
+
+#eval whnf' `(let x : Nat := 1; x)
+-- `1`
+
+/-!
+Applications of lambdas are not in WHNF:
+-/
+
+#eval whnf' `((λ x : Nat => x) 1)
+-- `1`
+
+/-!
+Even when a lambda is applied to too few arguments, the application is not in
+WHNF:
+-/
+
+#eval whnf' `((λ x y : Nat => x + y) 1)
+-- `fun y => 1 + y`
+
+/-!
+And again some tricky examples:
+
+```lean
+?x 0 1 -- Assuming `?x` is assigned (e.g. to `Nat.add`), its application is not
+          in WHNF.
+h 0 1  -- Assuming `h` is a local definition (e.g. with value `Nat.add`), its
+          application is not in WHNF.
+```
+
+Returning to the tactic that motivated this section, let us write a function
+that matches a type of the form `P ∧ Q`, taking computation into account. WHNF
+makes it easy:
+-/
+
+def matchAndReducing (e : Expr) : MetaM (Option (Expr × Expr)) := do
+  let e ← whnf e
+  match e with
+  | (.app (.app (.const ``And _ _) P _) Q _) => return some (P, Q)
+  | _ => return none
+
+/-
+By using `whnf`, we ensure that if `e` evaluates to something of the form `P
+∧ Q`, we'll notice. But at the same time, we don't perform any unnecessary
+computation in `P` or `Q`.
+
+However, our 'no unnecessary computation' mantra also means that if we want to
+perform deeper matching on an expression, we need to use `whnf` multiple times.
+Suppose we want to match a type of the form `P ∧ Q ∧ R`. The correct way to do
+this uses `whnf` twice:
+-/
+
+def matchAndReducing₂ (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
+  let e ← whnf e
+  match e with
+  | (.app (.app (.const ``And _ _) P _) e' _) =>
+    let e' ← whnf e'
+    match e' with
+    | (.app (.app (.const ``And _ _) Q _) R _) => return some (P, Q, R)
+    | _ => return none
+  | _ => return none
+
+/-!
+This sort of deep matching up to computation could be automated. But until
+someone builds this automation, we have to figure out the necessary `whnf`s
+ourselves.
+
+
+### Definitional Equality
+
+As mentioned, definitional equality is equality up to computation. Two
+expressions `t` and `s` are definitionally equal or *defeq* (at the current
+transparency) if their normal forms (at the current transparency) are equal.
+
+To check whether two expressions are defeq, use `Lean.Meta.isDefEq` with type
+signature
+
+```lean
+isDefEq : Expr → Expr → MetaM Bool
+```
+
+Even though definitional equality is defined in terms of normal forms, `isDefEq`
+does not actually compute the normal forms of its arguments, which would be very
+expensive. Instead, it tries to "match up" `t` and `s` using as few reductions
+as possible. This is a necessarily heuristic endeavour and when the heuristics
+misfire, `isDefEq` can become very expensive. In the worst case, it may have to
+reduce `s` and `t` so often that they end up in normal form anyway. But usually
+the heuristics are good and `isDefEq` is reasonably fast.
+
 
 ## Smart constructors for expressions
 
@@ -13,10 +363,6 @@ If it succeeds we can then use the expression to solve the goal. However, in `Me
 Before manipulating expressions, we look at some examples of expressions.
 To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
 
-import Lean
-
-open Lean Meta
-
 def natExpr : Nat → Expr
   | 0     => mkConst ``Nat.zero
   | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
@@ -27,8 +373,10 @@ def natExpr : Nat → Expr
 --   (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
 --   (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
-/- That's already a long expression for the natural number 1! Let's see what
-`reduce : Expr → MetaM Expr` can do about it. As the name suggests, this is a function that reduces an expression to a simpler form if possible. -/
+/-
+That's already a long expression for the natural number 1! `reduce` can simplify
+it:
+-/
 
 #eval reduce $ natExpr 1
 -- Lean.Expr.lit (Lean.Literal.natVal 1) (Expr.mkData 4289331193 (bi := Lean.BinderInfo.default))
@@ -37,9 +385,10 @@ def natExpr : Nat → Expr
 
 The simple methods for constructing expressions by function application are `mkApp` and `mkAppN`. These take care of the metadata, but do not attempt to unify, for example. The `mkAppN` function takes a function and an array of arguments. The name ending with `N` here (and elsewhere) is to indicate that we (in general) have multiple (`N`) arguments. On the other hand `mkApp` applies a function to a single argument.
 
-The following example illustrates constructing examples using `mkAppN`.  
-This would yield an even longer expression than the previous example, but `reduce`
-can clean it up for us: -/
+The following example illustrates constructing examples using `mkAppN`. This
+would yield an even longer expression than the previous example, but we again
+use `reduce` to simplify it:
+-/
 
 def sumExprM (n m : Nat) : MetaM Expr := do
   reduce $ mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
