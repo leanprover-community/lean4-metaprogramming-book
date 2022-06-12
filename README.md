@@ -2,6 +2,8 @@
 
 Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat
 
+A PDF is [available here for download](../../releases/download/latest/Metaprogramming.in.Lean.4.pdf) (and is rebuilt on each change).
+
 * Main
     1. [Introduction](md/main/intro.md)
     2. [Expressions](md/main/expressions.md)
@@ -19,8 +21,6 @@ Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Henrik Böving, Jannis Lim
 
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
-
-A PDF is also [available here for download](../../releases/download/latest/Metaprogramming.in.Lean.4.pdf) (and is rebuilt on each change).
 
 ## Collaborating
 
