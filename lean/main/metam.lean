@@ -11,7 +11,11 @@ The `MetaM` monad provides even more smart constructors to help us build
 expressions. The API also contains functions that help us explore certain
 expressions more easily. In this chapter we will visit some of those.
 
-But first, let's recap the definition of `natExpr` -/
+A typical example of an expression we work with is that for the _goal_ of a tactic. This is an expression that represents a type. The tactic may attempt to find an expression that is of that type.
+If it succeeds we can then use the expression to solve the goal. However, in `MetaM` we do not have _goals_, so in this chapter we illustrate the smart methods used to manipulate expressions.
+
+Before manipulating expressions, we look at some examples of expressions.
+To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
 
 open Lean Meta
 
@@ -26,12 +30,17 @@ def natExpr : Nat → Expr
 --   (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
 /- That's already a long expression for the natural number 1! Let's see what
-`reduce : Expr → MetaM Expr` can do about it-/
+`reduce : Expr → MetaM Expr` can do about it. As the name suggests, this is a function that reduces an expression to a simpler form if possible. -/
 
 #eval reduce $ natExpr 1
 -- Lean.Expr.lit (Lean.Literal.natVal 1) (Expr.mkData 4289331193 (bi := Lean.BinderInfo.default))
 
-/- The following example would yield an even longer expression, but `reduce`
+/-! One of the first ways to construct expressions is by function application to form the expression for `f a` given expressions for `f` and `a`. One uses various methods provided by lean 4 to do this. It is generally not a good idea to try to directly define the expression as there is associated metadata.
+
+The simple methods for constructing expressions by function application are `mkApp` and `mkAppN`. These take care of the metadata, but do not attempt to unify, for example. The `mkAppN` function takes a function and an array of arguments. The name ending with `N` here (and elsewhere) is to indicate that we (in general) have multiple (`N`) arguments. On the other hand `mkApp` applies a function to a single argument.
+
+The following example illustrates constructing examples using `mkAppN`.  
+This would yield an even longer expression than the previous example, but `reduce`
 can clean it up for us: -/
 
 def sumExprM (n m : Nat) : MetaM Expr := do
@@ -39,12 +48,21 @@ def sumExprM (n m : Nat) : MetaM Expr := do
 
 #eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
 
-/-! We next construct a λ-expression for the function `double : Nat → Nat` given
-by `double n = n + n`. To construct such an expression, we introduce a free
-variable `n`, we define an expression in terms of this variable, and we construct
-the λ-expression.
+/-! Note that the _function_ to be applied is a constant, so has an expression of the form `mkConst name`. The name was given preceded by double-backticks. This means that lean resolves this to a global name, and gives an error if it cannot be resolved. A name preceded by a single backtick is a literal name.
+-/
 
-The variable is introduced by passing the code using it as a _continuation_ to 
+/-! Besides function application, we would like to construct expressions using λ-expressions. 
+We next illustrate how to do this by constructing a λ-expression for the function `double : Nat → Nat` given by `double n = n + n`. 
+
+To construct such an expression, we _introduce_ a free variable `n`, we define an expression in terms of this variable, and finally construct the λ-expression. 
+
+Introducing the free variable in this context is done indirectly. Roughly speaking the following happens. 
+* A new _context_ is constructed where the free variable is defined. 
+* We have code _within_ the context that uses the free variable; to avoid name collisions, this is a function of the expression for the free variable just introduced.
+* There is a smart method that allows us to construct a λ-expression with respect to the free variable we have just created, taking care of matching names, hygeine etc.
+* Our function working within the new context (called a _continuation_) can thus return an expression that does not depend on the free variable.
+
+More formally, the variable is introduced by passing the code using it as a _continuation_ to 
 `withLocalDecl`. The arguments of `withLocalDecl` are:
 * The name of the variable
 * The _binder_ that determines whether it is explicit or not
@@ -61,16 +79,22 @@ def doubleM : MetaM Expr :=
   withLocalDecl `n BinderInfo.default (mkConst ``Nat)
     fun n : Expr => mkLambdaFVars #[n] $ mkAppN (mkConst ``Nat.add) #[n, n] 
 
-/- Let's check if `doubleM` can indeed compute the expression for `n + n` -/
+/- We used `n` in two independent ways in the above expression. The first is simply as 
+a name to be used in the body of the λ-expression. The second is as the name of the expression for the free variable created. We could have replaced one of them, or even used `Name.anonymous` for the first occurence.
+
+Let's check if `doubleM` can indeed compute the expression for `n + n` -/
 
 def appDoubleM (n : Nat) : MetaM Expr := do
   reduce $ mkApp (← doubleM) (natExpr n)
 
 #eval appDoubleM 3 -- Lean.Expr.lit (Lean.Literal.natVal 6) (Expr.mkData 393219 (bi := Lean.BinderInfo.default))
 
-/- A powerful feature of lean is its unifier. There is an easy way to use this
-while meta-programming, namely the method `mkAppM` (and a similar method
-`mkAppM'`). For example, we can construct an expression for the length of a list
+/- 
+Observe that in the expression for double, we used the function `Nat.add` and so could specify all its arguments quite easily. However, the expression `n + n` actually resolves to an application of `HAdd.add` with many implicit parameters -- three associated types as well as a typeclass. When working with lean (at the non-meta level) we depend on the unifier and typeclass inference to fill these arguments for us.
+
+Fortunately we can use unification at the meta-level too, using the method `mkAppM` (and a similar method `mkAppM'`). The method name ending in `M` indicates that it is _monadic_ - in this case returning `MetaM Expr` rather than `Expr`. As one may expect, this usually is because some magic is happening for this to be necessary.
+
+For example, we can construct an expression for the length of a list
 using `mkAppM`. Recall that `List.length` has an implicit parameter
 `α : Type u`. This is deduced by unification, as are universe levels. -/
 
@@ -81,12 +105,15 @@ def lenExprM (list: Expr) : MetaM Expr := do
 
 def egList := [1, 3, 7, 8]
 
+
 def egLenM : MetaM Expr := 
   lenExprM (mkConst ``egList)
 
 #eval egLenM -- Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
 
-/-! Analogous to the construction of λ-expressions, we can construct
+/-! We next sketch some more methods for constructing expressions.
+
+Analogous to the construction of λ-expressions, we can construct
 ∀-expressions (i.e., Π-expressions) for types. We simply replace
 `mkLambdaFVars` with `mkForallFVars`.
 
