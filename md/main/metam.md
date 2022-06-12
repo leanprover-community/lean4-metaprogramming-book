@@ -1,11 +1,4 @@
-```lean
-import Lean
-```
-
 # `MetaM`
-
---todo
--- better thread of thought
 
 ## Smart constructors for expressions
 
@@ -16,6 +9,8 @@ expressions more easily. In this chapter we will visit some of those.
 But first, let's recap the definition of `natExpr`
 
 ```lean
+import Lean
+
 open Lean Meta
 
 def natExpr : Nat → Expr

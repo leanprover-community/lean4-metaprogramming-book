@@ -20,6 +20,8 @@ Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Henrik Böving, Jannis Lim
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
 
+A PDF is also [available here for download](../../releases/download/latest/Metaprogramming.in.Lean.4.pdf) (and is rebuilt on each change).
+
 ## Collaborating
 
 The markdown files are generated automatically via

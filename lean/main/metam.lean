@@ -1,9 +1,5 @@
-import Lean
-
-/-! # `MetaM`
-
---todo
--- better thread of thought
+/-
+# `MetaM`
 
 ## Smart constructors for expressions
 
@@ -16,6 +12,8 @@ If it succeeds we can then use the expression to solve the goal. However, in `Me
 
 Before manipulating expressions, we look at some examples of expressions.
 To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
+
+import Lean
 
 open Lean Meta
 

@@ -7,7 +7,7 @@ open Lean
 Options are a way to communicate some special configuration to both
 your meta programs and the Lean compiler itself. Basically it's just
 a [`KVMap`](https://github.com/leanprover/lean4/blob/master/src/Lean/Data/KVMap.lean)
-which is a simple map from `Name` to a `Lean.DataValue`, right now there
+which is a simple map from `Name` to a `Lean.DataValue`. Right now there
 are 6 kinds of data values:
 - `String`
 - `Bool`
@@ -47,17 +47,17 @@ completion suggestions. The most useful group of options when you are
 debugging some meta thing is the `trace.` one.
 
 ## Options in meta programming
-Now that we know how to set options let's take a look at how a meta program
+Now that we know how to set options, let's take a look at how a meta program
 can get access to them. The most common way to do this is via the `MonadOptions`
-type class, its can extension to `Monad` that provides a function `getOptions : m Options`,
-as of now it is implemented by:
+type class, an extension to `Monad` that provides a function `getOptions : m Options`.
+As of now, it is implemented by:
 - `CoreM`
 - `CommandElabM`
 - `LevelElabM`
 - all monads to which you can lift operations of one of the above (e.g. `MetaM` from `CoreM`)
 
-Once we have an `Options` object we can query the information via `Options.get`.
-To show this let's write a command that prints the value of `pp.explicit`.
+Once we have an `Options` object, we can query the information via `Options.get`.
+To show this, let's write a command that prints the value of `pp.explicit`.
 
 ```lean
 elab "#getPPExplicit" : command => do
@@ -75,8 +75,8 @@ Note that the real implementation of getting `pp.explicit`, `Lean.getPPExplicit`
 uses whether `pp.all` is set as a default value instead.
 
 ## Making our own
-Declaring our own option is quite easy as well, the Lean compiler provides
-a macro `register_option` for this, lets see it in action:
+Declaring our own option is quite easy as well. The Lean compiler provides
+a macro `register_option` for this. Let's see it in action:
 
 ```lean
 register_option book.myGreeting : String := {
@@ -86,5 +86,5 @@ register_option book.myGreeting : String := {
 }
 ```
 
-However we can not just use an option that we just declared in the same file
+However, we cannot just use an option that we just declared in the same file
 it was declared in because of initialization restrictions.

@@ -1,13 +1,4 @@
-```lean
-import Lean
-```
-
 # Expressions
-
---todo
-* matching (there's some content in `temp`)
-* normalisation, transparency
-* discrimination trees
 
 Expressions (terms of type `Expr`) carry the data used to communicate with the
 Lean kernel for core tasks such as type inference and definitional equality
@@ -24,6 +15,8 @@ represent all Lean terms at the meta level. Let's check the precise definition
 of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
 
 ```lean
+import Lean
+
 namespace Playground
 
 inductive Expr where
