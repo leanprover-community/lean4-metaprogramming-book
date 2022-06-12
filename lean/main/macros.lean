@@ -175,11 +175,26 @@ in order to use macros, if you want you can just keep in mind that Lean
 will not allow name clashes like the one in the `const` example.
 
 ## `MonadQuotation` and `MonadRef`
-This macro hygiene mechanism is the reason that while we are able to use pattern
-matching on syntax with `` `(syntax) `` we cannot just create `Syntax` with the same
-syntax in pure functions: someone has to keep track of macro scopes for us.
-In this case, this is done by the `MacroM` monad, but it can be done by any monad that
-implements `Lean.MonadQuotation`.  For this reason, it's worth to take a brief look at it:
+Based on this description of the hygiene mechanism one interesting
+quesiton pops up, how do we know what the current list of macro scopes
+actually is? After all in the macro functions that were defined above
+there is never any explicit passing around of the scopes happening.
+As is quite common in functional programming, as soon as we start
+having some additional state that we need to bookkeep (like the macro scopes)
+this is done with a monad, this is the case here as well with a slight twist.
+
+Instead of implementing this for only a single monad `MacroM` the general
+concept of keeping track of macro scopes in monadic way is abstracted
+away using a type class called `MonadQuotation`. This allows any other
+monad to also easily provide this hygienic `Syntax` creation mechanism
+by simply implementing this type class.
+
+This is also the reason that while we are able to use pattern matching on syntax
+with `` `(syntax) `` we cannot just create `Syntax` with the same
+syntax in pure functions: there is no `Monad` implementing `MonadQuotation`
+involved in order to keep track of the macro scopes.
+
+Now let's take a brief look at the `MonadQuotation` type class:
 -/
 
 namespace Playground
