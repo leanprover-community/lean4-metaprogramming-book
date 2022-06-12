@@ -3,13 +3,34 @@
 ## What's the goal of this book?
 
 This book aims to build up enough knowledge about metaprogramming in Lean 4 so
-you can be comfortable enough to start building your own meta helpers.
+you can be comfortable enough to:
+
+* Start building your own meta helpers
+* Read and discuss metaprogramming API's like the ones in Lean 4 core and
+Mathlib4
 
 We by no means intend to provide an exhaustive exploration/explanation of the
 entire Lean 4 metaprogramming API. We also don't cover the topic of monadic
-programming in Lean 4. However, the examples provided will be simple enough for
-you to follow and comprehend without a super deep understanding of monadic
-programming.
+programming in Lean 4. However, we hope that the examples provided will be
+simple enough for the reader to follow and comprehend without a super deep
+understanding of monadic programming.
+
+## Book structure
+
+The book is organized in a way to build up enough content for the two last
+chapters, which cover DSLs and tactics respectively. If we backtrack the
+pre-requisites for each chapter, the following structure:
+
+* "Tactics" builds on top of "Macros" and "Elaboration"
+* "DSLs" builds on top of "Elaboration"
+* "Macros" builds on top of "`Syntax`"
+* "Elaboration" builds on top of "`Syntax`" and "`MetaM`"
+* "`MetaM`" builds on top of "Expressions"
+
+The last chapter is a cheat-sheet containing a wrap-up of key concepts and
+functions. The rest of this chapter is a gentle introduction for what
+metaprogramming is, offering some small examples to serve as appetizers for what
+the book shall cover. 
 
 ## What does it mean to be in meta?
 
@@ -102,9 +123,10 @@ If no error is thrown until now then the elaboration succeeded and we can use
 ### Building a DSL and a syntax for it
 
 Let's parse a classic grammar, the grammar of arithmetic expressions with
-addition, multiplication, naturals, and variables.  We'll define an AST, and use
-operators `+` and `*` to denote building an arithmetic AST. Here's the AST that
-we will be parsing:
+addition, multiplication, naturals, and variables.  We'll define an AST
+(Abstract Syntax Tree) to encode the data of our expressions, and use operators
+`+` and `*` to denote building an arithmetic AST. Here's the AST that we will be
+parsing:
 
 ```lean
 inductive Arith : Type where
