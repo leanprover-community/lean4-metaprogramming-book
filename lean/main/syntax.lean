@@ -43,8 +43,8 @@ and operate on them on the right hand side. It gets even better though, we can
 in theory create syntax with 0 up to as many parameters as we wish using the
 `notation` command, it is hence also often referred to as "mixfix" notation.
 
-The three unintuitive parts about these two are:
-- The fact that we are leaving spaces around our operators: " ⊕ ", " XOR ".
+The two unintuitive parts about these two are:
+- The fact that we are leaving spaces around our operators: " ⊕ ", " LXOR ".
   This is so that, when Lean pretty prints our syntax later on, it also
   uses spaces around the operators, otherwise the syntax would just be presented
   as `l⊕r` as opposed to `l ⊕ r`.
