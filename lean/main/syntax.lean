@@ -399,3 +399,92 @@ Feel free to play around with this example and extend it in whatever way
 you want to. The next chapters will mostly be about functions that operate
 on `Syntax` in some way.
 -/
+
+/-!
+## More elaborate examples
+### Using type classes for notations
+We can use type classes in order to add notation that is extensible via
+the type instead of the syntax system, this is for example how `+`
+using the typeclasses `HAdd` and `Add` and other common operators in
+Lean are generically defined.
+
+For example we might want to have a generic notation for subset notation.
+The first thing we have to do is define a type class that captures
+the function we want to build notation for.
+-/
+
+class Subset (α : Type u) where
+  subset : α → α → Prop
+
+/-!
+The second step is to define the notation, what we can do here is simply
+turn every instance of a `⊆` appearing in the code to a call to `Subset.subset`
+because the type class resolution should be able to figure out which `Subset`
+instance is referred to. Thus the notation will be a simple:
+-/
+
+-- precedence is arbitrary for this example
+infix:50 " ⊆ " => Subset.subset
+
+/-!
+Let's define a simple theory of sets to test it:
+-/
+
+-- a `Set` is defined by the elements it contains
+-- -> a simple predicate on the type of its elements
+abbrev Set (α : Type u) := α → Prop
+
+abbrev Set.mem (x : α) (X : Set α) : Prop := X x
+
+-- We bind the `s` and the notation this way so `x ∈ S ∧ ... is parsed as as:
+-- `(x ∈ (S)) ∧ ...`
+-- as opposed to:
+-- `x ∈ (S ∧ ...)`
+notation:100 x " ∈ " s:99 => Set.mem x s
+
+def Set.empty : Set α := λ _ => False
+
+instance : Subset (Set α) where
+  subset X Y := ∀ (x : α), x ∈ X → x ∈ Y
+
+example : ∀ (X : Set α), Set.empty ⊆ X:= by
+  intro X x
+  -- ⊢ Set.mem x (Set.empty α) → Set.mem x X
+  intro h
+  exact False.elim h -- empty set has no members
+
+/-!
+### Binders
+Because declaring syntax that uses variable binders used to be quite a
+weird thing to do in Lean 3 we'll take a brief look at how naturally
+this can be done in Lean 4.
+
+For this example we will define the well known notation for the set
+that contains all elements `x` such that some property holds:
+`{x ∈ ℕ | x < 10}` for example.
+
+First things first we need to extend the theory of sets from above slightly:
+-/
+
+-- the basic "all elements such that" function for the notation
+abbrev setOf {α : Type} (p : α → Prop) : Set α := p
+
+/-!
+Equipped with this function we can now attempt to intuitively define a
+basic version of our notation:
+-/
+notation "{" x "|" p "}" => setOf (fun x => p)
+
+#check { (x : Nat) | x ≤ 1} -- setOf fun x => x ≤ 1 : Set Nat
+
+example : 1 ∈ { (y : Nat) | y ≤ 1} := by decide
+example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y} := by decide
+
+/-!
+This intuitive notation will indeed deal with what we could throw at
+it in the way we would expect it.
+
+As to how one might extend this notation to allow more set theoretic
+things such as `{x ∈ X | p x}` and leave away the parenthesis around
+the bound variables, we refer the reader to the macro chapter.
+-/
