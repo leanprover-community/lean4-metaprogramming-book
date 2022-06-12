@@ -287,7 +287,76 @@ as an inductive, you could then write a function that takes some form of
 variable assignment and evaluates the given expression for this
 assignment. You could also try to embed arbitrary `term`s into your
 arith language using some special syntax or whatever else comes to your mind.
+-/
 
+/-!
+## More elaborate examples
+### Binders 2.0
+As promised in the syntax chapter here is Binders 2.0. We'll start by
+reintroducing our theory of sets:
+-/
+abbrev Set (α : Type u) := α → Prop
+abbrev Set.mem (x : α) (X : Set α) : Prop := X x
+-- We bind the `s` and the notation this way so `x ∈ S ∧ ... is parsed as as:
+-- `(x ∈ (S)) ∧ ...`
+-- as opposed to:
+-- `x ∈ (S ∧ ...)`
+notation:100 x " ∈ " s:99 => Set.mem x s
+
+def Set.empty : Set α := λ _ => False
+
+-- the basic "all elements such that" function for the notation
+abbrev setOf {α : Type} (p : α → Prop) : Set α := p
+
+/-!
+The goal for this section will be to allow for both `{x : X | p x}`
+and `{x ∈ X, p x}` notations. In principle there are two ways to do this:
+1. Define a syntax and macro for each way to bind a variable we might think of
+2. Define a syntax cateogry of binders that we could reuse across other
+   binder constructs such as `Σ` or `Π` as well and implement macros for
+   the `{ | }` case
+
+In this section we will use approach 2 because it is more easily reusable.
+-/
+
+declare_syntax_cat binder_construct
+syntax "{" binder_construct "|" term "}" : term
+
+/-!
+Now let's define the two binders constructs we are interested in:
+-/
+syntax ident " : " term : binder_construct
+syntax ident " ∈ " term : binder_construct
+
+/-!
+And finally the macros to expand our syntax:
+-/
+
+macro_rules
+  | `({ $id:ident : $ty:term | $body:term }) => `(setOf (fun ($id : $ty) => $body))
+  | `({ $id:ident ∈ $s:term | $body:term }) => `(setOf (fun $id => $id ∈ $s ∧ $body))
+
+-- Old examples with better syntax:
+#check { x : Nat | x ≤ 1} -- setOf fun x => x ≤ 1 : Set Nat
+
+example : 1 ∈ { y : Nat | y ≤ 1} := by decide
+example : 2 ∈ { y : Nat | y ≤ 3 ∧ 1 ≤ y} := by decide
+
+-- New examples:
+def oneSet : Set Nat := λ x => x = 1
+#check { x ∈ oneSet | 10 ≤ x } -- setOf fun x => x ∈ oneSet ∧ 10 ≤ x : Set Nat
+
+example : ∀ x, ¬(x ∈ { y ∈ oneSet | y ≠ 1 }) := by
+  intro x h
+  -- h : x ∈ setOf fun y => y ∈ oneSet ∧ y ≠ 1
+  -- ⊢ False
+  cases h
+  -- : x ∈ oneSet
+  -- : x ≠ 1
+  contradiction
+
+
+/-!
 ## Reading further
 If you want to know more about macros you can read:
 - the API docs: TODO link
