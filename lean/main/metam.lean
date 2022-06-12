@@ -1,6 +1,4 @@
-import Lean
-
-/-!
+/-
 # `MetaM`
 
 The Lean 4 metaprogramming API is organised around a small zoo of monads. The
@@ -24,6 +22,8 @@ This chapter demonstrates a number of useful operations in the `MetaM` monad.
 every expression: the environment (from `CoreM`) gives meaning to constants like
 `Nat.zero` or `List.map` and the metavariable context gives meaning to both
 metavariables and local hypotheses. -/
+
+import Lean
 
 open Lean Lean.Expr Lean.Meta
 

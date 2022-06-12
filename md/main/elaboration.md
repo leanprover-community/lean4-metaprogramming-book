@@ -220,17 +220,17 @@ can do during its execution.
 A term elaborator may throw `Except.postpone`. This indicates that
 the term elaborator requires more
 information to continue its work. In order to represent this missing information,
-Lean uses so called synthetic meta variables. As you know from before, metavariables
-are holes in `Expr`s that are waiting to be filled in. Synthetic meta variables are 
+Lean uses so called synthetic metavariables. As you know from before, metavariables
+are holes in `Expr`s that are waiting to be filled in. Synthetic metavariables are
 different in that they have special methods that are used to solve them,
 registered in `SyntheticMVarKind`. Right now, there are four of these:
-- `typeClass`, the meta variable should be solved with typeclass synthesis
-- `coe`, the meta variable should be solved via coercion (a special case of typeclass)
-- `tactic`, the meta variable is a tactic term that should be solved by running a tactic
+- `typeClass`, the metavariable should be solved with typeclass synthesis
+- `coe`, the metavariable should be solved via coercion (a special case of typeclass)
+- `tactic`, the metavariable is a tactic term that should be solved by running a tactic
 - `postponed`, the ones that are created at `Except.postpone`
 
-Once such a synthetic meta variable is created, the next higher level term elaborator will continue.
-At some point, execution of postponed meta variables will be resumed by the term elaborator,
+Once such a synthetic metavariable is created, the next higher level term elaborator will continue.
+At some point, execution of postponed metavariables will be resumed by the term elaborator,
 in hopes that it can now complete its execution. We can try to see this in
 action with the following example:
 
@@ -239,7 +239,7 @@ action with the following example:
 ```
 
 What happened here is that the elaborator for function applications started
-at `List.foldr` which is a generic function so it created meta variables
+at `List.foldr` which is a generic function so it created metavariables
 for the implicit type parameters. Then, it attempted to elaborate the first argument `.add`.
 
 In case you don't know how `.name` works, the basic idea is that quite
@@ -250,9 +250,9 @@ useful when you want to use constructors of a type without referring to its
 namespace or opening it, but can also be used like above.
 
 Now back to our example, while Lean does at this point already know that `.add`
-needs to have type: `?m1 → ?m2 → ?m2` (where `?x` is notation for a meta variable)
+needs to have type: `?m1 → ?m2 → ?m2` (where `?x` is notation for a metavariable)
 the elaborator for `.add` does need to know the actual value of `?m2` so the
-term elaborator postpones execution (by internally creating a synthetic meta variable
+term elaborator postpones execution (by internally creating a synthetic metavariable
 in place of `.add`), the elaboration of the other two arguments then yields the fact that
 `?m2` has to be `Nat` so once the `.add` elaborator is continued it can work with
 this information to complete elaboration.
@@ -309,8 +309,8 @@ def getCtors (typ : Name) : MetaM (List Name) := do
 
 @[termElab myanon]
 def myanonImpl : TermElab := fun stx typ? => do
-  -- Attempt to postpone execution if the type is not known or is a meta variable.
-  -- Meta variables are used by things like the function elaborator to fill
+  -- Attempt to postpone execution if the type is not known or is a metavariable.
+  -- Metavariables are used by things like the function elaborator to fill
   -- out the values of implicit parameters when they haven't gained enough
   -- information to figure them out yet.
   -- Term elaborators can only postpone execution once, so the elaborator
