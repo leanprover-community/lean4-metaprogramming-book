@@ -174,11 +174,26 @@ in order to use macros, if you want you can just keep in mind that Lean
 will not allow name clashes like the one in the `const` example.
 
 ## `MonadQuotation` and `MonadRef`
-This macro hygiene mechanism is the reason that while we are able to use pattern
-matching on syntax with `` `(syntax) `` we cannot just create `Syntax` with the same
-syntax in pure functions: someone has to keep track of macro scopes for us.
-In this case, this is done by the `MacroM` monad, but it can be done by any monad that
-implements `Lean.MonadQuotation`.  For this reason, it's worth to take a brief look at it:
+Based on this description of the hygiene mechanism one interesting
+question pops up, how do we know what the current list of macro scopes
+actually is? After all in the macro functions that were defined above
+there is never any explicit passing around of the scopes happening.
+As is quite common in functional programming, as soon as we start
+having some additional state that we need to bookkeep (like the macro scopes)
+this is done with a monad, this is the case here as well with a slight twist.
+
+Instead of implementing this for only a single monad `MacroM` the general
+concept of keeping track of macro scopes in monadic way is abstracted
+away using a type class called `MonadQuotation`. This allows any other
+monad to also easily provide this hygienic `Syntax` creation mechanism
+by simply implementing this type class.
+
+This is also the reason that while we are able to use pattern matching on syntax
+with `` `(syntax) `` we cannot just create `Syntax` with the same
+syntax in pure functions: there is no `Monad` implementing `MonadQuotation`
+involved in order to keep track of the macro scopes.
+
+Now let's take a brief look at the `MonadQuotation` type class:
 
 ```lean
 namespace Playground
@@ -274,10 +289,77 @@ variable assignment and evaluates the given expression for this
 assignment. You could also try to embed arbitrary `term`s into your
 arith language using some special syntax or whatever else comes to your mind.
 
+## More elaborate examples
+### Binders 2.0
+As promised in the syntax chapter here is Binders 2.0. We'll start by
+reintroducing our theory of sets:
+
+```lean
+def Set (α : Type u) := α → Prop
+def Set.mem (x : α) (X : Set α) : Prop := X x
+
+-- Integrate into the already existing typeclass for membership notation
+instance : Membership α (Set α) where
+  mem := Set.mem
+
+def Set.empty : Set α := λ _ => False
+
+-- the basic "all elements such that" function for the notation
+def setOf {α : Type} (p : α → Prop) : Set α := p
+```
+
+The goal for this section will be to allow for both `{x : X | p x}`
+and `{x ∈ X, p x}` notations. In principle there are two ways to do this:
+1. Define a syntax and macro for each way to bind a variable we might think of
+2. Define a syntax cateogry of binders that we could reuse across other
+   binder constructs such as `Σ` or `Π` as well and implement macros for
+   the `{ | }` case
+
+In this section we will use approach 2 because it is more easily reusable.
+
+```lean
+declare_syntax_cat binder_construct
+syntax "{" binder_construct "|" term "}" : term
+```
+
+Now let's define the two binders constructs we are interested in:
+
+```lean
+syntax ident " : " term : binder_construct
+syntax ident " ∈ " term : binder_construct
+```
+
+And finally the macros to expand our syntax:
+
+```lean
+macro_rules
+  | `({ $var:ident : $ty:term | $body:term }) => `(setOf (fun ($var : $ty) => $body))
+  | `({ $var:ident ∈ $s:term | $body:term }) => `(setOf (fun $var => $var ∈ $s ∧ $body))
+
+-- Old examples with better syntax:
+#check { x : Nat | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
+
+example : 1 ∈ { y : Nat | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
+example : 2 ∈ { y : Nat | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
+
+-- New examples:
+def oneSet : Set Nat := λ x => x = 1
+#check { x ∈ oneSet | 10 ≤ x } -- setOf fun x => x ∈ oneSet ∧ 10 ≤ x : Set Nat
+
+example : ∀ x, ¬(x ∈ { y ∈ oneSet | y ≠ 1 }) := by
+  intro x h
+  -- h : x ∈ setOf fun y => y ∈ oneSet ∧ y ≠ 1
+  -- ⊢ False
+  cases h
+  -- : x ∈ oneSet
+  -- : x ≠ 1
+  contradiction
+```
+
 ## Reading further
 If you want to know more about macros you can read:
 - the API docs: TODO link
 - the source code: the lower parts of [Init.Prelude](https://github.com/leanprover/lean4/blob/master/src/Init/Prelude.lean)
   as you can see they are declared quite early in Lean because of their importance
-  of to building up syntax
+  to building up syntax
 - the aforementioned [Beyond Notations](https://lmcs.episciences.org/9362/pdf) paper

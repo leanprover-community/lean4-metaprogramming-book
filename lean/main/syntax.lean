@@ -43,8 +43,8 @@ and operate on them on the right hand side. It gets even better though, we can
 in theory create syntax with 0 up to as many parameters as we wish using the
 `notation` command, it is hence also often referred to as "mixfix" notation.
 
-The three unintuitive parts about these two are:
-- The fact that we are leaving spaces around our operators: " ⊕ ", " XOR ".
+The two unintuitive parts about these two are:
+- The fact that we are leaving spaces around our operators: " ⊕ ", " LXOR ".
   This is so that, when Lean pretty prints our syntax later on, it also
   uses spaces around the operators, otherwise the syntax would just be presented
   as `l⊕r` as opposed to `l ⊕ r`.
@@ -57,7 +57,7 @@ The three unintuitive parts about these two are:
 #eval true ⊕ (false LXOR false) -- true
 
 /-!
-As you can see the Lean interpreter analyzed the first term without parentheses
+As we can see the Lean interpreter analyzed the first term without parentheses
 like the second instead of the third one. This is because the `⊕` notation
 has higher precedence than `LXOR` (`60 > 10` after all) and is thus evaluated before it.
 This is also how you might implement rules like `*` being evaluated before `+`.
@@ -65,21 +65,72 @@ This is also how you might implement rules like `*` being evaluated before `+`.
 Lastly at the `notation` example there are also these `:precedence` bindings
 at the arguments: `l:10` and `r:11`. This conveys that the left argument must have
 precedence at least 10 or greater, and the right argument must have precedence at 11
-or greater. This forces left associativity like `infixl` above. To understand this,
-let's compare two hypothetical parses:
-```
--- a LXOR b LXOR c
-(a:10 LXOR b:11):10 LXOR c
-a LXOR (b:10 LXOR c:11):10
-```
-In the parse tree of `(a:10 LXOR b:11):10 LXOR c`, we see that the right argument `(b LXOR c)`
-is given the precedence 10, because a rule is always given the lowest precedence of any of its
-subrules. However, the rule for `LXOR` expects the right argument to have a precedence of at
-least 11, as witnessed by the `r:11` at the right-hand-side of `notation:10 l:10 " LXOR " r:11`.
-Thus this rule ensures that `LXOR` is left associative.
+or greater. The way the arguments are assigned their respective precedence is by looking at
+the precedence of the rule that was used to parse them. Consider for example
+`a LXOR b LXOR c`. Theoretically speaking this could be parsed in two ways:
+1. `(a LXOR b) LXOR c`
+2. `a LXOR (b LXOR c)`
 
-Can you make it right associative?
+Since the arguments in parenthesis are parsed by the `LXOR` rule with precedence
+10 they will appear as arguments with precedence 10 to the outer `LXOR` rule:
+1. `(a LXOR b):10 LXOR c`
+2. `a LXOR (b LXOR c):10`
 
+However if we check the definition of `LXOR`: `notation:10 l:10 " LXOR " r:11`
+we can see that the right hand side argument requires a precedence of at least 11
+or greater, thus the second parse is invalid and we remain with: `(a LXOR b) LXOR c`
+assuming that:
+- `a` has precedence 10 or higher
+- `b` has precedence 11 or higher
+- `c` has precedence 11 or higher
+
+Thus `LXOR` is a left associative notation. Can you make it right associative?
+
+NOTE: If parameters of a notation are not explicitly given a precedence they will implicitly be tagged with precedence 0.
+
+As a last remark for this section: Lean will always attempt to obtain the longest
+matching parse possible, this has three important implications.
+First a very intuitive one, if we have a right associative operator `^`
+and Lean sees something like `a ^ b ^ c`, it will first parse the `a ^ b`
+and then attempt to keep parsing (as long as precedence allows it) until
+it cannot continue anymore. Hence Lean will parse this expression as `a ^ (b ^ c)`
+(as we would expect it to).
+
+Secondly if we have a notation where precedence does not allow to figure
+out how the expression should be parenthesized, for example:
+-/
+
+notation:65 lhs:65 " ~ " rhs:65 => (lhs - rhs)
+
+/-!
+An expression like `a ~ b ~ c` will be parsed as `a ~ (b ~ c)` because
+Lean attempts to find the longest parse possible. As a general rule of thumb:
+If precedence is ambiguous Lean will default to right associativity.
+-/
+
+#eval 5 ~ 3 ~ 3 -- 5 because this is parsed as 5 - (3 - 3)
+
+/-!
+Lastly, if we define overlapping notation such as:
+-/
+
+-- define `a ~ b mod rel` to mean that a and b are equivalent with respect to some equivalance relation rel
+notation:65 a:65 " ~ " b:65 " mod " rel:65 => rel a b
+
+/-!
+Lean will prefer this notation over parsing `a ~ b` as defined above and
+then erroring because it doesn't know what to do with `mod` and the
+relation argument:
+-/
+
+#check 0 ~ 0 mod Eq -- 0 = 0 : Prop
+
+/-!
+This is again because it is looking for the longest possible parser which
+in this case involves also consuming `mod` and the relation argument.
+-/
+
+/-!
 ### Free form syntax declarations
 With the above `infix` and `notation` commands you can get quite far with
 declaring ordinary mathematical syntax already. Lean does however allow you to
@@ -113,6 +164,8 @@ give meaning to this syntax, is topic of the elaboration and macro chapter.
 An example of one we have already seen however would be the `notation` and
 `infix` command.
 
+NOTE: All the principles from `notation` and `infix` regarding precedence fully apply to `syntax`
+
 We can of course also involve other syntax into our own declarations
 in order to build up syntax trees, for example we could try to build our
 own little boolean expression language:
@@ -140,8 +193,8 @@ syntax category on top. This is done using the `declare_syntax_cat` command:
 declare_syntax_cat boolean_expr
 syntax "⊥" : boolean_expr -- ⊥ for false
 syntax "⊤" : boolean_expr -- ⊤ for true
-syntax boolean_expr " OR " boolean_expr : boolean_expr
-syntax boolean_expr " AND " boolean_expr : boolean_expr
+syntax:40 boolean_expr " OR " boolean_expr : boolean_expr
+syntax:50 boolean_expr " AND " boolean_expr : boolean_expr
 
 /-!
 Now that we are working in our own syntax category, we are completely
@@ -398,4 +451,91 @@ def test : Elab.TermElabM Nat := do
 Feel free to play around with this example and extend it in whatever way
 you want to. The next chapters will mostly be about functions that operate
 on `Syntax` in some way.
+-/
+
+/-!
+## More elaborate examples
+### Using type classes for notations
+We can use type classes in order to add notation that is extensible via
+the type instead of the syntax system, this is for example how `+`
+using the typeclasses `HAdd` and `Add` and other common operators in
+Lean are generically defined.
+
+For example we might want to have a generic notation for subset notation.
+The first thing we have to do is define a type class that captures
+the function we want to build notation for.
+-/
+
+class Subset (α : Type u) where
+  subset : α → α → Prop
+
+/-!
+The second step is to define the notation, what we can do here is simply
+turn every instance of a `⊆` appearing in the code to a call to `Subset.subset`
+because the type class resolution should be able to figure out which `Subset`
+instance is referred to. Thus the notation will be a simple:
+-/
+
+-- precedence is arbitrary for this example
+infix:50 " ⊆ " => Subset.subset
+
+/-!
+Let's define a simple theory of sets to test it:
+-/
+
+-- a `Set` is defined by the elements it contains
+-- -> a simple predicate on the type of its elements
+def Set (α : Type u) := α → Prop
+
+def Set.mem (x : α) (X : Set α) : Prop := X x
+
+-- Integrate into the already existing typeclass for membership notation
+instance : Membership α (Set α) where
+  mem := Set.mem
+
+def Set.empty : Set α := λ _ => False
+
+instance : Subset (Set α) where
+  subset X Y := ∀ (x : α), x ∈ X → x ∈ Y
+
+example : ∀ (X : Set α), Set.empty ⊆ X:= by
+  intro X x
+  -- ⊢ x ∈ Set.empty → x ∈ X
+  intro h
+  exact False.elim h -- empty set has no members
+
+/-!
+### Binders
+Because declaring syntax that uses variable binders used to be a rather
+unintuitive thing to do in Lean 3 we'll take a brief look at how naturally
+this can be done in Lean 4.
+
+For this example we will define the well known notation for the set
+that contains all elements `x` such that some property holds:
+`{x ∈ ℕ | x < 10}` for example.
+
+First things first we need to extend the theory of sets from above slightly:
+-/
+
+-- the basic "all elements such that" function for the notation
+def setOf {α : Type} (p : α → Prop) : Set α := p
+
+/-!
+Equipped with this function we can now attempt to intuitively define a
+basic version of our notation:
+-/
+notation "{" x "|" p "}" => setOf (fun x => p)
+
+#check { (x : Nat) | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
+
+example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
+example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
+
+/-!
+This intuitive notation will indeed deal with what we could throw at
+it in the way we would expect it.
+
+As to how one might extend this notation to allow more set theoretic
+things such as `{x ∈ X | p x}` and leave away the parenthesis around
+the bound variables, we refer the reader to the macro chapter.
 -/
