@@ -23,7 +23,7 @@ namespace Playground
 inductive Expr where
   | bvar    : Nat → Data → Expr                       -- bound variables
   | fvar    : FVarId → Data → Expr                    -- free variables
-  | mvar    : MVarId → Data → Expr                    -- meta variables
+  | mvar    : MVarId → Data → Expr                    -- metavariables
   | sort    : Level → Data → Expr                     -- Sort
   | const   : Name → List Level → Data → Expr         -- constants
   | app     : Expr → Expr → Data → Expr               -- application

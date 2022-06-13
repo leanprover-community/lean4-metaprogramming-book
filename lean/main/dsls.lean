@@ -18,15 +18,14 @@ unary or binary operators.
 This means that we will allow weirdnesses like `1 + true`! But it will simplify
 the encoding, the grammar and consequently the metaprogramming didactic.
 
-Let's begin with the usual incantations, where we import `Lean` and open
-`Lean`, `Lean.Elab`, and `Lean.Meta`.
+## Defining our AST
+
+We begin by defining our atomic literal value.
 -/
 
 import Lean
 
 open Lean Elab Meta
-
-/- We begin by defining our atomic literal value. -/
 
 inductive IMPLit
   | nat  : Nat  → IMPLit
@@ -62,6 +61,8 @@ inductive IMPProgram
   | While  : IMPExpr → IMPProgram → IMPProgram
 
 /-
+## Elaborating literals
+
 Now that we have our data types, let's elaborate terms of `Syntax` into
 terms of `Expr`. We begin by defining the syntax and an elaboration function for
 literals.
@@ -87,7 +88,15 @@ elab "test_elabIMPLit " l:imp_lit : term => elabIMPLit l
 #reduce test_elabIMPLit true  -- IMPLit.bool true
 #reduce test_elabIMPLit false -- IMPLit.bool true
 
-/- Now we can elaborate our (only) unary operator -/
+/-
+## Elaborating expressions
+
+In order to elaborate expressions, we also need a way to elaborate our unary and
+binary operators.
+
+Notice that these could very much be pure functions (`Syntax → Expr`), but we're
+staying in `MetaM` because it allows us to easily throw an error for match
+completion.-/
 
 declare_syntax_cat imp_unop
 syntax "not"     : imp_unop
@@ -96,18 +105,10 @@ def elabIMPUnOp : Syntax → MetaM Expr
   | `(imp_unop| not) => return mkConst ``IMPUnOp.not
   | _ => throwUnsupportedSyntax
 
-/- And our binary operators: -/
-
 declare_syntax_cat imp_binop
 syntax "+"       : imp_binop
 syntax "and"     : imp_binop
 syntax "<"       : imp_binop
-
-/-
-The following function could very well be pure (`Syntax → Expr`), but we're
-staying in `MetaM` because it allows us to easily throw an error for match
-completion.
--/
 
 def elabIMPBinOp : Syntax → MetaM Expr
   | `(imp_binop| +)   => return mkConst ``IMPBinOp.add
@@ -115,7 +116,7 @@ def elabIMPBinOp : Syntax → MetaM Expr
   | `(imp_binop| <)   => return mkConst ``IMPBinOp.less
   | _ => throwUnsupportedSyntax
 
-/- The operators are needed for our expressions. See below: -/
+/-Now we define the syntax for expressions: -/
 
 declare_syntax_cat                   imp_expr
 syntax imp_lit                     : imp_expr
@@ -166,7 +167,11 @@ elab "test_elabIMPExpr " e:imp_expr : term => elabIMPExpr e
 #reduce test_elabIMPExpr 1 + true
 -- IMPExpr.bin IMPBinOp.add (IMPExpr.lit (IMPLit.nat 1)) (IMPExpr.lit (IMPLit.bool true))
 
-/- And now we have everything we need to elaborate our IMP programs! -/
+/-
+## Elaborating programs
+
+And now we have everything we need to elaborate our IMP programs!
+-/
 
 declare_syntax_cat           imp_program
 syntax "skip"              : imp_program
