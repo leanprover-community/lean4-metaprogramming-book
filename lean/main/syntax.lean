@@ -35,10 +35,10 @@ notation:10 l:10 " LXOR " r:11 => (!l && r)
 a binary operation that is infix, meaning that the operator is in between
 the operands (as opposed to e.g. before which would be done using the `prefix` command).
 The `l` at the end of `infixl` means that the notation is left associative so `a ⊕ b ⊕ c`
-gets parsed as `(a ⊕ b) ⊕ c` as opposed to `a ⊕ (b ⊕ c)` which would be achieved by `infixr`.
-On the right hand side it expects a function that operates on these two parameters
-and returns some value. The `notation` command on the other hand allows us some more
-freedom, we can just "mention" the parameters right in the syntax definition
+gets parsed as `(a ⊕ b) ⊕ c` as opposed to `a ⊕ (b ⊕ c)` (which would be achieved by `infixr`).
+On the right hand side, it expects a function that operates on these two parameters
+and returns some value. The `notation` command, on the other hand, allows us some more
+freedom: we can just "mention" the parameters right in the syntax definition
 and operate on them on the right hand side. It gets even better though, we can
 in theory create syntax with 0 up to as many parameters as we wish using the
 `notation` command, it is hence also often referred to as "mixfix" notation.
@@ -49,7 +49,7 @@ The two unintuitive parts about these two are:
   uses spaces around the operators, otherwise the syntax would just be presented
   as `l⊕r` as opposed to `l ⊕ r`.
 - The `60` and `10` right after the respective commands -- these denote the operator
-  precedence, meaning how strong they bind to their arguments, let's see this in action
+  precedence, meaning how strong they bind to their arguments, let's see this in action:
 -/
 
 #eval true ⊕ false LXOR false -- false
@@ -57,7 +57,7 @@ The two unintuitive parts about these two are:
 #eval true ⊕ (false LXOR false) -- true
 
 /-!
-As we can see the Lean interpreter analyzed the first term without parentheses
+As we can see, the Lean interpreter analyzed the first term without parentheses
 like the second instead of the third one. This is because the `⊕` notation
 has higher precedence than `LXOR` (`60 > 10` after all) and is thus evaluated before it.
 This is also how you might implement rules like `*` being evaluated before `+`.
@@ -71,7 +71,7 @@ the precedence of the rule that was used to parse them. Consider for example
 1. `(a LXOR b) LXOR c`
 2. `a LXOR (b LXOR c)`
 
-Since the arguments in parenthesis are parsed by the `LXOR` rule with precedence
+Since the arguments in parentheses are parsed by the `LXOR` rule with precedence
 10 they will appear as arguments with precedence 10 to the outer `LXOR` rule:
 1. `(a LXOR b):10 LXOR c`
 2. `a LXOR (b LXOR c):10`
@@ -96,7 +96,7 @@ and then attempt to keep parsing (as long as precedence allows it) until
 it cannot continue anymore. Hence Lean will parse this expression as `a ^ (b ^ c)`
 (as we would expect it to).
 
-Secondly if we have a notation where precedence does not allow to figure
+Secondly, if we have a notation where precedence does not allow to figure
 out how the expression should be parenthesized, for example:
 -/
 
@@ -132,15 +132,15 @@ in this case involves also consuming `mod` and the relation argument.
 
 /-!
 ### Free form syntax declarations
-With the above `infix` and `notation` commands you can get quite far with
+With the above `infix` and `notation` commands, you can get quite far with
 declaring ordinary mathematical syntax already. Lean does however allow you to
 introduce arbitrarily complex syntax as well. This is done using two main commands
 `syntax` and `declare_syntax_cat`. A `syntax` command allows you add a new
-syntax rule to an already existing, so called, syntax category. The most common syntax
+syntax rule to an already existing so-called "syntax category". The most common syntax
 categories are:
 - `term`, this category will be discussed in detail in the elaboration chapter,
   for now you can think of it as "the syntax of everything that has a value"
-- `command`, this is the category for top level commands like `#check`, `def` etc.
+- `command`, this is the category for top-level commands like `#check`, `def` etc.
 - TODO: ...
 
 Let's see this in action:
@@ -159,15 +159,18 @@ def Playground1.test := MyTerm
 --   MyTerm
 
 /-!
-Implementing this so called "elaboration function", which will actually
-give meaning to this syntax, is topic of the elaboration and macro chapter.
-An example of one we have already seen however would be the `notation` and
-`infix` command.
+Implementing this so-called "elaboration function", which will actually
+give meaning to this syntax in terms of Lean's fundamental `Expr` type,
+is topic of the elaboration chapter.
 
-NOTE: All the principles from `notation` and `infix` regarding precedence fully apply to `syntax`
+The `notation` and `infix` commands are utilities that conveniently bundle syntax declaration
+with macro definition (for more on macros, see the macro chapter),
+where the contents left of the `=>` declare the syntax.
+All the previously mentioned principles from `notation` and `infix` regarding precedence
+fully apply to `syntax` as well.
 
-We can of course also involve other syntax into our own declarations
-in order to build up syntax trees, for example we could try to build our
+We can, of course, also involve other syntax into our own declarations
+in order to build up syntax trees. For example, we could try to build our
 own little boolean expression language:
 -/
 
@@ -215,20 +218,20 @@ syntax "[Bool|" boolean_expr "]" : term
 
 /-!
 ### Syntax combinators
-In order to declare more complex syntax it is often very desirable to have
+In order to declare more complex syntax, it is often very desirable to have
 some basic operations on syntax already built-in, these include:
 - helper parsers without syntax categories (i.e. not extendable)
 - alternatives
-- repetetive parts
+- repetitive parts
 - optional parts
-While all of these do have an encoding based on syntax categories this
-can make things quite ugly at times so Lean provides a way to do all
+While all of these do have an encoding based on syntax categories, this
+can make things quite ugly at times, so Lean provides an easier way to do all
 of these.
 
-In order to see all of these in action briefly we will define a simple
+In order to see all of these in action, we will briefly define a simple
 binary expression syntax.
 First things first, declaring named parsers that don't belong to a syntax
-category, this is quite similar to ordinary `def`s:
+category is quite similar to ordinary `def`s:
 -/
 
 syntax binOne := "O"
@@ -237,6 +240,8 @@ syntax binZero := "Z"
 /-!
 These named parsers can be used in the same positions as syntax categories
 from above, their only difference to them is, that they are not extensible.
+That is, they are directly expanded within syntax declarations,
+and we cannot define new patterns for them as we would with proper syntax categories.
 There does also exist a number of built-in named parsers that are generally useful,
 most notably:
 - `str` for string literals
@@ -255,7 +260,7 @@ Where the `<|>` operator implements the "accept the left or the right" behaviour
 We can also chain them to achieve parsers that accept arbitrarily many, arbitrarly complex
 other ones. Now we will define the concept of a binary number, usually this would be written
 as digits directly after each other but we will instead use comma separated ones to showcase
-the repetetion feature:
+the repetition feature:
 -/
 
 -- the "+" denotes "one or many", in order to achieve "zero or many" use "*" instead
@@ -284,19 +289,19 @@ syntax "binCompact(" ("Z" <|> "O"),+ ")" : term
 #check binCompact(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 
 /-!
-As a final feature, lets add an optional string comment that explains the binary
+As a final feature, let's add an optional string comment that explains the binary
 literal being declared:
 -/
 
--- The (...)? syntax means that the part in parentheses optional
+-- The (...)? syntax means that the part in parentheses is optional
 syntax "binDoc(" (str ";")? binNumber ")" : term
 #check binDoc(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 #check binDoc("mycomment"; Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 ## Operating on Syntax
-As explained above we will not go into detail in this chapter on how to teach
-Lean about the meaning you want to give your syntax. We will however take a look
+As explained above, we will not go into detail in this chapter on how to teach
+Lean about the meaning you want to give your syntax. We will, however, take a look
 at how to write functions that operate on it. Like all things in Lean, syntax is
 represented by the inductive type `Lean.Syntax`, on which we can operate. It does
 contain quite some information, but most of what we are interested in, we can
@@ -317,10 +322,10 @@ end Playground2
 Lets go through the definition one constructor at a time:
 - `missing` is used when there is something the Lean compiler cannot parse,
   it is what allows Lean to have a syntax error in one part of the file but
-  recover from it and understand the rest of it. This also means we pretty
+  recover from it and try to understand the rest of it. This also means we pretty
   much don't care about this constructor.
-- `node` is, as the name suggests a node in the syntax tree, it has a so called
-  `kind : SyntaxNodeKind` where `SyntaxNodeKind` is just a `Lean.Name`. Basically
+- `node` is, as the name suggests, a node in the syntax tree. It has a so called
+  `kind : SyntaxNodeKind` where `SyntaxNodeKind` is just a `Lean.Name`. Basically,
   each of our `syntax` declarations receives an automatically generated `SyntaxNodeKind`
   (we can also explicitly specify the name with `syntax (name := foo) ... : cat`) so
   we can tell Lean "this function is responsible for processing this specific syntax construct".
@@ -330,14 +335,14 @@ Lets go through the definition one constructor at a time:
   hierarchy. For example, our operators ` ⊕ ` and ` LXOR ` from above will be represented as
   atoms.
 - `ident` is the mentioned exception to this rule. The difference between `ident` and `atom`
-  is also quite obvious: an identifier has a `Lean.Name` instead of a `String` that represents is.
+  is also quite obvious: an identifier has a `Lean.Name` instead of a `String` that represents it.
   Why a `Lean.Name` is not just a `String` is related to a concept called macro hygiene
   that will be discussed in detail in the macro chapter. For now, you can consider them
   basically equivalent.
 
 ### Constructing new `Syntax`
-Now that we know how syntax is represented in Lean we could of course write programs that
-generate all of these inductive trees by hand which would be incredibly tedious and is something
+Now that we know how syntax is represented in Lean, we could of course write programs that
+generate all of these inductive trees by hand, which would be incredibly tedious and is something
 we most definitely want to avoid. Luckily for us there is quite an extensive API hidden inside the
 `Lean.Syntax` namespace we can explore:
 -/
@@ -346,18 +351,18 @@ open Lean
 #check Syntax -- Syntax. autocomplete
 
 /-!
-The interesting functions for creating `Syntax` are the `Syntax.mk` ones, they allow us to create
+The interesting functions for creating `Syntax` are the `Syntax.mk*` ones that allow us to create
 both very basic `Syntax` objects like `ident`s but also more complex ones like `Syntax.mkApp`
 which we can use to create the `Syntax` object that would amount to applying the function
 from the first argument to the argument list (all given as `Syntax`) in the second one.
 Let's see a few examples:
 -/
 
--- Name literals are written with this little ` infront of the name
+-- Name literals are written with this little ` in front of the name
 #eval Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax of `Nat.add 1 1`
-#eval mkNode `«term_+_» #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax for `1 + 1`
+#eval mkNode `«term_+_» #[Syntax.mkNumLit "1", mkAtom "+", Syntax.mkNumLit "1"] -- is the syntax for `1 + 1`
 
--- note that the `«term_+_» is the auto generated SyntaxNodeKind for the + syntax
+-- note that the `«term_+_» is the auto-generated SyntaxNodeKind for the + syntax
 
 /-
 If you don't like this way of creating `Syntax` at all you are not alone.
@@ -368,9 +373,9 @@ which will be explained in the macro chapter.
 ### Matching on `Syntax`
 Just like constructing `Syntax` is an important topic, especially
 with macros, matching on syntax is equally (or in fact even more) interesting.
-Luckily we don't have to match on the inductive type itself either, we can
-instead use so called syntax patterns. They are quite simple, their syntax is just
-``(the syntax I want to match on)`. Let's see one in action:
+Luckily we don't have to match on the inductive type itself either: we can
+instead use so-called "syntax patterns". They are quite simple, their syntax is just
+`` `(the syntax I want to match on) ``. Let's see one in action:
 -/
 
 def isAdd11 : Syntax → Bool
@@ -382,7 +387,7 @@ def isAdd11 : Syntax → Bool
 
 /-!
 The next level with matches is to capture variables from the input instead
-of just matching on literals, this is done with a slightly fancier looking syntax:
+of just matching on literals, this is done with a slightly fancier-looking syntax:
 -/
 
 def isAdd : Syntax → Option (Syntax × Syntax)
@@ -394,7 +399,7 @@ def isAdd : Syntax → Option (Syntax × Syntax)
 #eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]) -- none
 
 /-!
-Note that `x` and `y` in this example are of type `Syntax` not `Nat`. This is simply
+Note that `x` and `y` in this example are of type `Syntax`, not `Nat`. This is simply
 because we are still at the `Syntax` level: the concept of a type doesn't quite
 exist yet. What we can however do is limit the parsers/categories we want to match on,
 for example if we only want to match on number literals in order to implement some
@@ -409,7 +414,7 @@ def isLitAdd : Syntax → Option Nat
 #eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
 
 /-!
-As you can see in the code even though we explicitly matched on the `num`
+As you can see in the code, even though we explicitly matched on the `num`
 parser we still have to explicitly convert `x` and `y` to `Nat` because
 again, we are on `Syntax` level, types do not exist.
 
@@ -461,7 +466,7 @@ the type instead of the syntax system, this is for example how `+`
 using the typeclasses `HAdd` and `Add` and other common operators in
 Lean are generically defined.
 
-For example we might want to have a generic notation for subset notation.
+For example, we might want to have a generic notation for subset notation.
 The first thing we have to do is define a type class that captures
 the function we want to build notation for.
 -/
@@ -498,7 +503,7 @@ def Set.empty : Set α := λ _ => False
 instance : Subset (Set α) where
   subset X Y := ∀ (x : α), x ∈ X → x ∈ Y
 
-example : ∀ (X : Set α), Set.empty ⊆ X:= by
+example : ∀ (X : Set α), Set.empty ⊆ X := by
   intro X x
   -- ⊢ x ∈ Set.empty → x ∈ X
   intro h
@@ -507,10 +512,10 @@ example : ∀ (X : Set α), Set.empty ⊆ X:= by
 /-!
 ### Binders
 Because declaring syntax that uses variable binders used to be a rather
-unintuitive thing to do in Lean 3 we'll take a brief look at how naturally
+unintuitive thing to do in Lean 3, we'll take a brief look at how naturally
 this can be done in Lean 4.
 
-For this example we will define the well known notation for the set
+For this example we will define the well-known notation for the set
 that contains all elements `x` such that some property holds:
 `{x ∈ ℕ | x < 10}` for example.
 
@@ -521,7 +526,7 @@ First things first we need to extend the theory of sets from above slightly:
 def setOf {α : Type} (p : α → Prop) : Set α := p
 
 /-!
-Equipped with this function we can now attempt to intuitively define a
+Equipped with this function, we can now attempt to intuitively define a
 basic version of our notation:
 -/
 notation "{" x "|" p "}" => setOf (fun x => p)
@@ -535,7 +540,7 @@ example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, S
 This intuitive notation will indeed deal with what we could throw at
 it in the way we would expect it.
 
-As to how one might extend this notation to allow more set theoretic
-things such as `{x ∈ X | p x}` and leave away the parenthesis around
+As to how one might extend this notation to allow more set-theoretic
+things such as `{x ∈ X | p x}` and leave out the parentheses around
 the bound variables, we refer the reader to the macro chapter.
 -/
