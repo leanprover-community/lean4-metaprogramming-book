@@ -1,7 +1,6 @@
 name: Book
 
 on:
-  pull_request:
   push:
     branches:
       - master
@@ -31,22 +30,11 @@ jobs:
     - name: Rename
       run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
 
-    - name: Delete old release assets
-      uses: mknejp/delete-release-assets@v1
+    - uses: "marvinpinto/action-automatic-releases@latest"
       with:
-        token: ${{ github.token }}
-        tag: latest
-        fail-if-no-assets: false
-        fail-if-no-release: false
-        assets: |
-          *.tex
-          *.pdf
-
-    - name: Upload Outputs
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: latest
-        generate_release_notes: true
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        title: "Metaprogramming in Lean 4"
         files: |
           Metaprogramming in Lean 4.tex
           Metaprogramming in Lean 4.pdf
