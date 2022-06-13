@@ -404,6 +404,7 @@ We next illustrate how to do this by constructing a λ-expression for the functi
 To construct such an expression, we _introduce_ a free variable `n`, we define an expression in terms of this variable, and finally construct the λ-expression. 
 
 Introducing the free variable in this context is done indirectly. Roughly speaking the following happens. 
+
 * A new _context_ is constructed where the free variable is defined. 
 * We have code _within_ the context that uses the free variable; to avoid name collisions, this is a function of the expression for the free variable just introduced.
 * There is a smart method that allows us to construct a λ-expression with respect to the free variable we have just created, taking care of matching names, hygeine etc.
@@ -411,6 +412,7 @@ Introducing the free variable in this context is done indirectly. Roughly speaki
 
 More formally, the variable is introduced by passing the code using it as a _continuation_ to 
 `withLocalDecl`. The arguments of `withLocalDecl` are:
+
 * The name of the variable
 * The _binder_ that determines whether it is explicit or not
 * The type of the variable
