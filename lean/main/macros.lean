@@ -176,7 +176,7 @@ will not allow name clashes like the one in the `const` example.
 
 ## `MonadQuotation` and `MonadRef`
 Based on this description of the hygiene mechanism one interesting
-quesiton pops up, how do we know what the current list of macro scopes
+question pops up, how do we know what the current list of macro scopes
 actually is? After all in the macro functions that were defined above
 there is never any explicit passing around of the scopes happening.
 As is quite common in functional programming, as soon as we start
