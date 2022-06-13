@@ -28,6 +28,7 @@ jobs:
       run: lualatex -shell-escape out.tex && lualatex -shell-escape out.tex
 
     - name: Rename
+      # Minted doesn't like filenames with spaces in them unfortunately, so we mv.
       run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
 
     - uses: "marvinpinto/action-automatic-releases@latest"
