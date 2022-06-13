@@ -7,12 +7,12 @@ on:
 
 jobs:
   book:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: Install Dependencies
-      run: brew install pandoc mactex-no-gui homebrew/homebrew-cask-fonts/font-dejavu pygments
+      run: sudo apt install -y pandoc texlive-latex-base texlive-latex-extra texlive-latex-recommended texlive-luatex fonts-dejavu python3-pygments
 
     - name: Download the Book Template
       run: |
@@ -25,7 +25,7 @@ jobs:
 
     - name: Build a PDF
       # Running twice appears to be necessary to not get a blank TOC?!
-      run: /Library/TeX/texbin/lualatex -shell-escape out.tex && /Library/TeX/texbin/lualatex -shell-escape out.tex
+      run: lualatex -shell-escape out.tex && lualatex -shell-escape out.tex
 
     - name: Rename
       run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
