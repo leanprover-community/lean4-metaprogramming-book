@@ -175,7 +175,7 @@ will not allow name clashes like the one in the `const` example.
 
 ## `MonadQuotation` and `MonadRef`
 Based on this description of the hygiene mechanism one interesting
-quesiton pops up, how do we know what the current list of macro scopes
+question pops up, how do we know what the current list of macro scopes
 actually is? After all in the macro functions that were defined above
 there is never any explicit passing around of the scopes happening.
 As is quite common in functional programming, as soon as we start
@@ -295,18 +295,17 @@ As promised in the syntax chapter here is Binders 2.0. We'll start by
 reintroducing our theory of sets:
 
 ```lean
-abbrev Set (α : Type u) := α → Prop
-abbrev Set.mem (x : α) (X : Set α) : Prop := X x
--- We bind the `s` and the notation this way so `x ∈ S ∧ ... is parsed as as:
--- `(x ∈ (S)) ∧ ...`
--- as opposed to:
--- `x ∈ (S ∧ ...)`
-notation:100 x " ∈ " s:99 => Set.mem x s
+def Set (α : Type u) := α → Prop
+def Set.mem (x : α) (X : Set α) : Prop := X x
+
+-- Integrate into the already existing typeclass for membership notation
+instance : Membership α (Set α) where
+  mem := Set.mem
 
 def Set.empty : Set α := λ _ => False
 
 -- the basic "all elements such that" function for the notation
-abbrev setOf {α : Type} (p : α → Prop) : Set α := p
+def setOf {α : Type} (p : α → Prop) : Set α := p
 ```
 
 The goal for this section will be to allow for both `{x : X | p x}`
@@ -334,14 +333,14 @@ And finally the macros to expand our syntax:
 
 ```lean
 macro_rules
-  | `({ $id:ident : $ty:term | $body:term }) => `(setOf (fun ($id : $ty) => $body))
-  | `({ $id:ident ∈ $s:term | $body:term }) => `(setOf (fun $id => $id ∈ $s ∧ $body))
+  | `({ $var:ident : $ty:term | $body:term }) => `(setOf (fun ($var : $ty) => $body))
+  | `({ $var:ident ∈ $s:term | $body:term }) => `(setOf (fun $var => $var ∈ $s ∧ $body))
 
 -- Old examples with better syntax:
-#check { x : Nat | x ≤ 1} -- setOf fun x => x ≤ 1 : Set Nat
+#check { x : Nat | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
 
-example : 1 ∈ { y : Nat | y ≤ 1} := by decide
-example : 2 ∈ { y : Nat | y ≤ 3 ∧ 1 ≤ y} := by decide
+example : 1 ∈ { y : Nat | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
+example : 2 ∈ { y : Nat | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
 
 -- New examples:
 def oneSet : Set Nat := λ x => x = 1
@@ -362,5 +361,5 @@ If you want to know more about macros you can read:
 - the API docs: TODO link
 - the source code: the lower parts of [Init.Prelude](https://github.com/leanprover/lean4/blob/master/src/Init/Prelude.lean)
   as you can see they are declared quite early in Lean because of their importance
-  of to building up syntax
+  to building up syntax
 - the aforementioned [Beyond Notations](https://lmcs.episciences.org/9362/pdf) paper

@@ -90,10 +90,11 @@ NOTE: If parameters of a notation are not explicitly given a precedence they wil
 
 As a last remark for this section: Lean will always attempt to obtain the longest
 matching parse possible, this has three important implications.
-First a very intuitive one, if we have a right associative operator `+`
-and Lean sees something like `a + b + c`, it will first parse the `a + b`
+First a very intuitive one, if we have a right associative operator `^`
+and Lean sees something like `a ^ b ^ c`, it will first parse the `a ^ b`
 and then attempt to keep parsing (as long as precedence allows it) until
-it cannot continue anymore. Hence Lean will parse this expression as `a + (b + c)`.
+it cannot continue anymore. Hence Lean will parse this expression as `a ^ (b ^ c)`
+(as we would expect it to).
 
 Secondly if we have a notation where precedence does not allow to figure
 out how the expression should be parenthesized, for example:
@@ -113,18 +114,20 @@ If precedence is ambiguous Lean will default to right associativity.
 Lastly, if we define overlapping notation such as:
 -/
 
-notation:65 a " + " b:66 " + " c:66 => a + b - c
+-- define `a ~ b mod rel` to mean that a and b are equivalent with respect to some equivalance relation rel
+notation:65 a:65 " ~ " b:65 " mod " rel:65 => rel a b
 
 /-!
-Lean will prefer this notation over parsing `a + b + c` as two additions ,
-that is `1 + 2 + 3` will evaluate to 0 now:
+Lean will prefer this notation over parsing `a ~ b` as defined above and
+then erroring because it doesn't know what to do with `mod` and the
+relation argument:
 -/
 
-#eval 1 + 2 + 3  -- 0
+#check 0 ~ 0 mod Eq -- 0 = 0 : Prop
 
 /-!
 This is again because it is looking for the longest possible parser which
-is in this case the one that accepts two `+` at once instead of only one.
+in this case involves also consuming `mod` and the relation argument.
 -/
 
 /-!
@@ -482,15 +485,13 @@ Let's define a simple theory of sets to test it:
 
 -- a `Set` is defined by the elements it contains
 -- -> a simple predicate on the type of its elements
-abbrev Set (α : Type u) := α → Prop
+def Set (α : Type u) := α → Prop
 
-abbrev Set.mem (x : α) (X : Set α) : Prop := X x
+def Set.mem (x : α) (X : Set α) : Prop := X x
 
--- We bind the `s` and the notation this way so `x ∈ S ∧ ... is parsed as as:
--- `(x ∈ (S)) ∧ ...`
--- as opposed to:
--- `x ∈ (S ∧ ...)`
-notation:100 x " ∈ " s:99 => Set.mem x s
+-- Integrate into the already existing typeclass for membership notation
+instance : Membership α (Set α) where
+  mem := Set.mem
 
 def Set.empty : Set α := λ _ => False
 
@@ -499,14 +500,14 @@ instance : Subset (Set α) where
 
 example : ∀ (X : Set α), Set.empty ⊆ X:= by
   intro X x
-  -- ⊢ Set.mem x (Set.empty α) → Set.mem x X
+  -- ⊢ x ∈ Set.empty → x ∈ X
   intro h
   exact False.elim h -- empty set has no members
 
 /-!
 ### Binders
-Because declaring syntax that uses variable binders used to be quite a
-weird thing to do in Lean 3 we'll take a brief look at how naturally
+Because declaring syntax that uses variable binders used to be a rather
+unintuitive thing to do in Lean 3 we'll take a brief look at how naturally
 this can be done in Lean 4.
 
 For this example we will define the well known notation for the set
@@ -517,7 +518,7 @@ First things first we need to extend the theory of sets from above slightly:
 -/
 
 -- the basic "all elements such that" function for the notation
-abbrev setOf {α : Type} (p : α → Prop) : Set α := p
+def setOf {α : Type} (p : α → Prop) : Set α := p
 
 /-!
 Equipped with this function we can now attempt to intuitively define a
@@ -525,10 +526,10 @@ basic version of our notation:
 -/
 notation "{" x "|" p "}" => setOf (fun x => p)
 
-#check { (x : Nat) | x ≤ 1} -- setOf fun x => x ≤ 1 : Set Nat
+#check { (x : Nat) | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
 
-example : 1 ∈ { (y : Nat) | y ≤ 1} := by decide
-example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y} := by decide
+example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
+example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
 
 /-!
 This intuitive notation will indeed deal with what we could throw at
