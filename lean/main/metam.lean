@@ -124,19 +124,30 @@ abbrev             reducibleDef   : Nat      := defaultDef + 1
 #eval traceConstWithTransparency .reducible ``reducibleDef
 -- defaultDef + 1
 
+/-!
+Note that with `TransparencyMode.instances`, an instance of `HAdd Nat Nat`,
+which is used for the `+` notation, has also been unfolded:
+-/
+
+-- the instance to be unfolded, `@instHAdd Nat instAddNat`,
+-- can be seen when we pretty-print the implicit arguments below:
+set_option pp.explicit true
+#eval traceConstWithTransparency .reducible ``reducibleDef
+-- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef 1
+set_option pp.explicit false
+
 #eval traceConstWithTransparency .instances ``reducibleDef
 -- Nat.add defaultDef 1
 
 /-!
-Note that the instance `HAdd Nat Nat`, which is used for the `+` notation,
-has also been unfolded.
+With `TransparencyMode.default`, the `Nat.add` function is unfolded as well:
 -/
 
 #eval traceConstWithTransparency .default ``reducibleDef
 -- Nat.succ (Nat.succ irreducibleDef)
 
 /-!
-Here the `Nat.add` function has been unfolded as well.
+And with `TransparencyMode.all`, we're finally able to unfold `irreducibleDef`:
 -/
 
 #eval traceConstWithTransparency .all ``reducibleDef
@@ -157,9 +168,10 @@ appropriate transparency for each operation that involves normalisation.
 Transparency addresses some of the performance issues with normalisation. But
 even more important is to recognise that for many purposes, we don't need to
 fully normalise terms at all. Suppose we are building a tactic that
-automatically splits hypotheses of the form `P ∧ Q`. We might want this tactic
-to recognise a hypothesis `h : X` if `X` is defined as `P ∧ Q ∧ R`. But if `P`
-is additionally defined as `Y ∨ Z`, the specific `Y` and `Z` do not concern us.
+automatically splits hypotheses of the type `P ∧ Q`. We might want this tactic
+to recognise a hypothesis `h : X` if `X` reduces to `P ∧ Q`. But if `P`
+additionally reduces to `Y ∨ Z`, the specific `Y` and `Z` do not concern us:
+it's unnecessary extra computation that does not need to happen.
 
 This situation is so common that the fully normalising `reduce` is in fact
 rarely used. Instead, the normalisation workhorse of Lean is `whnf`, which
@@ -172,8 +184,8 @@ form
 e = f x₁ ... xₙ   (n ≥ 0)
 ```
 
-and `f` is either irreducible (at the current transparency) or is applied to too
-few arguments. To conveniently check the WHNF of an expression, we define a
+and `f` is a data/type constructor or is irreducible (at the current transparency).
+To conveniently check the WHNF of an expression, we define a
 function `whnf'` which uses some advanced tech; don't worry about its
 implementation for now.
 -/
@@ -201,19 +213,12 @@ The *arguments* of an application in WHNF may or may not be in WHNF themselves:
 -- [1 + 1]
 
 /-!
-Functions applied to too few arguments are in WHNF:
--/
-
-#eval whnf' `(Nat.add 1)
--- Nat.add 1
-
-/-!
 Applications of constants are in WHNF if the current transparency does not
 allow us to unfold the constants:
 -/
 
-#eval withTransparency .reducible $ whnf' `(Nat.add 1 1)
--- Nat.add 1 1
+#eval withTransparency .reducible $ whnf' `(List.append [1] [1])
+-- List.append [1] [1]
 
 /-!
 Lambdas are in WHNF:
@@ -253,13 +258,6 @@ h 0 1   -- Assuming `h` is a local hypothesis, it is in WHNF.
 
 On the flipside, here are some expressions that are not in WHNF.
 
-Functions applied to all their arguments are not in WHNF:
--/
-
-#eval whnf' `(Nat.add 1 1)
--- `Nat.succ (Nat.add 1 0)`
-
-/-!
 `let` bindings are not in WHNF:
 -/
 
@@ -267,15 +265,7 @@ Functions applied to all their arguments are not in WHNF:
 -- `1`
 
 /-!
-Applications of lambdas are not in WHNF:
--/
-
-#eval whnf' `((λ x : Nat => x) 1)
--- `1`
-
-/-!
-Even when a lambda is applied to too few arguments, the application is not in
-WHNF:
+(Partial) applications of lambdas are not in WHNF:
 -/
 
 #eval whnf' `((λ x y : Nat => x + y) 1)
@@ -292,7 +282,7 @@ h 0 1  -- Assuming `h` is a local definition (e.g. with value `Nat.add`), its
 ```
 
 Returning to the tactic that motivated this section, let us write a function
-that matches a type of the form `P ∧ Q`, taking computation into account. WHNF
+that matches a type of the form `P ∧ Q`, avoiding extra computation. WHNF
 makes it easy:
 -/
 
@@ -357,8 +347,8 @@ The `MetaM` monad provides even more smart constructors to help us build
 expressions. The API also contains functions that help us explore certain
 expressions more easily. In this chapter we will visit some of those.
 
-A typical example of an expression we work with is that for the _goal_ of a tactic. This is an expression that represents a type. The tactic may attempt to find an expression that is of that type.
-If it succeeds we can then use the expression to solve the goal. However, in `MetaM` we do not have _goals_, so in this chapter we illustrate the smart methods used to manipulate expressions.
+A typical example of an expression we work with is that of the _goal_ of a tactic. This is an expression that represents a type. The tactic may attempt to find an expression that is of that type.
+If it succeeds, we can then use the expression to solve the goal. However, in `MetaM` we do not have _goals_, so in this chapter we illustrate the smart methods used to manipulate expressions.
 
 Before manipulating expressions, we look at some examples of expressions.
 To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
@@ -381,7 +371,7 @@ it:
 #eval reduce $ natExpr 1
 -- Lean.Expr.lit (Lean.Literal.natVal 1) (Expr.mkData 4289331193 (bi := Lean.BinderInfo.default))
 
-/-! One of the first ways to construct expressions is by function application to form the expression for `f a` given expressions for `f` and `a`. One uses various methods provided by lean 4 to do this. It is generally not a good idea to try to directly define the expression as there is associated metadata.
+/-! One of the first ways to construct expressions is by function application, that is, to form the expression for `f a` given expressions for `f` and `a`. One uses various methods provided by Lean 4 to do this. It is generally not a good idea to try to directly define the expression, as there is associated metadata that needs to be included which is difficult to construct manually.
 
 The simple methods for constructing expressions by function application are `mkApp` and `mkAppN`. These take care of the metadata, but do not attempt to unify, for example. The `mkAppN` function takes a function and an array of arguments. The name ending with `N` here (and elsewhere) is to indicate that we (in general) have multiple (`N`) arguments. On the other hand `mkApp` applies a function to a single argument.
 
@@ -395,15 +385,15 @@ def sumExprM (n m : Nat) : MetaM Expr := do
 
 #eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
 
-/-! Note that the _function_ to be applied is a constant, so has an expression of the form `mkConst name`. The name was given preceded by double-backticks. This means that lean resolves this to a global name, and gives an error if it cannot be resolved. A name preceded by a single backtick is a literal name.
+/-! Note that the _function_ to be applied is a constant, and so has an expression of the form `mkConst name`. The name was given preceded by double-backticks. This means that Lean resolves this to a global name, and gives an error if it cannot be resolved. A name preceded by a single backtick is a literal name.
 -/
 
 /-! Besides function application, we would like to construct expressions using λ-expressions. 
 We next illustrate how to do this by constructing a λ-expression for the function `double : Nat → Nat` given by `double n = n + n`. 
 
-To construct such an expression, we _introduce_ a free variable `n`, we define an expression in terms of this variable, and finally construct the λ-expression. 
+To construct such an expression, we _introduce_ a free variable `n`, define an expression in terms of this variable, and finally construct the λ-expression. 
 
-Introducing the free variable in this context is done indirectly. Roughly speaking the following happens. 
+Introducing the free variable in this context is done indirectly. Roughly speaking, the following happens:
 
 * A new _context_ is constructed where the free variable is defined. 
 * We have code _within_ the context that uses the free variable; to avoid name collisions, this is a function of the expression for the free variable just introduced.
@@ -414,7 +404,7 @@ More formally, the variable is introduced by passing the code using it as a _con
 `withLocalDecl`. The arguments of `withLocalDecl` are:
 
 * The name of the variable
-* The _binder_ that determines whether it is explicit or not
+* The _binder info_ that determines whether it is explicit or not
 * The type of the variable
 * The function that turns an expression into something else (in our case, into
   another expression). This function does not need to be pure.
@@ -429,7 +419,7 @@ def doubleM : MetaM Expr :=
     fun n : Expr => mkLambdaFVars #[n] $ mkAppN (mkConst ``Nat.add) #[n, n] 
 
 /- We used `n` in two independent ways in the above expression. The first is simply as 
-a name to be used in the body of the λ-expression. The second is as the name of the expression for the free variable created. We could have replaced one of them, or even used `Name.anonymous` for the first occurence.
+a name to be used in the body of the λ-expression (at the non-meta level). The second is as the name of the expression for the free variable created (at the meta level). We could have replaced one of them, or even used `Name.anonymous` for the first occurrence.
 
 Let's check if `doubleM` can indeed compute the expression for `n + n` -/
 
@@ -447,10 +437,10 @@ For example, we can construct an expression for the length of a list
 using `mkAppM`. Recall that `List.length` has an implicit parameter
 `α : Type u`. This is deduced by unification, as are universe levels. -/
 
-def lenExprM (list: Expr) : MetaM Expr := do
+def lenExprM (list : Expr) : MetaM Expr := do
   reduce $ ← mkAppM ``List.length #[list]
 
-/- We test the unification in this definition. -/
+/- We test the unification in this definition: -/
 
 def egList := [1, 3, 7, 8]
 
@@ -489,7 +479,7 @@ def propM : MetaM Expr := do
   mkLambdaFVars #[f] feqn
 
 /- Now let's elaborate the expression into a term so we can see the result of
-what we did more easily. This will be further explored in the next chapter -/
+what we did more easily. This will be further explored in the "elaboration" chapter. -/
 
 elab "myProp" : term => propM
 
@@ -521,7 +511,7 @@ application of `mvar2` to `mvar3`. We then assign to `mvar2` the constant
 expression `Nat.succ` and to `mvar3` the constant expression `Nat.zero`. Clearly
 this means we have assigned `Nat.succ (Nat.zero)`, i.e., `1` to `mvar1`. We
 return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
-indeed when the expression `metaOneM` is assigned to a term, the result is `1`.
+indeed when a term is assigned to the expression `metaOneM`, the result is `1`.
 -/
 
 def oneMetaVar : MetaM Expr := do
