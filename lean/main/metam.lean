@@ -184,10 +184,9 @@ form
 e = f x₁ ... xₙ   (n ≥ 0)
 ```
 
-and `f` is a data/type constructor or is irreducible (at the current transparency).
-To conveniently check the WHNF of an expression, we define a
-function `whnf'` which uses some advanced tech; don't worry about its
-implementation for now.
+and `f` cannot be reduced (at the current transparency). To conveniently check
+the WHNF of an expression, we define a function `whnf'` which uses some advanced
+tech; don't worry about its implementation for now.
 -/
 
 open Lean.Elab.Term in
@@ -217,8 +216,8 @@ Applications of constants are in WHNF if the current transparency does not
 allow us to unfold the constants:
 -/
 
-#eval withTransparency .reducible $ whnf' `(List.append [1] [1])
--- List.append [1] [1]
+#eval withTransparency .reducible $ whnf' `(List.append [1] [2])
+-- List.append [1] [2]
 
 /-!
 Lambdas are in WHNF:
@@ -258,18 +257,25 @@ h 0 1   -- Assuming `h` is a local hypothesis, it is in WHNF.
 
 On the flipside, here are some expressions that are not in WHNF.
 
-`let` bindings are not in WHNF:
+Applications of constants are not in WHNF:
 -/
 
-#eval whnf' `(let x : Nat := 1; x)
--- `1`
+#eval whnf' `(List.append [1])
+-- fun x => 1 :: List.append [] x
 
 /-!
-(Partial) applications of lambdas are not in WHNF:
+Applications of lambdas are not in WHNF:
 -/
 
 #eval whnf' `((λ x y : Nat => x + y) 1)
 -- `fun y => 1 + y`
+
+/-!
+`let` bindings are not in WHNF:
+-/
+
+#eval whnf' `(let x : Nat := 1; x)
+-- 1
 
 /-!
 And again some tricky examples:
