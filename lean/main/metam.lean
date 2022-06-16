@@ -202,14 +202,14 @@ Constructor applications are in WHNF (with some exceptions for numeric types):
 -/
 
 #eval whnf' `(List.cons 1 [])
--- `[1]`
+-- [1]
 
 /-!
 The *arguments* of an application in WHNF may or may not be in WHNF themselves:
 -/
 
 #eval whnf' `(List.cons (1 + 1) [])
--- `[1 + 1]`
+-- [1 + 1]
 
 /-!
 Applications of constants are in WHNF if the current transparency does not
@@ -217,35 +217,35 @@ allow us to unfold the constants:
 -/
 
 #eval withTransparency .reducible $ whnf' `(List.append [1] [2])
--- `List.append [1] [2]`
+-- List.append [1] [2]
 
 /-!
 Lambdas are in WHNF:
 -/
 
 #eval whnf' `(λ x : Nat => x)
--- `fun x => x`
+-- fun x => x
 
 /-!
 Foralls are in WHNF:
 -/
 
 #eval whnf' `(∀ x, x > 0)
--- `∀ (x : Nat), x > 0`
+-- ∀ (x : Nat), x > 0
 
 /-!
 Sorts are in WHNF:
 -/
 
 #eval whnf' `(Type 3)
--- `Type 3`
+-- Type 3
 
 /-!
 Literals are in WHNF:
 -/
 
 #eval whnf' `((15 : Nat))
--- `15`
+-- 15
 
 /-!
 Here are some more expressions in WHNF which are a bit tricky to test:
@@ -261,7 +261,7 @@ Applications of constants are not in WHNF:
 -/
 
 #eval whnf' `(List.append [1])
--- `fun x => 1 :: List.append [] x`
+-- fun x => 1 :: List.append [] x
 
 /-!
 Applications of lambdas are not in WHNF:
@@ -275,7 +275,7 @@ Applications of lambdas are not in WHNF:
 -/
 
 #eval whnf' `(let x : Nat := 1; x)
--- `1`
+-- 1
 
 /-!
 And again some tricky examples:
