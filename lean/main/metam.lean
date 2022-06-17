@@ -28,6 +28,434 @@ import Lean
 open Lean Lean.Expr Lean.Meta
 
 /-!
+## Metavariables
+
+### Overview
+
+The 'Meta' in `MetaM` refers to metavariables, so we should talk about these
+first. Lean users do not usually interact much with metavariables -- at least
+not consciously -- but they are used all over the place in metaprograms. There
+are two ways to view them: as holes in an expression or as goals.
+
+Take the goal perspective first. When we prove things in Lean, we always operate
+on goals, such as
+
+```lean
+n m : Nat
+⊢ n + m = m + n
+```
+
+These goals are internally represented by metavariables. Accordingly, each
+metavariable has a *local context* containing hypotheses (here `[n : Nat, m :
+Nat]`) and a *target type* (here `n + m = m + n`). Metavariables also have a
+unique name, say `m`, and we usually render them as `?m`.
+
+To close a goal, we must give an expression `e` of the target type. The
+expression may contain fvars from the metavariable's local context, but no
+others. Internally, closing a goal in this way corresponds to *assigning* the
+metavariable; we write `?m := e` for this assignment.
+
+The second, complementary view of metavariables is that they represent holes
+in an expression. For instance, an application of `Eq.trans` may generate two
+goals which look like this:
+
+```lean
+n m : Nat
+⊢ n = ?x
+
+n m : Nat
+⊢ ?x = m
+```
+
+Here `?x` is another metavariable -- a hole in the target types of both goals,
+to be filled in later during the proof. The type of `?x` is `Nat` and its local
+context is `[n : Nat, m : Nat]`. Now, if we solve the first goal by reflexivity,
+then `?x` must be `n`, so we assign `?x := n`. Crucially, this also affects the
+second goal: it is "updated" (not really, as we will see) to have target `n =
+m`. The metavariable `?x` represents the same expression everywhere it occurs.
+
+
+### Tactic Communication via Metavariables
+
+Tactics use metavariables to communicate the current goals. To see how, consider
+this simple (and slightly artificial) proof:
+-/
+
+example {α} (a : α) (f : α → α) (h : ∀ a, f a = a) : f (f a) = a := by
+  apply Eq.trans
+  apply h
+  apply h
+
+/-!
+After we enter tactic mode, our ultimate goal is to generate an expression of
+type `f (f a) = a` which may involve the hypotheses `α`, `a`, `f` and `h`. So
+Lean generates a metavariable `?m1` with target `f (f a) = a` and a local
+context containing these hypotheses. This metavariable is passed to the first
+`apply` tactic as the current goal.
+
+The `apply` tactic then tries to apply `Eq.trans` and succeeds, generating three
+new metavariables:
+
+```lean
+...
+⊢ f (f a) = ?b
+
+...
+⊢ ?b = a
+
+...
+⊢ α
+```
+
+Call these metavariables `?m2`, `?m3` and `?b`. The last one, `?b`, stands for
+the intermediate element of the transitivity proof and occurs in `?m2` and
+`?m3`. The local contexts of all metavariables in this proof are the same, so
+we omit them.
+
+Having created these metavariables, `apply` assigns
+
+```lean
+?m1 := @Eq.trans α (f (f a)) ?b a ?m2 ?m3
+```
+
+and reports that `?m2`, `?m3` and `b` are now the current goals.
+
+At this point the second `apply` tactic takes over. It receives `?m2` as the
+current goal and applies `h` to it. This succeeds and the tactic assigns `?m2 :=
+h (f a)`. This assignment implies that `?b` must be `f a`, so the tactic also
+assigns `?b := f a`. Assigned metavariables are not considered open goals, so
+the only goal that remains is `?m3`.
+
+Now the third `apply` comes in. Since `?b` has been assigned, the target of
+`?m3` is now `f (f a) = a`. Again, the application of `h` succeeds and the
+tactic assigns `?m3 := h a`.
+
+At this point, all metavariables are assigned as follows:
+
+```lean
+?m1 := @Eq.trans α (f (f a)) ?b a ?m2 ?m3
+?m2 := h (f a)
+?m3 := h a
+?b  := f a
+```
+
+Exiting the `by` block, Lean constructs the final proof term by taking the
+assignment of `?m1` and replacing each metavariable with its assignment. This
+yields
+
+```lean
+@Eq.trans α (f (f a)) (f a) a (h (f a)) (h a)
+```
+
+The example also shows how the two views of metavariables -- as holes in an
+expression or as goals -- are related: the goals we get are holes in the final
+proof term.
+
+
+### Basic Operations
+
+Let us make these concepts concrete. When we operate in the `MetaM` monad, we
+have read-write access to a `MetavarContext` structure containing information
+about the currently declared metavariables. Each metavariable is identified by
+an `MVarId` (a unique `Name`). To create a new metavariable, we use
+`Lean.Meta.mkFreshExprMVar` with type
+
+```lean
+mkFreshExprMVar (type? : Option Expr) (kind := MetavarKind.natural)
+    (userName := Name.anonymous) : MetaM Expr
+```
+
+Its arguments are:
+
+- `type?`: the target type of the new metavariable. If `none`, the target type
+  is `Sort ?u`, where `?u` is a universe level metavariable. (This is a special
+  class of metavariables for universe levels, distinct from the expression
+  metavariables which we have been calling simply "metavariables".)
+- `kind`: the metavariable kind. See the [Metavariable Kinds
+  section](#metavariable-kinds) (but the default is usually correct).
+- `userName`: the new metavariable's user-facing name. This is what gets printed
+  when the metavariable appears in a goal. Unlike the `MVarId`, this name does
+  not need to be unique.
+
+The returned `Expr` is always a metavariable. We can use `Lean.Expr.mvarId!` to
+extract the `MVarId`, which is guaranteed to be unique. (Arguably
+`mkFreshExprMVar` should just return the `MVarId`.)
+
+The local context of the new metavariable is inherited from the current local
+context, more about which in the next section. If you want to give a different
+local context, use `Lean.Meta.mkFreshExprMVarAt`.
+
+Metavariables are initially unassigned. To assign them, use
+`Lean.Meta.assignExprMVar` with type
+
+```lean
+assignExprMVar (mvarId : MVarId) (val : Expr) : MetaM Unit
+```
+
+This updates the `MetavarContext` with the assignment `?mvarId := val`. You must
+make sure that `mvarId` is not assigned yet (or that the old assignment is
+definitionally equal to the new assignment). You must also make sure that the
+assigned value, `val`, has the right type. This means (a) that `val` must have
+the target type of `mvarId` and (b) that `val` must only contain fvars from the
+local context of `mvarId`.
+
+To get information about a declared metavariable, use `Lean.Meta.getMVarDecl`.
+Given an `MVarId`, this returns a `MetavarDecl` structure. (If no metavariable
+with the given `MVarId` is declared, the function throws an exception.) The
+`MetavarDecl` contains information about the metavariable, e.g. its type, local
+context and user-facing name. This function has some convenient variants, such
+as `Lean.Meta.getMVarType`.
+
+To get the current assignment of a metavariable (if any), use
+`Lean.Meta.getExprMVarAssignment?`. To check whether a metavariable is assigned,
+use `Lean.Meta.isExprMVarAssigned`. However, these functions are relatively
+rarely used in tactic code because we usually prefer a more powerful operation:
+`Lean.Meta.instantiateMVars` with type
+
+```lean
+instantiateMVars : Expr → MetaM Expr
+```
+
+Given an expression `e`, `instantiateMVars` replaces any assigned metavariable
+`?m` in `e` with its assigned value. Unassigned metavariables remain as they
+are.
+
+This operation should be used liberally. When we assign a metavariable, existing
+expressions containing this metavariable are not immediately updated. This is a
+problem when, for example, we match on an expression to check whether it is an
+equation. Without `instantiateMVars`, we might miss the fact that the expression
+`?m`, where `?m` happens to be assigned to `0 = n`, represents an equation. In
+other words, `instantiateMVars` brings our expressions up to date with the
+current metavariable state.
+
+Instantiating metavariables requires a full traversal of the input expression,
+so it can be somewhat expensive. But if the input expression does not contain
+any metavariables, `instantiateMVars` is essentially free. Since this is the
+common case, liberal use of `instantiateMVars` is fine in most situations.
+
+Before we go on, here is a synthetic example demonstrating how the basic
+metavariable operations are used. More natural examples appear in the following
+sections.
+-/
+
+#eval show MetaM Unit from do
+  -- Create two fresh metavariables of type `Nat`.
+  let mvar1 ← mkFreshExprMVar (mkConst ``Nat) (userName := `mvar1)
+  let mvar2 ← mkFreshExprMVar (mkConst ``Nat) (userName := `mvar2)
+  -- Create a fresh metavariable of type `Nat → Nat`. The `mkArrow` function
+  -- creates a function type.
+  let mvar3 ← mkFreshExprMVar (← mkArrow (mkConst ``Nat) (mkConst ``Nat))
+    (userName := `mvar3)
+
+  -- Define a helper function that prints each metavariable.
+  let printMVars : MetaM Unit := do
+    IO.println s!"  meta1: {← instantiateMVars mvar1}"
+    IO.println s!"  meta2: {← instantiateMVars mvar2}"
+    IO.println s!"  meta3: {← instantiateMVars mvar3}"
+
+  IO.println "Initially, all metavariables are unassigned:"
+  printMVars
+
+  -- Assign `mvar1 : Nat := ?mvar3 ?mvar2`.
+  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
+  IO.println "After assigning mvar1:"
+  printMVars
+
+  -- Assign `mvar2 : Nat := 0`.
+  assignExprMVar mvar2.mvarId! (mkConst ``Nat.zero)
+  IO.println "After assigning mvar2:"
+  printMVars
+
+  -- Assign `mvar3 : Nat → Nat := Nat.succ`.
+  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
+  IO.println "After assigning mvar3:"
+  printMVars
+-- Initially, all metavariables are unassigned:
+--   meta1: ?_uniq.1
+--   meta2: ?_uniq.2
+--   meta3: ?_uniq.3
+-- After assigning mvar1:
+--   meta1: ?_uniq.3 ?_uniq.2
+--   meta2: ?_uniq.2
+--   meta3: ?_uniq.3
+-- After assigning mvar2:
+--   meta1: ?_uniq.3 Nat.zero
+--   meta2: Nat.zero
+--   meta3: ?_uniq.3
+-- After assigning mvar3:
+--   meta1: Nat.succ Nat.zero
+--   meta2: Nat.zero
+--   meta3: Nat.succ
+
+
+/-!
+### Local Contexts
+
+Consider the expression `e` which refers to the free variable with unique name
+`h`:
+
+```lean
+e := mkFVar (FVarId.mk `h)
+```
+
+What is the type of this expression? The answer depends on the local context in
+which `e` is interpreted. One local context may declare that `h` is a local
+hypothesis of type `Nat`; another local context may declare that `h` is a local
+definition with value `List.map`.
+
+Thus, expressions are only meaningful if they are interpreted in the local
+context for which they were intended. And as we saw, each metavariable has its
+own local context. So in principle, functions which manipulate expressions
+should have an additional `MVarId` argument specifying the goal in which the
+expression should be interpreted.
+
+That would be cumbersome, so Lean goes a slightly different route. In `MetaM`,
+we always have access to an ambient `LocalContext`, obtained with `Lean.getLCtx`
+of type
+
+```lean
+getLCtx : MetaM LocalContext -- real type is more general
+```
+
+All operations involving fvars use this ambient local context.
+
+
+The downside of this setup is that we always need to update the ambient local
+context to match the goal we are currently working on. To do this, we use
+`Lean.Meta.withMVarContext` of type (again specialised)
+
+```lean
+withMVarContext (mvarId : MVarId) (c : MetaM α) : MetaM α
+```
+
+This function takes a metavariable `mvarId` and a `MetaM` computation `c` and
+executes `c` with the ambient context set to the local context of `mvarId`. A
+typical use case looks like this:
+
+```lean
+def someTactic (mvarId : MVarId) ... : ... :=
+  withMVarContext mvarId do
+    ...
+```
+
+The tactic receives the current goal as the metavariable `mvarId` and
+immediately sets the current local context. Any operations within the `do` block
+then use the local context of `mvarId`.
+
+Once we have the local context properly set, we can manipulate fvars. Like
+metavariables, fvars are identified by an `FVarId` (a unique `Name`). Basic
+operations include:
+
+- `Lean.Meta.getLocalDecl : FVarId → MetaM LocalDecl` retrieves the declaration
+  of a local hypothesis. As with metavariables, a `LocalDecl` contains all
+  information pertaining to the local hypothesis, e.g. its type and its
+  user-facing name.
+- `Lean.Meta.getLocalDeclFromUserName : Name → MetaM LocalDecl` retrieves the
+  declaration of the local hypothesis with the given user-facing name. If there
+  are multiple such hypotheses, the bottommost one is returned. If there is
+  none, an exception is thrown.
+
+We can also iterate over all hypotheses in the local context, using the `ForIn`
+instance of `LocalContext`. A typical pattern is this:
+
+```lean
+for ldecl in ← getLCtx do
+  if ldecl.isAuxDecl then
+    continue
+  -- do something with the ldecl
+```
+
+The loop iterates over every `LocalDecl` in the context. The `isAuxDecl` check
+skips so-called auxiliary declarations. These are local hypotheses which are
+inserted by the equation compiler, are invisible to the user and must be ignored
+by tactics.
+
+At this point, we can build the `MetaM` part of an `assumption` tactic:
+-/
+
+def myAssumption (mvarId : MVarId) : MetaM Bool := do
+  -- Check that `mvarId` is not already assigned.
+  checkNotAssigned mvarId `myAssumption
+  -- Use the local context of `mvarId`.
+  withMVarContext mvarId do
+    -- The target is the type of `mvarId`.
+    let target ← getMVarType mvarId
+    -- For each hypothesis in the local context:
+    for ldecl in ← getLCtx do
+      -- If the hypothesis is an auxiliary declaration, skip it.
+      if ldecl.isAuxDecl then
+        continue
+      -- If the type of the hypothesis is definitionally equal to the target
+      -- type:
+      if ← isDefEq ldecl.type target then
+        -- Use the local hypothesis to prove the goal.
+        assignExprMVar mvarId ldecl.toExpr
+        -- Stop and return true.
+        return true
+    -- If we have not found any suitable local hypothesis, return false.
+    return false
+
+/-!
+The `myAssumption` tactic contains three functions we have not seen before:
+
+- `Lean.Meta.checkNotAssigned` checks that a metavariable is not already
+  assigned. The 'myAssumption' argument is the name of the current tactic. It is
+  used to generate a nicer error message.
+- `Lean.Meta.isDefEq` checks whether two definitions are definitionally equal.
+  See the [Definitional Equality section](#definitional-equality).
+- `Lean.LocalDecl.toExpr` is a helper function which constructs the expression
+  corresponding to a local hypothesis.
+
+
+### Delayed Assignments
+
+The above discussion of metavariable assignment contains a lie by omission:
+there are actually two ways to assign a metavariable. We have seen the regular
+way; the other way is called a *delayed assignment*.
+
+We do not discuss delayed assignments in any detail here since they are rarely
+useful for tactic writing. If you want to learn more about them, see the
+comments in `MetavarContext.lean` in the Lean standard library. But they create
+two complications which you should be aware of.
+
+First, delayed assignments make `isExprMVarAssigned` and
+`getExprMVarAssignment?` medium-calibre footguns. These functions only check for
+regular assignments, so you may need to use `Lean.Meta.isDelayedAssigned` and
+`Lean.Meta.getDelayedAssignment?` as well.
+
+Second, delayed assignments break an intuitive invariant. You may have assumed
+that any metavariable which remains in the output of `instantiateMVars` is
+unassigned, since the assigned metavariables have been substituted. But delayed
+metavariables can only be substituted once their assigned value contains no
+unassigned metavariables. So delayed-assigned metavariables can appear in an
+expression even after `instantiateMVars`.
+
+
+### Metavariable Depth
+
+Metavariable depth is also a niche feature, but one that is occasionally useful.
+Any metavariable has a *depth* (a natural number), and a `MetavarContext` has a
+corresponding depth as well. Lean only assigns a metavariable if its depth is
+equal to the depth of the current `MetavarContext`. Newly created metavariables
+inherit the `MetavarContext`'s depth, so by default every metavariable is
+assignable.
+
+This setup can be used when a tactic needs some temporary metavariables and also
+needs to make sure that other, non-temporary metavariables will not be assigned.
+To ensure this, the tactic proceeds as follows:
+
+1. Save the current `MetavarContext`.
+2. Increase the depth of the `MetavarContext`.
+3. Perform whatever computation is necessary, possibly creating and assigning
+   metavariables. Newly created metavariables are at the current depth of the
+   `MetavarContext` and so can be assigned. Old metavariables are at a lower
+   depth, so cannot be assigned.
+4. Restore the saved `MetavarContext`, thereby erasing all the temporary
+   metavariables and resetting the `MetavarContext` depth.
+
+This pattern is encapsulated in `Lean.Meta.withNewMCtxDepth`.
+
+
 ## Computation
 
 Computation is a core concept of dependent type theory. The terms `2`, `Nat.succ
@@ -346,6 +774,28 @@ misfire, `isDefEq` can become very expensive. In the worst case, it may have to
 reduce `s` and `t` so often that they end up in normal form anyway. But usually
 the heuristics are good and `isDefEq` is reasonably fast.
 
+If expressions `t` and `u` contain assignable metavariables, `isDefEq` may
+assign these metavariables to make `t` defeq to `u`. We also say that `isDefEq`
+*unifies* `t` and `u`; unification queries are sometimes written `t =?= u`. For
+instance, the unification `List ?m =?= List Nat` succeeds and assigns `?m :=
+Nat`. The unification `Nat.succ ?m =?= n + 1` succeeds and assigns `?m := n`.
+The unification `?m₁ + ?m₂ + ?m₃ =?= m + n - k` fails and no metavariables
+are assigned (even though there is a 'partial match' between the expressions).
+
+Whether `isDefEq` considers a metavariable assignable is determined by two
+factors:
+
+1. The metavariable's depth must be equal to the current `MetavarContext` depth.
+   See the [Metavariable Depth section](#metavariable-depth).
+2. Each metavariable has a *kind* (a value of type `MetavarKind`) whose sole
+   purpose is to modify the behaviour of `isDefEq`. Possible kinds are:
+   - Natural: `isDefEq` may freely assign the metavariable. This is the default.
+   - Synthetic: `isDefEq` may assign the metavariable, but avoids doing so if
+     possible. For example, suppose `?n` is a natural metavariable and `?s` is a
+     synthetic metavariable. When faced with the unification problem
+     `?s =?= ?n`, `isDefEq` assigns `?n` rather than `?s`.
+   - Synthetic opaque: `isDefEq` never assigns the metavariable.
+
 
 ## Smart constructors for expressions
 
@@ -492,88 +942,6 @@ elab "myProp" : term => propM
 #check  myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
 #reduce myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
 #reduce myProp Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
-
-/-!
-## Metavariables
-
-Metavariables are variables that can be created and assigned to only at the
-meta level, and not the object/term level. They are used principally as
-placeholders, especially for goals. They can be assigned expressions in terms of
-other metavariables. However, before being assigned to a pure (i.e., not meta)
-definition, the assignments should be resolvable to a value not involving
-metavariables.
-
-One way to create a metavariable representing an expression is to use the
-`mkFreshExprMVar` function. This function creates a metavariable that can be
-assigned an expression. One can optionally specify a type for the metavariable.
-In the example below, we create three metavariables, `mvar1`, `mvar2`, and
-`mvar3`, with `mvar1` and `mvar3` assigned type `Nat` and `mvar2` assigned the
-type `Nat → Nat`.
-
-We assign expressions to the metavariables using the `assignExprMVar` function.
-Like many functions dealing with metavariables, this takes the id of the
-metavariable as an argument. Below we assign to `mvar1` the result of function
-application of `mvar2` to `mvar3`. We then assign to `mvar2` the constant
-expression `Nat.succ` and to `mvar3` the constant expression `Nat.zero`. Clearly
-this means we have assigned `Nat.succ (Nat.zero)`, i.e., `1` to `mvar1`. We
-return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
-indeed when a term is assigned to the expression `metaOneM`, the result is `1`.
--/
-
-def oneMetaVar : MetaM Expr := do
-  let zero := mkConst ``Nat.zero
-  let mvar1 ← mkFreshExprMVar (some (mkConst ``Nat))
-  let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat))
-  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
-  let mvar3 ← mkFreshExprMVar (some funcType)
-  IO.println "the initial state of each metavariable:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
-  IO.println "after turning `mvar1` into an application:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar2.mvarId! zero
-  IO.println "after turning the application argument into `Nat.zero`:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
-  IO.println "after turning the application function into `Nat.succ`:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  return mvar1
-
-elab "one!" : term => oneMetaVar
-
-#eval one! -- 1
--- the initial state of each metavariable:
--- ?_uniq.3411
--- ?_uniq.3412
--- ?_uniq.3413
--- --------------------------------
--- after turning `mvar1` into an application:
--- ?_uniq.3413 ?_uniq.3412
--- ?_uniq.3412
--- ?_uniq.3413
--- --------------------------------
--- after turning the application argument into `Nat.zero`:
--- ?_uniq.3413 Nat.zero
--- Nat.zero
--- ?_uniq.3413
--- --------------------------------
--- after turning the application function into `Nat.succ`:
--- Nat.succ Nat.zero
--- Nat.zero
--- Nat.succ
--- --------------------------------
 
 /-!
 ## Telescopes
