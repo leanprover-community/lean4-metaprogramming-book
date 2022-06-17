@@ -21,7 +21,7 @@ open Lean
 syntax:10 (name := lxor) term:10 " LXOR " term:11 : term
 
 @[macro lxor] def lxorImpl : Macro
-  | `($l:term LXOR $r:term) => `(!$l && $r) -- we can use the quoting mechanism to create `Syntax` in macros
+  | `($l:term LXOR $r:term) => `(!$l && $r) -- we can use the quotation mechanism to create `Syntax` in macros
   | _ => Macro.throwUnsupported
 
 #eval true LXOR true -- false
@@ -116,6 +116,124 @@ The are of course differences as well:
 - `notation` is limited to the `term` syntax category
 - `notation` cannot have arbitrary macro code on the right hand side
 
+## `Syntax` Quotations
+### The basics
+So far we've handwaved the `` `(foo $bar) `` syntax to both create and
+match on `Syntax` objects but it's time for a full explanation since
+it will be essential to all non trivial things that are syntax related.
+
+First things first we call the `` `() `` syntax a `Syntax` quotation.
+When we plug variables into a syntax quotation like this: `` `($x) ``
+we call the `$x` part an anti-quotation. When we insert `x` like this
+it is of course required that `x` is of type `Syntax`. If we use this
+in pattern matching it will give us a variable `x` of type `Syntax`
+in the match arm. If we want to insert a literal `$x` into the `Syntax`
+for some reason, for example macro creating macros, we can escape
+the anti quotation using: `` `($$x) ``.
+
+If we want to specify the syntax kind we wish `x` to be interpreted as
+we can make this explicit using: `` `($x:term) `` where `term` can be
+replaced with any other valid syntax category (e.g. `command`) or parser
+(e.g. `ident`). While this feature is most useful in pattern matching it
+can also be useful to give hints to Lean as to how to work with a certain
+piece of `Syntax` when creating new ones using a `Syntax` quotation.
+(TODO: showcase bugs where this is necessary).
+
+So far this is only a more formal explanation of the intuitive things
+we've already seen in the syntax chapter and up to now in this chapter,
+next we'll discuss some more advanced anti-quotations.
+
+### Advanced anti-quotations
+For convenince we can also use anti-quotations in a way similar to
+format strings: `` `($(mkIdent `c)) `` is the same as: `` let x := mkIdent `c; `($x) ``.
+
+Furthermore there are sometimes situations in which we are not working
+with basic `Syntax` but `Syntax` wrapped in more complex datastructures,
+most notably `Array Syntax` or `SepArray c`. Where `SepArray c`, is a
+`Syntax` specific type, it is what we get if we pattern match on some
+`Syntax` that users a separator `c`, for example if we match using:
+`$xs,*`, `xs` will have type `SepArray ","`,. With the special
+case of matching on no specific separator (i.e. whitespace): `$xs*`
+in which we will receive an `Array Syntax`.
+
+If we are dealing with `xs : Array Syntax` and want to insert it into
+a quotation we have two main ways to achieve this:
+1. Insert it using a separator, most commonly `,`: `` `($xs,*) ``.
+  This is also the way to insert a `SepArray ",""`
+2. Insert it point blank without a separator (TODO): `` `() ``
+
+For example:
+-/
+
+-- syntactically cut away the first element of a tuple if possible
+syntax "cut_tuple " "(" term ", " term,+ ")" : term 
+
+macro_rules
+  -- cutting away one element of a pair isn't possible, it would not result in a tuple
+  | `(cut_tuple ($x, $y)) => `(($x, $y)) 
+  | `(cut_tuple ($x, $y, $xs,*)) => `(($y, $xs,*))
+
+#check cut_tuple (1, 2) -- (1, 2) : Nat × Nat
+#check cut_tuple (1, 2, 3) -- (2, 3) : Nat × Nat
+
+/-!
+The last thing for this section will be so called "anti-quotation splices".
+There are two kinds of anti quotation splices, first the so called optional
+ones. For example we might declare a syntax with an optional argument,
+say our own `let` (in real projects this would most likely be a `let`
+in some functional language we are writing a theory about):
+-/
+
+syntax "mylet " term (" : " term)? " := " term " in " term : term
+
+/-!
+There is this optional `(" : " term)?` argument involved which can let
+the user define the type of the term to the left of it. With the methods
+we know so far we'd have to write two `macro_rules` now, one for the case
+with, one for the case without the optional argument. However the rest
+of the syntactic translation works exactly the same with and without
+the optional argument so what we can do using a splice here is to essentially
+define both cases at once: 
+-/
+
+macro_rules
+  | `(mylet $x $[: $ty]? := $val in $body) => `(let $x $[: $ty]? := $val; $body)
+
+/-!
+The `$[...]?` part is the splice here, it basically says "if this part of
+the syntax isn't there, just ignore the parts on the right hand side that
+involve anti quotation variables involved here". So now we can run
+this syntax both with and without type ascription:
+-/
+
+#eval mylet x := 5 in x - 10 -- 0, due to subtraction behaviour of `Nat`
+#eval mylet x : Int := 5 in x - 10 -- -5, after all it is an `Int` now
+
+/-!
+The second and last splice might remind readers of list comprehension
+as seen for example in Python. We will demonstrate it using an implementation
+of `map` as a macro:
+-/
+
+-- run the function given at the end for each element of the list
+syntax "foreach " "[" term,* "]" term : term
+
+macro_rules
+  | `(foreach [ $[$x:term],* ] $func:term) => `(let f := $func; [ $[f $x],* ])
+
+#eval foreach [1,2,3,4] (Nat.add 2) -- [3, 4, 5, 6]
+
+/-!
+In this case the `$[...],*` part is the splice. On the match side it tries
+to match the pattern we define inside of it repetetively (given the seperator
+we tell it to). However unlike regular separator matching it does not
+give us an `Array` or `SepArray`, instead it allows us to write another
+splice on the right hand side that gets evaluated for each time the
+pattern we specified matched, with the specific values from the match
+per iteration.
+-/
+
+/-!
 ## Hygiene issues and how to solve them
 If you are familiar with macro systems in other languages like C you
 probably know about so called macro hygiene issues already.
@@ -174,6 +292,14 @@ This was a lot of technical details. You do not have to understand them
 in order to use macros, if you want you can just keep in mind that Lean
 will not allow name clashes like the one in the `const` example.
 
+Note that this extends to *all* names that are introduced using syntax
+quotations, that is if you write a macro that produces:
+`` `(def foo := 1) ``, the user will not be able to access `foo`
+because the name will subject to hygienie. Luckily there is a way to
+circumvent this. You can use `mkIdent` to generate a raw identifier,
+for example: `` `(def $(mkIdent `foo) := 1) ``. In this case it won't
+be subject to hygiene and accessible to the user.
+
 ## `MonadQuotation` and `MonadRef`
 Based on this description of the hygiene mechanism one interesting
 question pops up, how do we know what the current list of macro scopes
@@ -214,9 +340,9 @@ end Playground
 Since `MonadQuotation` is based on `MonadRef`, let's take a look at `MonadRef`
 first. The idea here is quite simple: `MonadRef` is meant to be seen as an extension
 to the `Monad` typeclass which
-- gives us a reference to a `Syntax` value with `getRef` and
-- evaluates a function of type `Syntax → m α` to `m α` by the return value of `getRef`
-  to this `Syntax` parameter and evaluating the `m α` parameter with that new state.
+- gives us a reference to a `Syntax` value with `getRef`
+- can evaluate a certain monadic action `m α` with a new reference to a `Syntax`
+  using `withRef`
 
 On it's own `MonadRef` isn't exactly interesting, but once it is combined with
 `MonadQuotation` it makes sense.
