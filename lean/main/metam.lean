@@ -618,8 +618,7 @@ tech; don't worry about its implementation for now.
 -/
 
 open Lean.Elab.Term in
-def whnf' (e : TermElabM Syntax) (md := TransparencyMode.default) :
-    TermElabM Format := do
+def whnf' (e : TermElabM Syntax) : TermElabM Format := do
   let e ← elabTermAndSynthesize (← e) none
   ppExpr (← whnf e)
 
