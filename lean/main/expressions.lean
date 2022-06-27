@@ -175,12 +175,12 @@ arguments. -/
 def sumExpr : Nat → Nat → Expr 
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
 
-/- We next consider the helper `mkLambda` to construct a simple function named
-`cz` which takes any natural number and returns `Nat.zero`. The argument
-`BinderInfo.default` for the constructor says that the argument is explicit. -/
+/- We next consider the helper `mkLambda` to construct a simple function which
+takes any natural number `x` and returns `Nat.zero`. The argument
+`BinderInfo.default` for the constructor says that `x` is explicit. -/
 
 def constZero : Expr := 
-  mkLambda `cz BinderInfo.default (mkConst ``Nat) (mkConst ``Nat.zero)
+  mkLambda `x BinderInfo.default (mkConst ``Nat) (mkConst ``Nat.zero)
 
 /- As you may have noticed, we didn't show `#eval` outputs for the three last
 function. That's because, as you may have guessed, those resulting expressions
