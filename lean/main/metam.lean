@@ -796,189 +796,318 @@ factors:
    - Synthetic opaque: `isDefEq` never assigns the metavariable.
 
 
-## Smart constructors for expressions
+## Constructing Expressions
 
-The `MetaM` monad provides even more smart constructors to help us build
-expressions. The API also contains functions that help us explore certain
-expressions more easily. In this chapter we will visit some of those.
-
-A typical example of an expression we work with is that of the _goal_ of a tactic. This is an expression that represents a type. The tactic may attempt to find an expression that is of that type.
-If it succeeds, we can then use the expression to solve the goal. However, in `MetaM` we do not have _goals_, so in this chapter we illustrate the smart methods used to manipulate expressions.
-
-Before manipulating expressions, we look at some examples of expressions.
-To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
-
-def natExpr : Nat → Expr
-  | 0     => mkConst ``Nat.zero
-  | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
-
-#eval natExpr 1
--- Lean.Expr.app
---   (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
---   (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
---   (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
-
-/-
-That's already a long expression for the natural number 1! `reduce` can simplify
-it:
--/
-
-#eval reduce $ natExpr 1
--- Lean.Expr.lit (Lean.Literal.natVal 1) (Expr.mkData 4289331193 (bi := Lean.BinderInfo.default))
-
-/-! One of the first ways to construct expressions is by function application, that is, to form the expression for `f a` given expressions for `f` and `a`. One uses various methods provided by Lean 4 to do this. It is generally not a good idea to try to directly define the expression, as there is associated metadata that needs to be included which is difficult to construct manually.
-
-The simple methods for constructing expressions by function application are `mkApp` and `mkAppN`. These take care of the metadata, but do not attempt to unify, for example. The `mkAppN` function takes a function and an array of arguments. The name ending with `N` here (and elsewhere) is to indicate that we (in general) have multiple (`N`) arguments. On the other hand `mkApp` applies a function to a single argument.
-
-The following example illustrates constructing examples using `mkAppN`. This
-would yield an even longer expression than the previous example, but we again
-use `reduce` to simplify it:
--/
-
-def sumExprM (n m : Nat) : MetaM Expr := do
-  reduce $ mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
-
-#eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
-
-/-! Note that the _function_ to be applied is a constant, and so has an expression of the form `mkConst name`. The name was given preceded by double-backticks. This means that Lean resolves this to a global name, and gives an error if it cannot be resolved. A name preceded by a single backtick is a literal name.
--/
-
-/-! Besides function application, we would like to construct expressions using λ-expressions. 
-We next illustrate how to do this by constructing a λ-expression for the function `double : Nat → Nat` given by `double n = n + n`. 
-
-To construct such an expression, we _introduce_ a free variable `n`, define an expression in terms of this variable, and finally construct the λ-expression. 
-
-Introducing the free variable in this context is done indirectly. Roughly speaking, the following happens:
-
-* A new _context_ is constructed where the free variable is defined. 
-* We have code _within_ the context that uses the free variable; to avoid name collisions, this is a function of the expression for the free variable just introduced.
-* There is a smart method that allows us to construct a λ-expression with respect to the free variable we have just created, taking care of matching names, hygeine etc.
-* Our function working within the new context (called a _continuation_) can thus return an expression that does not depend on the free variable.
-
-More formally, the variable is introduced by passing the code using it as a _continuation_ to 
-`withLocalDecl`. The arguments of `withLocalDecl` are:
-
-* The name of the variable
-* The _binder info_ that determines whether it is explicit or not
-* The type of the variable
-* The function that turns an expression into something else (in our case, into
-  another expression). This function does not need to be pure.
-
-The λ-expression is constructed using `mkLambdaFVars`, with the first argument
-being an array of free variables (just one in this case) with respect to which
-we take λ. The second argument is the body of the λ-expression.
--/
-
-def doubleM : MetaM Expr :=
-  withLocalDecl `n BinderInfo.default (mkConst ``Nat)
-    fun n : Expr => mkLambdaFVars #[n] $ mkAppN (mkConst ``Nat.add) #[n, n] 
-
-/- We used `n` in two independent ways in the above expression. The first is simply as 
-a name to be used in the body of the λ-expression (at the non-meta level). The second is as the name of the expression for the free variable created (at the meta level). We could have replaced one of them, or even used `Name.anonymous` for the first occurrence.
-
-Let's check if `doubleM` can indeed compute the expression for `n + n` -/
-
-def appDoubleM (n : Nat) : MetaM Expr := do
-  reduce $ mkApp (← doubleM) (natExpr n)
-
-#eval appDoubleM 3 -- Lean.Expr.lit (Lean.Literal.natVal 6) (Expr.mkData 393219 (bi := Lean.BinderInfo.default))
-
-/- 
-Observe that in the expression for double, we used the function `Nat.add` and so could specify all its arguments quite easily. However, the expression `n + n` actually resolves to an application of `HAdd.add` with many implicit parameters -- three associated types as well as a typeclass. When working with lean (at the non-meta level) we depend on the unifier and typeclass inference to fill these arguments for us.
-
-Fortunately we can use unification at the meta-level too, using the method `mkAppM` (and a similar method `mkAppM'`). The method name ending in `M` indicates that it is _monadic_ - in this case returning `MetaM Expr` rather than `Expr`. As one may expect, this usually is because some magic is happening for this to be necessary.
-
-For example, we can construct an expression for the length of a list
-using `mkAppM`. Recall that `List.length` has an implicit parameter
-`α : Type u`. This is deduced by unification, as are universe levels. -/
-
-def lenExprM (list : Expr) : MetaM Expr := do
-  reduce $ ← mkAppM ``List.length #[list]
-
-/- We test the unification in this definition: -/
-
-def egList := [1, 3, 7, 8]
+In the previous chapter, we saw some primitive functions for building
+expressions: `mkApp`, `mkConst` and so on. There is nothing wrong with these
+functions, but the additional facilities of `MetaM` often provide more
+convenient ways.
 
 
-def egLenM : MetaM Expr := 
-  lenExprM (mkConst ``egList)
+### Applications
 
-#eval egLenM -- Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
+When we write regular Lean code, Lean helpfully infers many implicit arguments
+and universe levels. If it did not, our code would look rather ugly: -/
 
-/-! We next sketch some more methods for constructing expressions.
+def appendAppend (xs ys : List α) := (xs.append ys).append xs
 
-Analogous to the construction of λ-expressions, we can construct
-∀-expressions (i.e., Π-expressions) for types. We simply replace
-`mkLambdaFVars` with `mkForallFVars`.
-
-A special case of Π-types are function types `A → B`. These can be constructed
-using the function `mkArrow`. Another very useful meta-level function is `mkEq`,
-which constructs equalities.
-
-We illustrate all these, as well as the construction of a λ-expression, by
-constructing the proposition `∀ n: Nat, f n = f (n + 1)` as a function of `f`.
-Formally this is `λ f, ∀ n, f n = f (n + 1)`. We break this into many steps to
-illustrate the different ingredients.
-
-First we build the expression for our proposition:
--/
-
-def propM : MetaM Expr := do
-  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
-  withLocalDecl `f BinderInfo.default funcType fun f => do
-  let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
-    let lhs := mkApp f n
-    let rhs := mkApp f (← mkAppM ``Nat.succ #[n])
-    let eqn ← mkEq lhs rhs
-    mkForallFVars #[n] eqn
-  mkLambdaFVars #[f] feqn
-
-/- Now let's elaborate the expression into a term so we can see the result of
-what we did more easily. This will be further explored in the "elaboration" chapter. -/
-
-elab "myProp" : term => propM
-
-#check  myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
-#reduce myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
-#reduce myProp Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
+set_option pp.all true in
+set_option pp.explicit true in
+#print appendAppend
+-- def appendAppend.{u_1} : {α : Type u_1} → List.{u_1} α → List.{u_1} α → List.{u_1} α :=
+-- fun {α : Type u_1} (xs ys : List.{u_1} α) => @List.append.{u_1} α (@List.append.{u_1} α xs ys) xs
 
 /-!
-## Telescopes
+The `.{u_1}` suffixes are universe levels, which must be given for every
+polymorphic constant. And of course the type `α` is passed around everywhere.
 
-Before going further, let's take a step back and think about the `Expr.lam`
-constructor:
+Exactly the same problem occurs during metaprogramming when we construct
+expressions. A hand-made expression representing the right-hand side of the
+above definition looks like this:
+-/
 
-```lean
-Expr.lam : Name → Expr → Expr → Data → Expr
-```
+def appendAppendRHSExpr₁ (u : Level) (α xs ys : Expr) : Expr :=
+  mkAppN (mkConst ``List.append [u])
+    #[α, mkAppN (mkConst ``List.append [u]) #[α, xs, ys], xs]
 
-The first `Expr` is the type of the function's input and the second is its body.
-Then we ask ourselves: how do we build a function with multiple input variables?
-Well, we use the same constructor multiple times, one for each input variable.
-
-As an example, let's see an approximation of how we'd build the function
-`fun (x : Nat) (y : Nat) => x + y`:
-
-```lean
-Expr.lam `x (mkConst ``Nat) (Expr.lam `y (mkConst ``Nat) b) d') d
-```
-
-It's done by nesting a new `Expr.lam` as the body of another `Expr.lam`. Thus,
-if we wanted to, say, perform a computation that involves all the input types of
-a function as well as its body, we would have to unfold the expression
-recursively until the last nested `Expr.lam` just to gather everything we need
-to do what we want. And that's when `lambdaTelescope` comes into play.
+/-!
+Having to specify the implicit arguments and universe levels is annoying and
+error-prone. So `MetaM` provides a helper function which allows us to omit
+implicit information: `Lean.Meta.mkAppM` of type
 
 ```lean
-def lambdaTelescope (e : Expr) (k : Array Expr → Expr → m α) : m α
+mkAppM : Name → Array Expr → MetaM Expr
 ```
 
-It makes it easier for us to do our computation with the data that we need. All
-we need to do is provide a `k` function, whose first argument is an array of
-input types and the second argument is the function body.
+Like `mkAppN`, `mkAppM` constructs an application. But `mkAppN` requires us to
+give all universe levels and implicit arguments ourselves, `mkAppM` infers them.
+This means we only need to provide the explicit arguments, which makes for a
+much shorter example:
+-/
 
-There are multiple telescopes in the API and we don't intend to be exhaustive
-here. Something to note is that `m` is not necessarily the `MetaM` monad, but we
-are covering this subject here because telescopes are defined in `Lean.Meta` and
-also because we are already in `MetaM` when we want to use more powerful tools
-to deal with expressions. -/
+def appendAppendRHSExpr₂ (xs ys : Expr) : MetaM Expr := do
+  mkAppM ``List.append #[← mkAppM ``List.append #[xs, ys], xs]
+
+/-!
+Note the absence of any `α`s and `u`s. There is also a variant of `mkAppM`,
+`mkAppM'` (in case you found the naming scheme insufficiently confusing so far),
+which takes an `Expr` instead of a `Name` as the first argument, allowing us
+to construct applications of expressions which are not constants.
+
+However, `mkAppM` is not magic: if you write `mkAppM ``List.append #[]`, you
+will get an error at runtime. This is because `mkAppM` tries to determine what
+the type `α` is, but with no arguments given to `append`, `α` could be anything,
+so `mkAppM` fails.
+
+Another occasionally useful variant of `mkAppM` is `Lean.Meta.mkAppOptM` of type
+
+```lean
+mkAppOptM : Name → Array (Option Expr) → MetaM Expr
+```
+
+Whereas `mkAppM` always infers implicit and instance arguments and always
+requires us to give explicit arguments, `mkAppOptM` lets us choose freely which
+arguments to provide and which to infer. With this, we can, for example, give
+instances explicitly, which we use in the following example to give a
+non-standard `Ord` instance.
+-/
+
+def revOrd : Ord Nat where
+  compare x y := compare y x
+
+def ordExpr : MetaM Expr := do
+  mkAppOptM ``compare #[none, mkConst ``revOrd, mkNatLit 0, mkNatLit 1]
+
+#eval format <$> ordExpr
+-- Ord.compare.{0} Nat revOrd
+--   (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
+--   (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+
+/-!
+Like `mkAppM`, `mkAppOptM` has a primed variant `Lean.Meta.mkAppOptM'` which
+takes an `Expr` instead of a `Name` as the first argument. The file which
+contains `mkAppM` also contains various other helper functions, e.g. for making
+list literals or `sorry`s.
+
+
+### Lambdas and Foralls
+
+Another common task is to construct expressions involving `λ` or `∀` binders.
+Suppose we want to create the expression `λ (x : Nat), Nat.add x x`. One way is
+to write out the lambda directly:
+-/
+
+def doubleExpr₁ : Expr :=
+  mkLambda `x BinderInfo.default (mkConst ``Nat)
+    (mkAppN (mkConst ``Nat.add) #[mkBVar 0, mkBVar 0])
+
+#eval ppExpr doubleExpr₁
+-- fun x => Nat.add x x
+
+/-!
+This works, but the use of `mkBVar` is highly unidiomatic. Lean uses a
+so-called *locally closed* variable representation. This means that all but the
+lowest-level functions in the Lean API expect expressions not to contain 'loose
+`bvar`s', where a `bvar` is loose if it is not bound by a binder in the same
+expression. (Such variables are more commonly called 'free'. The name `bvar` --
+'bound variable' -- already indicates that `bvar`s are never supposed to be
+free.)
+
+As a result, if in the above example we replace `mkAppN` with the slightly
+higher-level `mkAppM`, we get a runtime error. Adhering to the locally closed
+convention, `mkAppM` expects any expressions given to it to have no loose bound
+variables, and `mkBVar 0` obviously has one.
+
+So instead of using `bvar`s directly, the Lean way is to construct expressions
+with bound variables in two steps:
+
+1. Construct the body of the expression (in our example: the body of the
+   lambda), using temporary local hypotheses (`fvar`s) to stand in for the bound
+   variables.
+2. Replace these `fvar`s with `bvar`s and, at the same time, add the
+   corresponding lambda binders.
+
+This process ensures that we do not need to handle expressions with loose
+`bvar`s at any point (except during step 2, which is performed 'atomically' by a
+bespoke function). Applying the process to our example:
+
+-/
+
+def doubleExpr₂ : MetaM Expr :=
+  withLocalDecl `x BinderInfo.default (mkConst ``Nat) λ x => do
+    let body ← mkAppM ``Nat.add #[x, x]
+    mkLambdaFVars #[x] body
+
+#eval show MetaM _ from do
+  ppExpr (← doubleExpr₂)
+-- fun x => Nat.add x x
+
+/-!
+There are two new functions. First, `Lean.Meta.withLocalDecl` has type
+
+```lean
+withLocalDecl (name : Name) (bi : BinderInfo) (type : Expr) (k : Expr → MetaM α) : MetaM α
+```
+
+Given a variable name, binder info and type, `withLocalDecl` constructs a new
+`fvar` and passes it to the computation `k`. The `fvar` is avaible in the local
+context during the execution of `k` but is deleted again afterwards. (The real
+type of `withLocalDecl` is more general; it also works for monads which are
+built on top of `MetaM`.)
+
+The second new function is `Lean.Meta.mkLambdaFVars` with type (ignoring some
+optional arguments)
+
+```
+mkLambdaFVars : Array Expr → Expr → MetaM Expr
+```
+
+This function takes an array of `fvar`s and an expression `e`. It then adds one
+lambda binder for each `fvar` `x` and replaces every occurence of `x` in `e`
+with a bound variable corresponding to the new lambda binder. The returned
+expression does not contain the `fvar`s any more, which is good since they
+disappear after we leave the `withLocalDecl` context. (Instead of `fvar`s, we
+can also give `mvar`s to `mkLambdaFVars`, despite its name.)
+
+Some variants of the above functions may be useful:
+
+- `withLocalDecls` declares multiple temporary `fvar`s.
+- `mkForallFVars` creates `∀` binders instead of `λ` binders. `mkLetFVars`
+  creates `let` binders.
+- `mkArrow` is the non-dependent version of `mkForallFVars` which construcs
+  a function type `X → Y`. Since the type is non-dependent, there is no need
+  for temporary `fvar`s.
+
+To further illustrate these concepts, we construct the expression
+
+```lean
+λ (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)
+```
+-/
+
+def somePropExpr : MetaM Expr := do
+  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
+  withLocalDecl `f BinderInfo.default funcType fun f => do
+    let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
+      let lhs := mkApp f n
+      let rhs := mkApp f (← mkAppM ``Nat.succ #[n])
+      let eqn ← mkEq lhs rhs
+      mkForallFVars #[n] eqn
+    mkLambdaFVars #[f] feqn
+
+/-!
+The next line registers `someProp` as a name for the expression we've just
+constructed, allowing us to play with it more easily. The mechanisms behind this
+are discussed in the Elaboration chapter.
+-/
+
+elab "someProp" : term => somePropExpr
+
+#check someProp
+-- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
+#reduce someProp Nat.succ
+-- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
+
+
+/-!
+### Deconstructing Expressions
+
+Just like we can construct expressions more easily in `MetaM`, we can also
+deconstruct them more easily. Particularly useful is a family of functions for
+deconstructing expressions which start with `λ` and `∀` binders.
+
+When we are given a type of the form `∀ (x₁ : T₁) ... (xₙ : Tₙ), U`, we are
+often interested in doing something with the conclusion `U`. For instance, the
+`apply` tactic, when given an expression `e : ∀ ..., U`, compares `U` with the
+current target to determine whether `e` can be applied.
+
+To do this, we could repeatedly match on the type expression, removing `∀`
+binders until we get to `U`. But this would leave us with an `U` containing
+unbound `bvar`s, which, as we saw, is bad. Instead, we use
+`Lean.Meta.forallTelescope` of type (again specialised to `MetaM`)
+
+```
+forallTelescope (type : Expr) (k : Array Expr → Expr → MetaM α) : MetaM α
+```
+
+Given `type = ∀ (x₁ : T₁) ... (xₙ : Tₙ), U x₁ ... xₙ`, this function creates one
+fvar `fᵢ` for each `∀`-bound variable `xᵢ` and replaces each `xᵢ` with `fᵢ` in
+the conclusion `U`. It then calls the computation `k`, passing it the `fᵢ` and
+the conclusion `U f₁ ... fₙ`. Within this computation, the `fᵢ` are registered
+in the local context; afterwards, they are deleted again (similar to
+`withLocalDecl`).
+
+There are many useful variants of `forallTelescope`:
+
+- `forallTelescopeReducing`: like `forallTelescope` but matching is performed up
+  to computation. This means that if you have an expression `X` which is
+  different from but defeq to `∀ x, P x`, `forallTelescopeReducing X` will
+  deconstruct `X` into `x` and `P x`. The non-reducing `forallTelescope` would
+  not recognise `X` as a quantified expression. The matching is performed by
+  essentially calling `whnf` repeatedly, using the ambient transparency.
+- `forallBoundedTelescope`: like `forallTelescopeReducing` (even though there is
+  no "reducing" in the name) but stops after a specified number of `∀` binders.
+- `forallMetaTelescope`, `forallMetaTelescopeReducing`,
+  `forallMetaBoundedTelescope`: like the corresponding non-`meta` functions, but
+  the bound variables are replaced by new `mvar`s instead of `fvar`s. Unlike the
+  non-`meta` functions, the `meta` functions do not delete the new metavariables
+  after performing some computation, so the metavariables remain in the
+  environment indefinitely.
+- `lambdaTelescope`, `lambdaTelescopeReducing`, `lambdaBoundedTelescope`,
+  `lambdaMetaTelescope`: like the corresponding `forall` functions, but for
+  `λ` binders instead of `∀`.
+
+Using one of the telescope functions, we can implement our own `apply` tactic:
+-/
+
+def myApply (goal : MVarId) (e : Expr) : MetaM (List MVarId) := do
+  -- Check that the goal is not yet assigned.
+  checkNotAssigned goal `myApply
+  -- Operate in the local context of the goal.
+  withMVarContext goal do
+    -- Get the goal's target type.
+    let target ← getMVarType goal
+    -- Get the type of the given expression.
+    let type ← inferType e
+    -- If `type` has the form `∀ (x₁ : T₁) ... (xₙ : Tₙ), U`, introduce new
+    -- metavariables for the `xᵢ` and obtain the conclusion `U`. (If `type` does
+    -- not have this form, `args` is empty and `conclusion = type`.)
+    let (args, _, conclusion) ← forallMetaTelescopeReducing type
+    -- If the conclusion unifies with the target:
+    if ← isDefEq target conclusion then
+      -- Assign the goal to `e x₁ ... xₙ`, where the `xᵢ` are the fresh
+      -- metavariables in `args`.
+      assignExprMVar goal (mkAppN e args)
+      -- `isDefEq` may have assigned some of the `args`. Report the rest as new
+      -- goals.
+      let newGoals ← args.filterMapM λ mvar => do
+        let mvarId := mvar.mvarId!
+        if ! (← isExprMVarAssigned mvarId) && ! (← isDelayedAssigned mvarId) then
+          return some mvarId
+        else
+          return none
+      return newGoals.toList
+    -- If the conclusion does not unify with the target, throw an error.
+    else
+      throwTacticEx `myApply goal m!"{e} is not applicable to goal with target {target}"
+
+/-!
+The real `apply` does some additional pre- and postprocessing, but the core
+logic is what we show here. To test our tactic, we need an elaboration
+incantation, more about which in the Elaboration chapter.
+-/
+
+elab "myApply" e:term : tactic => do
+  let e ← Elab.Term.elabTerm e none
+  Elab.Tactic.liftMetaTactic (myApply · e)
+
+example (h : α → β) (a : α) : β := by
+  myApply h
+  myApply a
+
+/-!
+In the next chapter, we move towards the topic of elaboration, of which
+you've already seen several glimpses in this chapter. We start by discussing
+Lean's syntax system, which allows you to add custom syntactic constructs to the
+Lean parser.
+-/

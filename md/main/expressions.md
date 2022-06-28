@@ -191,10 +191,8 @@ def constZero : Expr :=
 ```
 
 As you may have noticed, we didn't show `#eval` outputs for the three last
-function. That's because, as you may have guessed, those resulting expressions
-can grow so large that it's hard to make sense of them.
+functions. That's because the resulting expressions can grow so large that it's
+hard to make sense of them.
 
 In the next chapter we shall explore some functions that compute in the `MetaM`
-monad, opening room for more powerful tricks involving expressions. And we will
-start off by visiting `reduce`, a function that can simplify bigger expressions
-such as the ones we'd get from using the functions above.
+monad, opening room for more powerful tricks involving expressions.
