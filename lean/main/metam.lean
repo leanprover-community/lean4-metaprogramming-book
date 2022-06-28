@@ -839,37 +839,55 @@ implicit information: `Lean.Meta.mkAppM` of type
 mkAppM : Name → Array Expr → MetaM Expr
 ```
 
-With this, the example becomes much shorter:
+Like `mkAppN`, `mkAppM` constructs an application. But `mkAppN` requires us to
+give all universe levels and implicit arguments ourselves, `mkAppM` infers them.
+This means we only need to provide the explicit arguments, which makes for a
+much shorter example:
 -/
 
 def appendAppendRHSExpr₂ (xs ys : Expr) : MetaM Expr := do
   mkAppM ``List.append #[← mkAppM ``List.append #[xs, ys], xs]
 
 /-!
-The implicit arguments `α` and the universe level `u` are determined by
-`mkAppM`.
+Note the absence of any `α`s and `u`s. There is also a variant of `mkAppM`,
+`mkAppM'` (in case you found the naming scheme insufficiently confusing so far),
+which takes an `Expr` instead of a `Name` as the first argument, allowing us
+to construct applications of expressions which are not constants.
 
 However, `mkAppM` is not magic: if you write `mkAppM ``List.append #[]`, you
 will get an error at runtime. This is because `mkAppM` tries to determine what
-the type `α` is, but unlike in the previous example, where the arguments to
-`append` determine `α`, in this example `α` could be anything.
+the type `α` is, but with no arguments given to `append`, `α` could be anything,
+so `mkAppM` fails.
 
-The following variants of `mkAppM` are also occasionally useful:
+Another occasionally useful variant of `mkAppM` is `Lean.Meta.mkAppOptM` of type
 
-- `mkAppM' : Expr → Array Expr → MetaM Expr` takes an `Expr` instead of a
-  constant name as the first argument.
-- `mkAppOptM : Name → Array (Option Expr) → MetaM Expr` allows you to give
-  certain arguments directly while letting Lean infer others. Each argument in
-  the given array corresponds to an argument of the given constant (including
-  implicit and instance arguments!). A `none` instructs Lean to infer the
-  argument; a `some e` instructs Lean to use the expression `e` for the
-  argument. This is more flexible than `mkAppM`, where all implicit arguments
-  are inferred and all explicit arguments must be given.
-- `mkAppOptM' : Expr → Array (Option Expr) → MetaM Expr` is the `Expr`-consuming
-  variant of `mkAppOptM`.
+```lean
+mkAppOptM : Name → Array (Option Expr) → MetaM Expr
+```
 
-The file which contains `mkAppM` also contains various other helper functions,
-e.g. for making list literals or `sorry`s.
+Whereas `mkAppM` always infers implicit and instance arguments and always
+requires us to give explicit arguments, `mkAppOptM` lets us choose freely which
+arguments to provide and which to infer. With this, we can, for example, give
+instances explicitly, which we use in the following example to give a
+non-standard `Ord` instance.
+-/
+
+def revOrd : Ord Nat where
+  compare x y := compare y x
+
+def ordExpr : MetaM Expr := do
+  mkAppOptM ``compare #[none, mkConst ``revOrd, mkNatLit 0, mkNatLit 1]
+
+#eval format <$> ordExpr
+-- Ord.compare.{0} Nat revOrd
+--   (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
+--   (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+
+/-!
+Like `mkAppM`, `mkAppOptM` has a primed variant `Lean.Meta.mkAppOptM'` which
+takes an `Expr` instead of a `Name` as the first argument. The file which
+contains `mkAppM` also contains various other helper functions, e.g. for making
+list literals or `sorry`s.
 
 
 ### Lambdas and Foralls
