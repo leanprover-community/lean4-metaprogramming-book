@@ -1,7 +1,5 @@
-import Lean
-open Lean
-/-!
-# Options
+/-
+# Extra: Options
 Options are a way to communicate some special configuration to both
 your meta programs and the Lean compiler itself. Basically it's just
 a [`KVMap`](https://github.com/leanprover/lean4/blob/master/src/Lean/Data/KVMap.lean)
@@ -17,6 +15,10 @@ are 6 kinds of data values:
 Setting an option to tell the Lean compiler to do something different
 with your program is quite simple with the `set_option` command:
 -/
+
+import Lean
+open Lean
+
 #check 1 + 1 -- 1 + 1 : Nat
 
 set_option pp.explicit true -- No custom syntax in pretty printing

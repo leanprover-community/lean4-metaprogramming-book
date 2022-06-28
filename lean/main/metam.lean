@@ -850,9 +850,8 @@ def appendAppendRHSExpr₂ (xs ys : Expr) : MetaM Expr := do
 
 /-!
 Note the absence of any `α`s and `u`s. There is also a variant of `mkAppM`,
-`mkAppM'` (in case you found the naming scheme insufficiently confusing so far),
-which takes an `Expr` instead of a `Name` as the first argument, allowing us
-to construct applications of expressions which are not constants.
+`mkAppM'`, which takes an `Expr` instead of a `Name` as the first argument,
+allowing us to construct applications of expressions which are not constants.
 
 However, `mkAppM` is not magic: if you write `mkAppM ``List.append #[]`, you
 will get an error at runtime. This is because `mkAppM` tries to determine what

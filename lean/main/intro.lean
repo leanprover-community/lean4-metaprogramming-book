@@ -18,9 +18,9 @@ understanding of monadic programming.
 
 ## Book structure
 
-The book is organized in a way to build up enough content for the two last
-chapters, which cover DSLs and tactics respectively. If we backtrack the
-pre-requisites for each chapter, the following structure:
+The book is organized in a way to build up enough content for the chapters that
+cover DSLs and tactics. Backtracking the pre-requisites for each chapter, the
+dependency structure is as follows:
 
 * "Tactics" builds on top of "Macros" and "Elaboration"
 * "DSLs" builds on top of "Elaboration"
@@ -28,10 +28,13 @@ pre-requisites for each chapter, the following structure:
 * "Elaboration" builds on top of "`Syntax`" and "`MetaM`"
 * "`MetaM`" builds on top of "Expressions"
 
-The last chapter is a cheat-sheet containing a wrap-up of key concepts and
-functions. The rest of this chapter is a gentle introduction for what
-metaprogramming is, offering some small examples to serve as appetizers for what
-the book shall cover. 
+After the chapter on tactics, you find a cheat-sheet containing a wrap-up of key
+concepts and functions. And after that, There are some chapters with extra
+content, showing other applications of metaprogramming in Lean 4.
+
+The rest of this chapter is a gentle introduction for what metaprogramming is,
+offering some small examples to serve as appetizers for what the book shall
+cover. 
 
 ## What does it mean to be in meta?
 

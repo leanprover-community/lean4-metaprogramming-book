@@ -1,6 +1,4 @@
-import Lean
-open Lean PrettyPrinter Delaborator SubExpr
-/-! # Pretty Printing
+/- # Pretty Printing
 The pretty printer is what Lean uses to present terms that have been
 elaborated to the user. This is done by converting the `Expr`s back into
 `Syntax` and then even higher level pretty printing datastructures. This means
@@ -44,6 +42,10 @@ this name has to start with the name of an `Expr` constructor, most commonly
 constant we want to delaborate. For example, if we want to delaborate a function
 `foo` in a special way we would use `app.foo`. Let's see this in action:
 -/
+
+import Lean
+
+open Lean PrettyPrinter Delaborator SubExpr
 
 def foo : Nat → Nat := fun x => 42
 
