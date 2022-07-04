@@ -90,7 +90,7 @@ Let's see the code:
 import Lean
 
 elab "#assertType " termStx:term " : " typeStx:term : command =>
-  open Lean.Elab Command Term in
+  open Lean Lean.Elab Command Term in
   liftTermElabM `assertTypeCmd
     try
       let tp ← elabType typeStx
@@ -234,7 +234,7 @@ They behave a bit differently though, as we can see below:
 ```lean
 elab "traces" : tactic => do
   let array := List.replicate 2 (List.range 3)
-  Lean.Elab.logInfo m!"logInfo: {array}"
+  Lean.logInfo m!"logInfo: {array}"
   dbg_trace f!"dbg_trace: {array}"
 
 example : True := by -- `example` is underlined in blue, outputting:

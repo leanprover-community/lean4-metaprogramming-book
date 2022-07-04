@@ -124,19 +124,53 @@ it will be essential to all non trivial things that are syntax related.
 First things first we call the `` `() `` syntax a `Syntax` quotation.
 When we plug variables into a syntax quotation like this: `` `($x) ``
 we call the `$x` part an anti-quotation. When we insert `x` like this
-it is of course required that `x` is of type `Syntax`. If we use this
-in pattern matching it will give us a variable `x` of type `Syntax`
-in the match arm. If we want to insert a literal `$x` into the `Syntax`
-for some reason, for example macro creating macros, we can escape
-the anti quotation using: `` `($$x) ``.
+it is required that `x` is of type `TSyntax x` where `x` is some `Name`
+of a syntax category. The Lean compiler is actually smart enough to figure
+the syntax categories that are allowed in this place out. Hence you might
+sometimes see errors of the form:
+```
+application type mismatch
+  x.raw
+argument
+  x
+has type
+  TSyntax `a : Type
+but is expected to have type
+  TSyntax `b : Type
+```
+If you are sure that your thing from the `a` syntax category can be
+used as a `b` here you can declare a coercion of the form:
+
+```lean
+instance : Coe (TSyntax `a) (TSyntax `b) where
+  coe s := ⟨s.raw⟩
+```
+
+Which will allow Lean to perform the type cast automatically. If you
+notice that your `a` can not be used in place of the `b` here congrats,
+you just discovered a bug in your `Syntax` function. Similar to the Lean
+compiler you could can also declare functions that are specific to certain
+`TSynax` variants. For example as we have seen in the syntax chapter
+there exists the function:
+
+```lean
+#check TSyntax.getNat -- TSyntax.getNat : TSyntax numLitKind → Nat
+```
+
+Which is guaranteed to not panic because we know that the `Syntax` that
+the function is receiving is a numeric literal and can thus naturally
+be converted to a `Nat`.
+
+If we use the antiquotation syntax in pattern matching it will, as discussed
+in the syntax chapter, give us a a variable `x` of type `` TSyntax y `` where
+`y` is the `Name` of the syntax category that fits in the spot where we pattern matched.
+If we wish to insert a literal `$x` into the `Syntax` for some reason,
+for example macro creating macros, we can escape the anti quotation using: `` `($$x) ``.
 
 If we want to specify the syntax kind we wish `x` to be interpreted as
 we can make this explicit using: `` `($x:term) `` where `term` can be
 replaced with any other valid syntax category (e.g. `command`) or parser
-(e.g. `ident`). While this feature is most useful in pattern matching it
-can also be useful to give hints to Lean as to how to work with a certain
-piece of `Syntax` when creating new ones using a `Syntax` quotation.
-(TODO: showcase bugs where this is necessary).
+(e.g. `ident`). 
 
 So far this is only a more formal explanation of the intuitive things
 we've already seen in the syntax chapter and up to now in this chapter,
@@ -148,17 +182,17 @@ format strings: `` `($(mkIdent `c)) `` is the same as: `` let x := mkIdent `c; `
 
 Furthermore there are sometimes situations in which we are not working
 with basic `Syntax` but `Syntax` wrapped in more complex datastructures,
-most notably `Array Syntax` or `SepArray c`. Where `SepArray c`, is a
+most notably `Array (TSyntax c)` or `TSepArray c s`. Where `TSepArray c s`, is a
 `Syntax` specific type, it is what we get if we pattern match on some
-`Syntax` that users a separator `c`, for example if we match using:
-`$xs,*`, `xs` will have type `SepArray ","`,. With the special
-case of matching on no specific separator (i.e. whitespace): `$xs*`
-in which we will receive an `Array Syntax`.
+`Syntax` that users a separator `s` to separate things from the category `c`.
+For example if we match using: `$xs,*`, `xs` will have type `TSepArray c ","`,.
+With the special case of matching on no specific separator (i.e. whitespace):
+`$xs*` in which we will receive an `Array (TSyntax c)`.
 
-If we are dealing with `xs : Array Syntax` and want to insert it into
+If we are dealing with `xs : Array (TSyntax c)` and want to insert it into
 a quotation we have two main ways to achieve this:
 1. Insert it using a separator, most commonly `,`: `` `($xs,*) ``.
-  This is also the way to insert a `SepArray ",""`
+  This is also the way to insert a `TSepArray c ",""`
 2. Insert it point blank without a separator (TODO): `` `() ``
 
 For example:
@@ -183,7 +217,7 @@ say our own `let` (in real projects this would most likely be a `let`
 in some functional language we are writing a theory about):
 
 ```lean
-syntax "mylet " term (" : " term)? " := " term " in " term : term
+syntax "mylet " ident (" : " term)? " := " term " in " term : term
 ```
 
 There is this optional `(" : " term)?` argument involved which can let
