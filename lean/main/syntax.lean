@@ -407,7 +407,7 @@ constant folding:
 -/
 
 def isLitAdd : Syntax → Option Nat
-  | `(Nat.add $x:num $y:num) => some (x.toNat + y.toNat)
+  | `(Nat.add $x:num $y:num) => some (x.getNat + y.getNat)
   | _ => none
 
 #eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some 2
@@ -437,7 +437,7 @@ syntax arith "+" arith : arith
 syntax "(" arith ")" : arith
 
 partial def denoteArith : Syntax → Nat
-  | `(arith| $x:num) => x.toNat
+  | `(arith| $x:num) => x.getNat
   | `(arith| $x:arith + $y:arith) => denoteArith x + denoteArith y
   | `(arith| $x:arith - $y:arith) => denoteArith x - denoteArith y
   | `(arith| ($x:arith)) => denoteArith x
@@ -529,9 +529,9 @@ def setOf {α : Type} (p : α → Prop) : Set α := p
 Equipped with this function, we can now attempt to intuitively define a
 basic version of our notation:
 -/
-notation "{" x "|" p "}" => setOf (fun x => p)
+notation "{ " x " | " p " }" => setOf (fun x => p)
 
-#check { (x : Nat) | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
+#check { (x : Nat) | x ≤ 1 } -- { x | x ≤ 1 } : Set Nat
 
 example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
 example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]

@@ -61,7 +61,7 @@ To show this, let's write a command that prints the value of `pp.explicit`.
 elab "#getPPExplicit" : command => do
   let opts ← getOptions
   -- defValue = default value
-  Elab.logInfo s!"pp.explicit : {opts.get pp.explicit.name pp.explicit.defValue}"
+  logInfo s!"pp.explicit : {opts.get pp.explicit.name pp.explicit.defValue}"
 
 #getPPExplicit -- pp.explicit : false
 

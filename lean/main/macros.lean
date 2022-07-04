@@ -184,7 +184,7 @@ say our own `let` (in real projects this would most likely be a `let`
 in some functional language we are writing a theory about):
 -/
 
-syntax "mylet " term (" : " term)? " := " term " in " term : term
+syntax "mylet " ident (" : " term)? " := " term " in " term : term
 
 /-!
 There is this optional `(" : " term)?` argument involved which can let

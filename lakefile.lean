@@ -2,7 +2,13 @@ import Lake
 open Lake DSL
 
 package «lean4-metaprogramming-book» {
-  defaultFacet := PackageFacet.oleans
+  srcDir := "lean"
+  isLeanOnly := true
+}
+
+@[defaultTarget]
+lean_lib «lean4-metaprogramming-book» {
+  roots := #["cover"]
 }
 
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
