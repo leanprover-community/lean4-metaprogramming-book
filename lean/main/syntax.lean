@@ -399,14 +399,22 @@ def isAdd : Syntax → Option (Syntax × Syntax)
 #eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]) -- none
 
 /-!
-Note that `x` and `y` in this example are of type `Syntax`, not `Nat`. This is simply
-because we are still at the `Syntax` level: the concept of a type doesn't quite
-exist yet. What we can however do is limit the parsers/categories we want to match on,
-for example if we only want to match on number literals in order to implement some
-constant folding:
+### Typed Syntax
+Note that `x` and `y` in this example are of type `` TSyntax `term ``, not `Syntax`.
+Even though we are pattern matching on `Syntax` which, as we can see in the constructors,
+is purely composed of types that are not `TSyntax`, so what is going on?
+Basically the `` `() `` Syntax is smart enough to figure out the most general
+syntax category the syntax we are matching might be coming from (in this case `term`).
+It will then use the typed syntax type `TSyntax` which is parameterized
+by the `Name` of the syntax category it came from. This is not only more
+convenient for the programmer to see what is going on, it also has other
+benefits. For Example if we limit the syntax category to just `num`
+in the next example Lean will allow us to call `getNat` on the resulting
+`` TSyntax `num `` directly without pattern matching or the option to panic:
 -/
 
-def isLitAdd : Syntax → Option Nat
+-- Now we are also explicitly marking the function to operate on term syntax
+def isLitAdd : TSyntax `term → Option Nat
   | `(Nat.add $x:num $y:num) => some (x.getNat + y.getNat)
   | _ => none
 
@@ -414,9 +422,9 @@ def isLitAdd : Syntax → Option Nat
 #eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
 
 /-!
-As you can see in the code, even though we explicitly matched on the `num`
-parser we still have to explicitly convert `x` and `y` to `Nat` because
-again, we are on `Syntax` level, types do not exist.
+If you want to access the `Syntax` behind a `TSyntax` you can do this using
+`TSyntax.raw` although the coercion machinery should just work most of the time.
+We will see some further benefits of the `TSyntax` system in the macro chapter.
 
 One last important note about the matching on syntax: In this basic
 form it only works on syntax from the `term` category. If you want to use
@@ -436,7 +444,7 @@ syntax arith "-" arith : arith
 syntax arith "+" arith : arith
 syntax "(" arith ")" : arith
 
-partial def denoteArith : Syntax → Nat
+partial def denoteArith : TSyntax `arith → Nat
   | `(arith| $x:num) => x.getNat
   | `(arith| $x:arith + $y:arith) => denoteArith x + denoteArith y
   | `(arith| $x:arith - $y:arith) => denoteArith x - denoteArith y
