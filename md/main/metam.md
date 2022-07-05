@@ -1104,6 +1104,95 @@ example (h : α → β) (a : α) : β := by
   myApply a
 ```
 
+## Backtracking
+
+Many tactics naturally require backtracking: the ability to go back to a
+previous state, as if the tactic had never been executed. A few examples:
+
+- `t <|> u` first executes `t`. If `t` fails, it backtracks and executes `u`.
+- `try t` executes `t`. If `t` fails, it backtracks to the initial state,
+  erasing any changes made by `t`.
+- `trivial` attempts to solve the goal using a number of simple tactics
+  (e.g. `rfl` or `contradiction`). After each unsuccessful application of such a
+  tactic, `trivial` backtracks.
+
+Good thing, then, that Lean's core data structures are designed to enable easy
+and efficient backtracking. The corresponding API is provided by the
+`Lean.MonadBacktrack` class. `MetaM`, `TermElabM` and `TacticM` are all
+instances of this class. (`CoreM` is not but could be; apparently the Lean
+compiler does not need this instance.)
+
+`MonadBacktrack` provides two fundamental operations:
+
+- `Lean.saveState : m s` returns a representation of the current state, where
+  `m` is the monad we are in and `s` is the state type. E.g. for `MetaM`,
+  `saveState` returns a `Lean.Meta.SavedState` containing the current
+  environment, the current `MetavarContext` and various other pieces of
+  information.
+- `Lean.restoreState : s → m Unit` takes a previously saved state and restores
+  it. This effectively resets the compiler state to the previous point.
+
+With this, we can roll our own `MetaM` version of the `try` tactic:
+
+```lean
+def tryM (x : MetaM Unit) : MetaM Unit := do
+  let s ← saveState
+  try
+    x
+  catch _ =>
+    restoreState s
+```
+
+We first save the state, then execute `x`. If `x` fails, we backtrack the state.
+
+The standard library defines many combinators like `tryM`. Here are the most
+useful ones:
+
+- `Lean.withoutModifyingState (x : m α) : m α` executes the action `x`, then
+  resets the state and returns `x`'s result. You can use this, for instance, to
+  check for definitional equality without assigning metavariables:
+  ```lean
+  withoutModifyingState $ isDefEq x y
+  ```
+  If `isDefEq` succeeds, it may assign metavariables in `x` and `y`. Using
+  `withoutModifyingState`, we can make sure this does not happen.
+- `Lean.observing? (x : m α) : m (Option α)` executes the action `x`. If `x`
+  succeeds, `observing?` returns its result. If `x` fails (throws an exception),
+  `observing?` backtracks the state and returns `none`. This is a more
+  informative version of our `tryM` combinator.
+- `Lean.commitIfNoEx (x : α) : m α` executes `x`. If `x` succeeds,
+  `commitIfNoEx` returns its result. If `x` throws an exception, `commitIfNoEx`
+  backtracks the state and rethrows the exception.
+
+Note that the builtin `try ... catch ... finally` does not perform any
+backtracking. So code which looks like this is probably wrong:
+
+```lean
+try
+  doSomething
+catch e =>
+  doSomethingElse
+```
+
+The `catch` branch, `doSomethingElse`, is executed in a state containing
+whatever modifications `doSomething` made before it failed. Since we probably
+want to erase these modifications, we should write instead:
+
+```lean
+try
+  commitIfNoEx doSomething
+catch e =>
+  doSomethingElse
+```
+
+Another `MonadBacktrack` gotcha is that `restoreState` does not backtrack the
+*entire* state. Caches, trace messages and the global name generator, among
+other things, are not backtracked, so changes made to these parts of the state
+are not reset by `restoreState`. This is usually what we want: if a tactic
+executed by `observing?` produces some trace messages, we want to see them even
+if the tactic fails. See `Lean.Meta.SavedState.restore` and `Lean.Core.restore`
+for details on what is and is not backtracked.
+
 In the next chapter, we move towards the topic of elaboration, of which
 you've already seen several glimpses in this chapter. We start by discussing
 Lean's syntax system, which allows you to add custom syntactic constructs to the
