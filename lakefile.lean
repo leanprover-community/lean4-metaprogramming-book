@@ -30,7 +30,7 @@ script build do
 
   return 0
 
-script viperBuild do
+script viper_build do
   let _ ← runCmd "rm" #["-rf", "md"]
 
   if ← runCmd "viper" #["-m", "lean2md", "lean", "md"] then return 1
