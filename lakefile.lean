@@ -2,7 +2,13 @@ import Lake
 open Lake DSL
 
 package «lean4-metaprogramming-book» {
-  defaultFacet := PackageFacet.oleans
+  srcDir := "lean"
+  isLeanOnly := true
+}
+
+@[defaultTarget]
+lean_lib «lean4-metaprogramming-book» {
+  roots := #["cover"]
 }
 
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
@@ -24,7 +30,7 @@ script build do
 
   return 0
 
-script viperBuild do
+script viper_build do
   let _ ← runCmd "rm" #["-rf", "md"]
 
   if ← runCmd "viper" #["-m", "lean2md", "lean", "md"] then return 1

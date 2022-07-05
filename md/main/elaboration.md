@@ -158,7 +158,7 @@ elab "#findCElab " c:command : command => do
   match macroRes with
   | some (name, _) => logInfo s!"Next step is a macro: {name.toString}"
   | none =>
-    let kind := c.getKind
+    let kind := c.raw.getKind
     let elabs := commandElabAttribute.getEntries (←getEnv) kind
     match elabs with
     | [] => logInfo s!"There is no elaborators for your syntax, looks like its bad :("
@@ -323,7 +323,7 @@ def myanonImpl : TermElab := fun stx typ? => do
     throwError "expected type must be known"
   let Expr.const base .. := typ.getAppFn | throwError s!"type is not of the expected form: {typ}"
   let [ctor] ← getCtors base | throwError "type doesn't have exactly one constructor"
-  let args := stx[1].getSepArgs
+  let args := TSyntaxArray.mk stx[1].getSepArgs
   let stx ← `($(mkIdent ctor) $args*) -- syntax quotations
   elabTerm stx typ -- call term elaboration recursively
 

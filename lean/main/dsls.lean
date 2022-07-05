@@ -76,7 +76,7 @@ syntax "false"   : imp_lit
 def elabIMPLit : Syntax → MetaM Expr
   -- `mkAppM` creates an `Expr.app`, given the function `Name` and the args
   -- `mkNatLit` creates an `Expr` from a `Nat`
-  | `(imp_lit| $n:num) => mkAppM ``IMPLit.nat  #[mkNatLit n.toNat]
+  | `(imp_lit| $n:num) => mkAppM ``IMPLit.nat  #[mkNatLit n.getNat]
   -- `mkConst` creates an `Expr.const` given the constant `Name`
   | `(imp_lit| true  ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.true]
   | `(imp_lit| false ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.false]
