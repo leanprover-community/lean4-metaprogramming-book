@@ -318,10 +318,9 @@ getLCtx : MetaM LocalContext -- real type is more general
 
 All operations involving fvars use this ambient local context.
 
-
 The downside of this setup is that we always need to update the ambient local
 context to match the goal we are currently working on. To do this, we use
-`Lean.Meta.withMVarContext` of type (again specialised)
+`Lean.Meta.withMVarContext` of type (again specialized)
 
 ```lean
 withMVarContext (mvarId : MVarId) (c : MetaM α) : MetaM α
@@ -1022,7 +1021,7 @@ current target to determine whether `e` can be applied.
 To do this, we could repeatedly match on the type expression, removing `∀`
 binders until we get to `U`. But this would leave us with an `U` containing
 unbound `bvar`s, which, as we saw, is bad. Instead, we use
-`Lean.Meta.forallTelescope` of type (again specialised to `MetaM`)
+`Lean.Meta.forallTelescope` of type (again specialized to `MetaM`)
 
 ```
 forallTelescope (type : Expr) (k : Array Expr → Expr → MetaM α) : MetaM α
