@@ -419,8 +419,8 @@ two complications which you should be aware of.
 
 First, delayed assignments make `isExprMVarAssigned` and
 `getExprMVarAssignment?` medium-calibre footguns. These functions only check for
-regular assignments, so you may need to use `Lean.Meta.isDelayedAssigned` and
-`Lean.Meta.getDelayedAssignment?` as well.
+regular assignments, so you may need to use `Lean.Meta.isMVarDelayedAssigned`
+and `Lean.Meta.getDelayedMVarAssignment?` as well.
 
 Second, delayed assignments break an intuitive invariant. You may have assumed
 that any metavariable which remains in the output of `instantiateMVars` is
@@ -1080,7 +1080,7 @@ def myApply (goal : MVarId) (e : Expr) : MetaM (List MVarId) := do
       -- goals.
       let newGoals ← args.filterMapM λ mvar => do
         let mvarId := mvar.mvarId!
-        if ! (← isExprMVarAssigned mvarId) && ! (← isDelayedAssigned mvarId) then
+        if ! (← isExprMVarAssigned mvarId) && ! (← isMVarDelayedAssigned mvarId) then
           return some mvarId
         else
           return none
