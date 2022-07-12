@@ -224,7 +224,8 @@ theorem assump_wrong (H1 : 1 = 1) : 2 = 2 := by
 ```
 
 We begin by accessing the goal and the type of the goal so we know what we
-are trying to prove:
+are trying to prove. The `goal` variable will soon be used to help us create
+error messages.
 
 ```lean
 elab "custom_assump_0" : tactic =>
@@ -306,8 +307,7 @@ same type (`local decl[EQUAL? false]: name: H2 `):
 elab "list_local_decls_3" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goal ← Lean.Elab.Tactic.getMainGoal
-    let goalDecl ← Lean.Meta.getMVarDecl goal
-    let goalType := goalDecl.type
+    let goalType ← Lean.Elab.Tactic.getMainTarget
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
     ctx.forM fun decl: Lean.LocalDecl => do
       let declExpr := decl.toExpr -- Find the expression of the declaration.
