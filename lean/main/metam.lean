@@ -394,7 +394,7 @@ def myAssumption (mvarId : MVarId) : MetaM Bool := do
     -- If we have not found any suitable local hypothesis, return false.
     return false
 
-/-!
+/-
 The `myAssumption` tactic contains three functions we have not seen before:
 
 - `Lean.Meta.checkNotAssigned` checks that a metavariable is not already
@@ -486,10 +486,10 @@ We can use it like this:
 def someNumber : Nat := (· + 2) $ 3
 
 #eval mkConst ``someNumber
--- Lean.Expr.const `someNumber [] (...)
+-- Lean.Expr.const `someNumber []
 
 #eval reduce (mkConst ``someNumber)
--- Lean.Expr.lit (Lean.Literal.natVal 5) (...)
+-- Lean.Expr.lit (Lean.Literal.natVal 5)
 
 /-!
 Incidentally, this shows that the normal form of a term of type `Nat` is not
@@ -721,7 +721,7 @@ makes it easy:
 def matchAndReducing (e : Expr) : MetaM (Option (Expr × Expr)) := do
   let e ← whnf e
   match e with
-  | (.app (.app (.const ``And _ _) P _) Q _) => return some (P, Q)
+  | (.app (.app (.const ``And _) P) Q) => return some (P, Q)
   | _ => return none
 
 /-
@@ -738,10 +738,10 @@ this uses `whnf` twice:
 def matchAndReducing₂ (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
   let e ← whnf e
   match e with
-  | (.app (.app (.const ``And _ _) P _) e' _) =>
+  | (.app (.app (.const ``And _) P) e') =>
     let e' ← whnf e'
     match e' with
-    | (.app (.app (.const ``And _ _) Q _) R _) => return some (P, Q, R)
+    | (.app (.app (.const ``And _) Q) R) => return some (P, Q, R)
     | _ => return none
   | _ => return none
 

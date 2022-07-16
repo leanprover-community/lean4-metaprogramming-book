@@ -20,19 +20,19 @@ import Lean
 namespace Playground
 
 inductive Expr where
-  | bvar    : Nat → Data → Expr                       -- bound variables
-  | fvar    : FVarId → Data → Expr                    -- free variables
-  | mvar    : MVarId → Data → Expr                    -- metavariables
-  | sort    : Level → Data → Expr                     -- Sort
-  | const   : Name → List Level → Data → Expr         -- constants
-  | app     : Expr → Expr → Data → Expr               -- application
-  | lam     : Name → Expr → Expr → Data → Expr        -- lambda abstraction
-  | forallE : Name → Expr → Expr → Data → Expr        -- (dependent) arrow
-  | letE    : Name → Expr → Expr → Expr → Data → Expr -- let expressions
+  | bvar    : Nat → Expr                              -- bound variables
+  | fvar    : FVarId → Expr                           -- free variables
+  | mvar    : MVarId → Expr                           -- meta variables
+  | sort    : Level → Expr                            -- Sort
+  | const   : Name → List Level → Expr                -- constants
+  | app     : Expr → Expr → Expr                      -- application
+  | lam     : Name → Expr → Expr → BinderInfo → Expr  -- lambda abstraction
+  | forallE : Name → Expr → Expr → BinderInfo → Expr  -- (dependent) arrow
+  | letE    : Name → Expr → Expr → Expr → Bool → Expr -- let expressions
   -- less essential constructors:
-  | lit     : Literal → Data → Expr                   -- literals
-  | mdata   : MData → Expr → Data → Expr              -- metadata
-  | proj    : Name → Nat → Expr → Data → Expr         -- projection
+  | lit     : Literal → Expr                          -- literals
+  | mdata   : MData → Expr → Expr                     -- metadata
+  | proj    : Name → Nat → Expr → Expr                -- projection
 
 end Playground
 ```
@@ -79,19 +79,6 @@ What is each of these constructors doing?
   `proj Prod 0 p`. This is for efficiency reasons ([todo] find link to docstring
   explaining this).
 
-## Expression Data
-
-If you look the constructors of `Expr`, you will see that all of them have a
-`Data` argument. This Data field contains some extra cached information about
-the expression that is useful for speeding up some common operations. These are
-things like: a hash of the `Expr`, whether or not the `Expr` contains free
-variables, metavariables or bound variables and also it is where the
-`BinderInfo` is stored for `forallE` and `lam`.
-
-This data param means that you should _never_ construct instances of `Expr`
-directly using the `Expr` constructors but instead use the helper methods
-(`mkLambda`, `mkApp` etc) that compute `Data` for you.
-
 ## de-Bruijn Indexes
 
 Consider the following lambda expression ` (λ f x => f x x) (λ x y => x + y) 5`,
@@ -116,11 +103,6 @@ __abstraction__.
 
 ## Constructing Expressions
 
-As mentioned above, you should _never_ construct instances of `Expr` directly
-using the `Expr` constructors but instead use helper methods that not only
-compute `Data` but also take care of other things for you. Here we give examples
-and brief descriptions of some basic helpers.
-
 The simplest expressions we can construct are constants. We use `mkConst`
 with argument a name. Below are two examples of this, both giving an expression
 for the natural number `0`. 
@@ -132,10 +114,10 @@ global name, checking, in the process that it is valid.
 open Lean
 
 def z' := mkConst `Nat.zero
-#eval z' -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
+#eval z' -- Lean.Expr.const `Nat.zero []
 
 def z := mkConst ``Nat.zero
-#eval z -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
+#eval z -- Lean.Expr.const `Nat.zero []
 ```
 
 To illustrate the difference, here are two further examples. The first
@@ -146,10 +128,10 @@ the other hand, the second resolves correctly.
 open Nat
 
 def z₁ := mkConst `zero
-#eval z₁ -- Lean.Expr.const `zero [] (Expr.mkData 790182631 (bi := Lean.BinderInfo.default))
+#eval z₁ -- Lean.Expr.const `zero []
 
 def z₂ := mkConst ``zero
-#eval z₂ -- Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default))
+#eval z₂ -- Lean.Expr.const `Nat.zero []
 ```
 
 The next class of expressions we consider are function applications. These
@@ -163,10 +145,7 @@ number.
 ```lean
 def one := mkApp (mkConst ``Nat.succ) z
 #eval one
--- Lean.Expr.app
--- (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
--- (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
--- (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
+-- Lean.Expr.app (Lean.Expr.const `Nat.succ []) (Lean.Expr.const `Nat.zero [])
 
 def natExpr: Nat → Expr 
 | 0     => z
@@ -181,6 +160,10 @@ def sumExpr : Nat → Nat → Expr
 | n, m => mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
 ```
 
+As you may have noticed, we didn't show `#eval` outputs for the two last
+functions. That's because the resulting expressions can grow so large that it's
+hard to make sense of them.
+
 We next consider the helper `mkLambda` to construct a simple function which
 takes any natural number `x` and returns `Nat.zero`. The argument
 `BinderInfo.default` for the constructor says that `x` is explicit.
@@ -188,11 +171,11 @@ takes any natural number `x` and returns `Nat.zero`. The argument
 ```lean
 def constZero : Expr := 
   mkLambda `x BinderInfo.default (mkConst ``Nat) (mkConst ``Nat.zero)
+
+#eval constZero
+-- Lean.Expr.lam `x (Lean.Expr.const `Nat []) (Lean.Expr.const `Nat.zero [])
+--   (Lean.BinderInfo.default)
 ```
 
-As you may have noticed, we didn't show `#eval` outputs for the three last
-functions. That's because the resulting expressions can grow so large that it's
-hard to make sense of them.
-
-In the next chapter we shall explore some functions that compute in the `MetaM`
-monad, opening room for more powerful tricks involving expressions.
+In the next chapter we shall explore some functions that compute in the
+`MetaM` monad, opening room for more powerful tricks involving expressions.

@@ -36,9 +36,8 @@ with double dashes `--`.
 ### Building the markdown files
 
 This is not required, but if you want to build the markdown files, you can do so
-by running `lake script run build`. It requires having Python installed, as well
-as the `lean2md` package.
+by running `lake run build`. It requires having Python installed, as well as the
+`lean2md` package.
 
 Or, if you have [viper](https://github.com/arthurpaulino/viper) installed and
-a linked environment that has `lean2md`, you can call
-`lake script run viper_build`.
+a linked environment that has `lean2md`, you can call `lake run viper_build`.
