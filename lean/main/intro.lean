@@ -139,18 +139,18 @@ inductive Arith : Type where
   | var : String → Arith        -- variable
 
 /-! Now we declare a syntax category to describe the grammar that we will be
-parsing. Notice that we control the precedence of `+` and `*` by writing
-`syntax:75` for multiplication indicating that multiplication binds tighter than
-addition (the higher the number, the tighter the binding). This allows us to
-declare _precedence_ when defining new syntax.
+parsing. Notice that we control the precedence of `+` and `*` by giving a lower
+precedence weight to the `+` syntax than to the `*` syntax indicating that
+multiplication binds tighter than addition (the higher the number, the tighter
+the binding). This allows us to declare _precedence_ when defining new syntax.
 -/
 
 declare_syntax_cat arith
-syntax num                  : arith -- nat for Arith.nat
-syntax str                  : arith -- strings for Arith.var
-syntax arith " + " arith    : arith -- Arith.add
-syntax:75 arith " * " arith : arith -- Arith.mul
-syntax " ( " arith " ) "    : arith -- bracketed expressions
+syntax num                        : arith -- nat for Arith.nat
+syntax str                        : arith -- strings for Arith.var
+syntax:50 arith:50 " + " arith:51 : arith -- Arith.add
+syntax:60 arith:60 " * " arith:61 : arith -- Arith.mul
+syntax " ( " arith " ) "          : arith -- bracketed expressions
 
 -- Auxiliary notation for translating `arith` into `term`
 syntax " ⟪ " arith " ⟫ " : term
@@ -164,19 +164,19 @@ macro_rules
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
 
 #check ⟪ "x" * "y" ⟫
--- Arith.mul (Arith.symbol "x") (Arith.symbol "y")
+-- Arith.mul (Arith.var "x") (Arith.var "y") : Arith
 
 #check ⟪ "x" + "y" ⟫
--- Arith.add (Arith.symbol "x") (Arith.symbol "y") 
+-- Arith.add (Arith.var "x") (Arith.var "y") : Arith
 
 #check ⟪ "x" + 20 ⟫
--- Arith.add (Arith.symbol "x") (Arith.int 20)
+-- Arith.add (Arith.var "x") (Arith.nat 20) : Arith
 
 #check ⟪ "x" + "y" * "z" ⟫ -- precedence
--- Arith.add (Arith.symbol "x") (Arith.mul (Arith.symbol "y") (Arith.symbol "z"))
+-- Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith
 
 #check ⟪ "x" * "y" + "z" ⟫ -- precedence
--- Arith.add (Arith.mul (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
+-- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
 -- Arith.mul (Arith.add (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
