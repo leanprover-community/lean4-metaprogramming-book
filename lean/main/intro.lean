@@ -95,7 +95,7 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
   liftTermElabM `assertTypeCmd
     try
       let tp ← elabType typeStx
-      let tm ← elabTermEnsuringType termStx tp
+      discard $ elabTermEnsuringType termStx tp
       synthesizeSyntheticMVarsNoPostponing
       logInfo "success"
     catch | _ => throwError "failure"
@@ -112,8 +112,9 @@ use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
 syntax nodes `typeStx` and `termStx`.
 
 First we elaborate the expected type `tp : Expr` and then we use it to elaborate
-the term `tm : Expr`, which should have the type `tp` otherwise an error will be
-thrown.
+the term expression, which should have the type `tp` otherwise an error will be
+thrown. The term expression itself doesn't matter to us here, as we're calling
+`elabTermEnsuringType` as a sanity check.
 
 We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
 elaborate metavariables right away. Without that line, `#assertType 5  : ?_`
@@ -185,8 +186,11 @@ macro_rules
 ### Writing our own tactic
 
 Let's create a tactic that adds a new hypothesis to the context with a given
-name and postpones the need for its proof to the very end. It's going to be
-called `suppose` and is used like this:
+name and postpones the need for its proof to the very end. It's similar to
+the `suffices` tactic from Lean 3, except that we want to make sure that the new
+goal goes to the bottom of the goal list.
+
+It's going to be called `suppose` and is used like this:
 
 `suppose <name> : <type>`
 

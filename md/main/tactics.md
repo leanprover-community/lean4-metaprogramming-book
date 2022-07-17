@@ -109,7 +109,7 @@ syntax tactic " and_then " tactic : tactic
 --    into running `a`, and then running `b` on all goals produced by `a`.
 macro_rules
 | `(tactic| $a:tactic and_then $b:tactic) =>
-    `(tactic| { $a:tactic; all_goals $b:tactic })
+    `(tactic| $a:tactic; all_goals $b:tactic)
 
 -- 3. We test this tactic.
 theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
