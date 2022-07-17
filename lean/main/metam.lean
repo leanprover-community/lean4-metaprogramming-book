@@ -1110,7 +1110,7 @@ example (h : α → β) (a : α) : β := by
 Many tactics naturally require backtracking: the ability to go back to a
 previous state, as if the tactic had never been executed. A few examples:
 
-- `t <|> u` first executes `t`. If `t` fails, it backtracks and executes `u`.
+- `first | t | u` first executes `t`. If `t` fails, it backtracks and executes `u`.
 - `try t` executes `t`. If `t` fails, it backtracks to the initial state,
   erasing any changes made by `t`.
 - `trivial` attempts to solve the goal using a number of simple tactics
