@@ -1,19 +1,18 @@
 name: Book
 
 on:
-  pull_request:
   push:
     branches:
       - master
 
 jobs:
   book:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
 
     - name: Install Dependencies
-      run: brew install pandoc mactex-no-gui homebrew/homebrew-cask-fonts/font-dejavu pygments
+      run: sudo apt install -y pandoc texlive-latex-base texlive-latex-extra texlive-latex-recommended texlive-luatex fonts-dejavu python3-pygments
 
     - name: Download the Book Template
       run: |
@@ -26,27 +25,17 @@ jobs:
 
     - name: Build a PDF
       # Running twice appears to be necessary to not get a blank TOC?!
-      run: /Library/TeX/texbin/lualatex -shell-escape out.tex && /Library/TeX/texbin/lualatex -shell-escape out.tex
+      run: lualatex -shell-escape out.tex && lualatex -shell-escape out.tex
 
     - name: Rename
+      # Minted doesn't like filenames with spaces in them unfortunately, so we mv.
       run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
 
-    - name: Delete old release assets
-      uses: mknejp/delete-release-assets@v1
+    - uses: "marvinpinto/action-automatic-releases@latest"
       with:
-        token: ${{ github.token }}
-        tag: latest
-        fail-if-no-assets: false
-        fail-if-no-release: false
-        assets: |
-          *.tex
-          *.pdf
-
-    - name: Upload Outputs
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: latest
-        generate_release_notes: true
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        title: "Metaprogramming in Lean 4"
         files: |
           Metaprogramming in Lean 4.tex
           Metaprogramming in Lean 4.pdf

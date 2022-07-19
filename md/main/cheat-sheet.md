@@ -52,7 +52,7 @@ let goal_type := goal_decl.type
 
 * Print a "permanent" message in normal usage:
 
-  `Lean.Elab.logInfo f!"Hi, I will print\n{Syntax}"`
+  `Lean.logInfo f!"Hi, I will print\n{Syntax}"`
 * Print a message while debugging:
 
   `dbg_trace f!"1) goal: {Syntax_that_will_be_interpreted}"`.

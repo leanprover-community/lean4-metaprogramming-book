@@ -1,6 +1,4 @@
-import Lean
-open Lean PrettyPrinter Delaborator SubExpr
-/-! # Pretty Printing
+/- # Pretty Printing
 The pretty printer is what Lean uses to present terms that have been
 elaborated to the user. This is done by converting the `Expr`s back into
 `Syntax` and then even higher level pretty printing datastructures. This means
@@ -44,6 +42,10 @@ this name has to start with the name of an `Expr` constructor, most commonly
 constant we want to delaborate. For example, if we want to delaborate a function
 `foo` in a special way we would use `app.foo`. Let's see this in action:
 -/
+
+import Lean
+
+open Lean PrettyPrinter Delaborator SubExpr
 
 def foo : Nat → Nat := fun x => 42
 
@@ -160,6 +162,12 @@ macro_rules
   | `([Lang| $x:ident]) => `(LangExpr.ident $(Lean.quote (toString x.getId)))
   | `([Lang| let $x:ident := $v:lang in $b:lang]) => `(LangExpr.letE $(Lean.quote (toString x.getId)) [Lang| $v] [Lang| $b])
 
+instance : Coe NumLit (TSyntax `lang) where
+  coe s := ⟨s.raw⟩
+
+instance : Coe Ident (TSyntax `lang) where
+  coe s := ⟨s.raw⟩
+
 -- LangExpr.letE "foo" (LangExpr.numConst 12)
 --   (LangExpr.letE "bar" (LangExpr.ident "foo") (LangExpr.ident "foo")) : LangExpr
 #check [Lang|
@@ -181,21 +189,17 @@ def unexpandNumConst : Unexpander
 @[appUnexpander LangExpr.ident]
 def unexpandIdent : Unexpander
   | `(LangExpr.ident $x:str) =>
-    if let some str := x.isStrLit? then
-      let name := mkIdent $ Name.mkSimple str
-      `([Lang| $name])
-    else
-      throw ()
+    let str := x.getString
+    let name := mkIdent $ Name.mkSimple str
+    `([Lang| $name])
   | _ => throw ()
 
 @[appUnexpander LangExpr.letE]
 def unexpandLet : Unexpander
   | `(LangExpr.letE $x:str [Lang| $v:lang] [Lang| $b:lang]) =>
-    if let some str := x.isStrLit? then
-      let name := mkIdent $ Name.mkSimple str
-      `([Lang| let $name := $v in $b])
-    else
-      throw ()
+    let str := x.getString
+    let name := mkIdent $ Name.mkSimple str
+    `([Lang| let $name := $v in $b])
   | _ => throw ()
 
 -- [Lang| let foo := 12 in foo] : LangExpr

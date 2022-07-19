@@ -18,9 +18,9 @@ understanding of monadic programming.
 
 ## Book structure
 
-The book is organized in a way to build up enough content for the two last
-chapters, which cover DSLs and tactics respectively. If we backtrack the
-pre-requisites for each chapter, the following structure:
+The book is organized in a way to build up enough content for the chapters that
+cover DSLs and tactics. Backtracking the pre-requisites for each chapter, the
+dependency structure is as follows:
 
 * "Tactics" builds on top of "Macros" and "Elaboration"
 * "DSLs" builds on top of "Elaboration"
@@ -28,10 +28,13 @@ pre-requisites for each chapter, the following structure:
 * "Elaboration" builds on top of "`Syntax`" and "`MetaM`"
 * "`MetaM`" builds on top of "Expressions"
 
-The last chapter is a cheat-sheet containing a wrap-up of key concepts and
-functions. The rest of this chapter is a gentle introduction for what
-metaprogramming is, offering some small examples to serve as appetizers for what
-the book shall cover. 
+After the chapter on tactics, you find a cheat-sheet containing a wrap-up of key
+concepts and functions. And after that, There are some chapters with extra
+content, showing other applications of metaprogramming in Lean 4.
+
+The rest of this chapter is a gentle introduction for what metaprogramming is,
+offering some small examples to serve as appetizers for what the book shall
+cover. 
 
 ## What does it mean to be in meta?
 
@@ -88,11 +91,11 @@ Let's see the code:
 import Lean
 
 elab "#assertType " termStx:term " : " typeStx:term : command =>
-  open Lean.Elab Command Term in
+  open Lean Lean.Elab Command Term in
   liftTermElabM `assertTypeCmd
     try
       let tp ← elabType typeStx
-      let tm ← elabTermEnsuringType termStx tp
+      discard $ elabTermEnsuringType termStx tp
       synthesizeSyntheticMVarsNoPostponing
       logInfo "success"
     catch | _ => throwError "failure"
@@ -109,8 +112,9 @@ use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
 syntax nodes `typeStx` and `termStx`.
 
 First we elaborate the expected type `tp : Expr` and then we use it to elaborate
-the term `tm : Expr`, which should have the type `tp` otherwise an error will be
-thrown.
+the term expression, which should have the type `tp` otherwise an error will be
+thrown. The term expression itself doesn't matter to us here, as we're calling
+`elabTermEnsuringType` as a sanity check.
 
 We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
 elaborate metavariables right away. Without that line, `#assertType 5  : ?_`
@@ -136,18 +140,18 @@ inductive Arith : Type where
   | var : String → Arith        -- variable
 
 /-! Now we declare a syntax category to describe the grammar that we will be
-parsing. Notice that we control the precedence of `+` and `*` by writing
-`syntax:75` for multiplication indicating that multiplication binds tighter than
-addition (the higher the number, the tighter the binding). This allows us to
-declare _precedence_ when defining new syntax.
+parsing. Notice that we control the precedence of `+` and `*` by giving a lower
+precedence weight to the `+` syntax than to the `*` syntax indicating that
+multiplication binds tighter than addition (the higher the number, the tighter
+the binding). This allows us to declare _precedence_ when defining new syntax.
 -/
 
 declare_syntax_cat arith
-syntax num                  : arith -- nat for Arith.nat
-syntax str                  : arith -- strings for Arith.var
-syntax arith " + " arith    : arith -- Arith.add
-syntax:75 arith " * " arith : arith -- Arith.mul
-syntax " ( " arith " ) "    : arith -- bracketed expressions
+syntax num                        : arith -- nat for Arith.nat
+syntax str                        : arith -- strings for Arith.var
+syntax:50 arith:50 " + " arith:51 : arith -- Arith.add
+syntax:60 arith:60 " * " arith:61 : arith -- Arith.mul
+syntax " ( " arith " ) "          : arith -- bracketed expressions
 
 -- Auxiliary notation for translating `arith` into `term`
 syntax " ⟪ " arith " ⟫ " : term
@@ -161,19 +165,19 @@ macro_rules
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
 
 #check ⟪ "x" * "y" ⟫
--- Arith.mul (Arith.symbol "x") (Arith.symbol "y")
+-- Arith.mul (Arith.var "x") (Arith.var "y") : Arith
 
 #check ⟪ "x" + "y" ⟫
--- Arith.add (Arith.symbol "x") (Arith.symbol "y") 
+-- Arith.add (Arith.var "x") (Arith.var "y") : Arith
 
 #check ⟪ "x" + 20 ⟫
--- Arith.add (Arith.symbol "x") (Arith.int 20)
+-- Arith.add (Arith.var "x") (Arith.nat 20) : Arith
 
 #check ⟪ "x" + "y" * "z" ⟫ -- precedence
--- Arith.add (Arith.symbol "x") (Arith.mul (Arith.symbol "y") (Arith.symbol "z"))
+-- Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith
 
 #check ⟪ "x" * "y" + "z" ⟫ -- precedence
--- Arith.add (Arith.mul (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
+-- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
 -- Arith.mul (Arith.add (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
@@ -182,8 +186,11 @@ macro_rules
 ### Writing our own tactic
 
 Let's create a tactic that adds a new hypothesis to the context with a given
-name and postpones the need for its proof to the very end. It's going to be
-called `suppose` and is used like this:
+name and postpones the need for its proof to the very end. It's similar to
+the `suffices` tactic from Lean 3, except that we want to make sure that the new
+goal goes to the bottom of the goal list.
+
+It's going to be called `suppose` and is used like this:
 
 `suppose <name> : <type>`
 
@@ -229,7 +236,7 @@ They behave a bit differently though, as we can see below:
 
 elab "traces" : tactic => do
   let array := List.replicate 2 (List.range 3)
-  Lean.Elab.logInfo m!"logInfo: {array}"
+  Lean.logInfo m!"logInfo: {array}"
   dbg_trace f!"dbg_trace: {array}"
 
 example : True := by -- `example` is underlined in blue, outputting:

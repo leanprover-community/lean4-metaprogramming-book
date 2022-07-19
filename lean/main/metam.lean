@@ -28,6 +28,433 @@ import Lean
 open Lean Lean.Expr Lean.Meta
 
 /-!
+## Metavariables
+
+### Overview
+
+The 'Meta' in `MetaM` refers to metavariables, so we should talk about these
+first. Lean users do not usually interact much with metavariables -- at least
+not consciously -- but they are used all over the place in metaprograms. There
+are two ways to view them: as holes in an expression or as goals.
+
+Take the goal perspective first. When we prove things in Lean, we always operate
+on goals, such as
+
+```lean
+n m : Nat
+⊢ n + m = m + n
+```
+
+These goals are internally represented by metavariables. Accordingly, each
+metavariable has a *local context* containing hypotheses (here `[n : Nat, m :
+Nat]`) and a *target type* (here `n + m = m + n`). Metavariables also have a
+unique name, say `m`, and we usually render them as `?m`.
+
+To close a goal, we must give an expression `e` of the target type. The
+expression may contain fvars from the metavariable's local context, but no
+others. Internally, closing a goal in this way corresponds to *assigning* the
+metavariable; we write `?m := e` for this assignment.
+
+The second, complementary view of metavariables is that they represent holes
+in an expression. For instance, an application of `Eq.trans` may generate two
+goals which look like this:
+
+```lean
+n m : Nat
+⊢ n = ?x
+
+n m : Nat
+⊢ ?x = m
+```
+
+Here `?x` is another metavariable -- a hole in the target types of both goals,
+to be filled in later during the proof. The type of `?x` is `Nat` and its local
+context is `[n : Nat, m : Nat]`. Now, if we solve the first goal by reflexivity,
+then `?x` must be `n`, so we assign `?x := n`. Crucially, this also affects the
+second goal: it is "updated" (not really, as we will see) to have target `n =
+m`. The metavariable `?x` represents the same expression everywhere it occurs.
+
+
+### Tactic Communication via Metavariables
+
+Tactics use metavariables to communicate the current goals. To see how, consider
+this simple (and slightly artificial) proof:
+-/
+
+example {α} (a : α) (f : α → α) (h : ∀ a, f a = a) : f (f a) = a := by
+  apply Eq.trans
+  apply h
+  apply h
+
+/-!
+After we enter tactic mode, our ultimate goal is to generate an expression of
+type `f (f a) = a` which may involve the hypotheses `α`, `a`, `f` and `h`. So
+Lean generates a metavariable `?m1` with target `f (f a) = a` and a local
+context containing these hypotheses. This metavariable is passed to the first
+`apply` tactic as the current goal.
+
+The `apply` tactic then tries to apply `Eq.trans` and succeeds, generating three
+new metavariables:
+
+```lean
+...
+⊢ f (f a) = ?b
+
+...
+⊢ ?b = a
+
+...
+⊢ α
+```
+
+Call these metavariables `?m2`, `?m3` and `?b`. The last one, `?b`, stands for
+the intermediate element of the transitivity proof and occurs in `?m2` and
+`?m3`. The local contexts of all metavariables in this proof are the same, so
+we omit them.
+
+Having created these metavariables, `apply` assigns
+
+```lean
+?m1 := @Eq.trans α (f (f a)) ?b a ?m2 ?m3
+```
+
+and reports that `?m2`, `?m3` and `b` are now the current goals.
+
+At this point the second `apply` tactic takes over. It receives `?m2` as the
+current goal and applies `h` to it. This succeeds and the tactic assigns `?m2 :=
+h (f a)`. This assignment implies that `?b` must be `f a`, so the tactic also
+assigns `?b := f a`. Assigned metavariables are not considered open goals, so
+the only goal that remains is `?m3`.
+
+Now the third `apply` comes in. Since `?b` has been assigned, the target of
+`?m3` is now `f (f a) = a`. Again, the application of `h` succeeds and the
+tactic assigns `?m3 := h a`.
+
+At this point, all metavariables are assigned as follows:
+
+```lean
+?m1 := @Eq.trans α (f (f a)) ?b a ?m2 ?m3
+?m2 := h (f a)
+?m3 := h a
+?b  := f a
+```
+
+Exiting the `by` block, Lean constructs the final proof term by taking the
+assignment of `?m1` and replacing each metavariable with its assignment. This
+yields
+
+```lean
+@Eq.trans α (f (f a)) (f a) a (h (f a)) (h a)
+```
+
+The example also shows how the two views of metavariables -- as holes in an
+expression or as goals -- are related: the goals we get are holes in the final
+proof term.
+
+
+### Basic Operations
+
+Let us make these concepts concrete. When we operate in the `MetaM` monad, we
+have read-write access to a `MetavarContext` structure containing information
+about the currently declared metavariables. Each metavariable is identified by
+an `MVarId` (a unique `Name`). To create a new metavariable, we use
+`Lean.Meta.mkFreshExprMVar` with type
+
+```lean
+mkFreshExprMVar (type? : Option Expr) (kind := MetavarKind.natural)
+    (userName := Name.anonymous) : MetaM Expr
+```
+
+Its arguments are:
+
+- `type?`: the target type of the new metavariable. If `none`, the target type
+  is `Sort ?u`, where `?u` is a universe level metavariable. (This is a special
+  class of metavariables for universe levels, distinct from the expression
+  metavariables which we have been calling simply "metavariables".)
+- `kind`: the metavariable kind. See the [Metavariable Kinds
+  section](#metavariable-kinds) (but the default is usually correct).
+- `userName`: the new metavariable's user-facing name. This is what gets printed
+  when the metavariable appears in a goal. Unlike the `MVarId`, this name does
+  not need to be unique.
+
+The returned `Expr` is always a metavariable. We can use `Lean.Expr.mvarId!` to
+extract the `MVarId`, which is guaranteed to be unique. (Arguably
+`mkFreshExprMVar` should just return the `MVarId`.)
+
+The local context of the new metavariable is inherited from the current local
+context, more about which in the next section. If you want to give a different
+local context, use `Lean.Meta.mkFreshExprMVarAt`.
+
+Metavariables are initially unassigned. To assign them, use
+`Lean.Meta.assignExprMVar` with type
+
+```lean
+assignExprMVar (mvarId : MVarId) (val : Expr) : MetaM Unit
+```
+
+This updates the `MetavarContext` with the assignment `?mvarId := val`. You must
+make sure that `mvarId` is not assigned yet (or that the old assignment is
+definitionally equal to the new assignment). You must also make sure that the
+assigned value, `val`, has the right type. This means (a) that `val` must have
+the target type of `mvarId` and (b) that `val` must only contain fvars from the
+local context of `mvarId`.
+
+To get information about a declared metavariable, use `Lean.Meta.getMVarDecl`.
+Given an `MVarId`, this returns a `MetavarDecl` structure. (If no metavariable
+with the given `MVarId` is declared, the function throws an exception.) The
+`MetavarDecl` contains information about the metavariable, e.g. its type, local
+context and user-facing name. This function has some convenient variants, such
+as `Lean.Meta.getMVarType`.
+
+To get the current assignment of a metavariable (if any), use
+`Lean.Meta.getExprMVarAssignment?`. To check whether a metavariable is assigned,
+use `Lean.Meta.isExprMVarAssigned`. However, these functions are relatively
+rarely used in tactic code because we usually prefer a more powerful operation:
+`Lean.Meta.instantiateMVars` with type
+
+```lean
+instantiateMVars : Expr → MetaM Expr
+```
+
+Given an expression `e`, `instantiateMVars` replaces any assigned metavariable
+`?m` in `e` with its assigned value. Unassigned metavariables remain as they
+are.
+
+This operation should be used liberally. When we assign a metavariable, existing
+expressions containing this metavariable are not immediately updated. This is a
+problem when, for example, we match on an expression to check whether it is an
+equation. Without `instantiateMVars`, we might miss the fact that the expression
+`?m`, where `?m` happens to be assigned to `0 = n`, represents an equation. In
+other words, `instantiateMVars` brings our expressions up to date with the
+current metavariable state.
+
+Instantiating metavariables requires a full traversal of the input expression,
+so it can be somewhat expensive. But if the input expression does not contain
+any metavariables, `instantiateMVars` is essentially free. Since this is the
+common case, liberal use of `instantiateMVars` is fine in most situations.
+
+Before we go on, here is a synthetic example demonstrating how the basic
+metavariable operations are used. More natural examples appear in the following
+sections.
+-/
+
+#eval show MetaM Unit from do
+  -- Create two fresh metavariables of type `Nat`.
+  let mvar1 ← mkFreshExprMVar (mkConst ``Nat) (userName := `mvar1)
+  let mvar2 ← mkFreshExprMVar (mkConst ``Nat) (userName := `mvar2)
+  -- Create a fresh metavariable of type `Nat → Nat`. The `mkArrow` function
+  -- creates a function type.
+  let mvar3 ← mkFreshExprMVar (← mkArrow (mkConst ``Nat) (mkConst ``Nat))
+    (userName := `mvar3)
+
+  -- Define a helper function that prints each metavariable.
+  let printMVars : MetaM Unit := do
+    IO.println s!"  meta1: {← instantiateMVars mvar1}"
+    IO.println s!"  meta2: {← instantiateMVars mvar2}"
+    IO.println s!"  meta3: {← instantiateMVars mvar3}"
+
+  IO.println "Initially, all metavariables are unassigned:"
+  printMVars
+
+  -- Assign `mvar1 : Nat := ?mvar3 ?mvar2`.
+  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
+  IO.println "After assigning mvar1:"
+  printMVars
+
+  -- Assign `mvar2 : Nat := 0`.
+  assignExprMVar mvar2.mvarId! (mkConst ``Nat.zero)
+  IO.println "After assigning mvar2:"
+  printMVars
+
+  -- Assign `mvar3 : Nat → Nat := Nat.succ`.
+  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
+  IO.println "After assigning mvar3:"
+  printMVars
+-- Initially, all metavariables are unassigned:
+--   meta1: ?_uniq.1
+--   meta2: ?_uniq.2
+--   meta3: ?_uniq.3
+-- After assigning mvar1:
+--   meta1: ?_uniq.3 ?_uniq.2
+--   meta2: ?_uniq.2
+--   meta3: ?_uniq.3
+-- After assigning mvar2:
+--   meta1: ?_uniq.3 Nat.zero
+--   meta2: Nat.zero
+--   meta3: ?_uniq.3
+-- After assigning mvar3:
+--   meta1: Nat.succ Nat.zero
+--   meta2: Nat.zero
+--   meta3: Nat.succ
+
+
+/-!
+### Local Contexts
+
+Consider the expression `e` which refers to the free variable with unique name
+`h`:
+
+```lean
+e := mkFVar (FVarId.mk `h)
+```
+
+What is the type of this expression? The answer depends on the local context in
+which `e` is interpreted. One local context may declare that `h` is a local
+hypothesis of type `Nat`; another local context may declare that `h` is a local
+definition with value `List.map`.
+
+Thus, expressions are only meaningful if they are interpreted in the local
+context for which they were intended. And as we saw, each metavariable has its
+own local context. So in principle, functions which manipulate expressions
+should have an additional `MVarId` argument specifying the goal in which the
+expression should be interpreted.
+
+That would be cumbersome, so Lean goes a slightly different route. In `MetaM`,
+we always have access to an ambient `LocalContext`, obtained with `Lean.getLCtx`
+of type
+
+```lean
+getLCtx : MetaM LocalContext -- real type is more general
+```
+
+All operations involving fvars use this ambient local context.
+
+The downside of this setup is that we always need to update the ambient local
+context to match the goal we are currently working on. To do this, we use
+`Lean.Meta.withMVarContext` of type (again specialized)
+
+```lean
+withMVarContext (mvarId : MVarId) (c : MetaM α) : MetaM α
+```
+
+This function takes a metavariable `mvarId` and a `MetaM` computation `c` and
+executes `c` with the ambient context set to the local context of `mvarId`. A
+typical use case looks like this:
+
+```lean
+def someTactic (mvarId : MVarId) ... : ... :=
+  withMVarContext mvarId do
+    ...
+```
+
+The tactic receives the current goal as the metavariable `mvarId` and
+immediately sets the current local context. Any operations within the `do` block
+then use the local context of `mvarId`.
+
+Once we have the local context properly set, we can manipulate fvars. Like
+metavariables, fvars are identified by an `FVarId` (a unique `Name`). Basic
+operations include:
+
+- `Lean.Meta.getLocalDecl : FVarId → MetaM LocalDecl` retrieves the declaration
+  of a local hypothesis. As with metavariables, a `LocalDecl` contains all
+  information pertaining to the local hypothesis, e.g. its type and its
+  user-facing name.
+- `Lean.Meta.getLocalDeclFromUserName : Name → MetaM LocalDecl` retrieves the
+  declaration of the local hypothesis with the given user-facing name. If there
+  are multiple such hypotheses, the bottommost one is returned. If there is
+  none, an exception is thrown.
+
+We can also iterate over all hypotheses in the local context, using the `ForIn`
+instance of `LocalContext`. A typical pattern is this:
+
+```lean
+for ldecl in ← getLCtx do
+  if ldecl.isAuxDecl then
+    continue
+  -- do something with the ldecl
+```
+
+The loop iterates over every `LocalDecl` in the context. The `isAuxDecl` check
+skips so-called auxiliary declarations. These are local hypotheses which are
+inserted by the equation compiler, are invisible to the user and must be ignored
+by tactics.
+
+At this point, we can build the `MetaM` part of an `assumption` tactic:
+-/
+
+def myAssumption (mvarId : MVarId) : MetaM Bool := do
+  -- Check that `mvarId` is not already assigned.
+  checkNotAssigned mvarId `myAssumption
+  -- Use the local context of `mvarId`.
+  withMVarContext mvarId do
+    -- The target is the type of `mvarId`.
+    let target ← getMVarType mvarId
+    -- For each hypothesis in the local context:
+    for ldecl in ← getLCtx do
+      -- If the hypothesis is an auxiliary declaration, skip it.
+      if ldecl.isAuxDecl then
+        continue
+      -- If the type of the hypothesis is definitionally equal to the target
+      -- type:
+      if ← isDefEq ldecl.type target then
+        -- Use the local hypothesis to prove the goal.
+        assignExprMVar mvarId ldecl.toExpr
+        -- Stop and return true.
+        return true
+    -- If we have not found any suitable local hypothesis, return false.
+    return false
+
+/-
+The `myAssumption` tactic contains three functions we have not seen before:
+
+- `Lean.Meta.checkNotAssigned` checks that a metavariable is not already
+  assigned. The 'myAssumption' argument is the name of the current tactic. It is
+  used to generate a nicer error message.
+- `Lean.Meta.isDefEq` checks whether two definitions are definitionally equal.
+  See the [Definitional Equality section](#definitional-equality).
+- `Lean.LocalDecl.toExpr` is a helper function which constructs the expression
+  corresponding to a local hypothesis.
+
+
+### Delayed Assignments
+
+The above discussion of metavariable assignment contains a lie by omission:
+there are actually two ways to assign a metavariable. We have seen the regular
+way; the other way is called a *delayed assignment*.
+
+We do not discuss delayed assignments in any detail here since they are rarely
+useful for tactic writing. If you want to learn more about them, see the
+comments in `MetavarContext.lean` in the Lean standard library. But they create
+two complications which you should be aware of.
+
+First, delayed assignments make `isExprMVarAssigned` and
+`getExprMVarAssignment?` medium-calibre footguns. These functions only check for
+regular assignments, so you may need to use `Lean.Meta.isMVarDelayedAssigned`
+and `Lean.Meta.getDelayedMVarAssignment?` as well.
+
+Second, delayed assignments break an intuitive invariant. You may have assumed
+that any metavariable which remains in the output of `instantiateMVars` is
+unassigned, since the assigned metavariables have been substituted. But delayed
+metavariables can only be substituted once their assigned value contains no
+unassigned metavariables. So delayed-assigned metavariables can appear in an
+expression even after `instantiateMVars`.
+
+
+### Metavariable Depth
+
+Metavariable depth is also a niche feature, but one that is occasionally useful.
+Any metavariable has a *depth* (a natural number), and a `MetavarContext` has a
+corresponding depth as well. Lean only assigns a metavariable if its depth is
+equal to the depth of the current `MetavarContext`. Newly created metavariables
+inherit the `MetavarContext`'s depth, so by default every metavariable is
+assignable.
+
+This setup can be used when a tactic needs some temporary metavariables and also
+needs to make sure that other, non-temporary metavariables will not be assigned.
+To ensure this, the tactic proceeds as follows:
+
+1. Save the current `MetavarContext`.
+2. Increase the depth of the `MetavarContext`.
+3. Perform whatever computation is necessary, possibly creating and assigning
+   metavariables. Newly created metavariables are at the current depth of the
+   `MetavarContext` and so can be assigned. Old metavariables are at a lower
+   depth, so cannot be assigned.
+4. Restore the saved `MetavarContext`, thereby erasing all the temporary
+   metavariables and resetting the `MetavarContext` depth.
+
+This pattern is encapsulated in `Lean.Meta.withNewMCtxDepth`.
+
+
 ## Computation
 
 Computation is a core concept of dependent type theory. The terms `2`, `Nat.succ
@@ -59,10 +486,10 @@ We can use it like this:
 def someNumber : Nat := (· + 2) $ 3
 
 #eval mkConst ``someNumber
--- Lean.Expr.const `someNumber [] (...)
+-- Lean.Expr.const `someNumber []
 
 #eval reduce (mkConst ``someNumber)
--- Lean.Expr.lit (Lean.Literal.natVal 5) (...)
+-- Lean.Expr.lit (Lean.Literal.natVal 5)
 
 /-!
 Incidentally, this shows that the normal form of a term of type `Nat` is not
@@ -124,19 +551,30 @@ abbrev             reducibleDef   : Nat      := defaultDef + 1
 #eval traceConstWithTransparency .reducible ``reducibleDef
 -- defaultDef + 1
 
+/-!
+Note that with `TransparencyMode.instances`, an instance of `HAdd Nat Nat`,
+which is used for the `+` notation, has also been unfolded:
+-/
+
+-- the instance to be unfolded, `@instHAdd Nat instAddNat`,
+-- can be seen when we pretty-print the implicit arguments below:
+set_option pp.explicit true
+#eval traceConstWithTransparency .reducible ``reducibleDef
+-- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef 1
+set_option pp.explicit false
+
 #eval traceConstWithTransparency .instances ``reducibleDef
 -- Nat.add defaultDef 1
 
 /-!
-Note that the instance `HAdd Nat Nat`, which is used for the `+` notation,
-has also been unfolded.
+With `TransparencyMode.default`, the `Nat.add` function is unfolded as well:
 -/
 
 #eval traceConstWithTransparency .default ``reducibleDef
 -- Nat.succ (Nat.succ irreducibleDef)
 
 /-!
-Here the `Nat.add` function has been unfolded as well.
+And with `TransparencyMode.all`, we're finally able to unfold `irreducibleDef`:
 -/
 
 #eval traceConstWithTransparency .all ``reducibleDef
@@ -157,9 +595,10 @@ appropriate transparency for each operation that involves normalisation.
 Transparency addresses some of the performance issues with normalisation. But
 even more important is to recognise that for many purposes, we don't need to
 fully normalise terms at all. Suppose we are building a tactic that
-automatically splits hypotheses of the form `P ∧ Q`. We might want this tactic
-to recognise a hypothesis `h : X` if `X` is defined as `P ∧ Q ∧ R`. But if `P`
-is additionally defined as `Y ∨ Z`, the specific `Y` and `Z` do not concern us.
+automatically splits hypotheses of the type `P ∧ Q`. We might want this tactic
+to recognise a hypothesis `h : X` if `X` reduces to `P ∧ Q`. But if `P`
+additionally reduces to `Y ∨ Z`, the specific `Y` and `Z` do not concern us:
+it's unnecessary extra computation that does not need to happen.
 
 This situation is so common that the fully normalising `reduce` is in fact
 rarely used. Instead, the normalisation workhorse of Lean is `whnf`, which
@@ -172,15 +611,13 @@ form
 e = f x₁ ... xₙ   (n ≥ 0)
 ```
 
-and `f` is either irreducible (at the current transparency) or is applied to too
-few arguments. To conveniently check the WHNF of an expression, we define a
-function `whnf'` which uses some advanced tech; don't worry about its
-implementation for now.
+and `f` cannot be reduced (at the current transparency). To conveniently check
+the WHNF of an expression, we define a function `whnf'` which uses some advanced
+tech; don't worry about its implementation for now.
 -/
 
 open Lean.Elab.Term in
-def whnf' (e : TermElabM Syntax) (md := TransparencyMode.default) :
-    TermElabM Format := do
+def whnf' (e : TermElabM Syntax) : TermElabM Format := do
   let e ← elabTermAndSynthesize (← e) none
   ppExpr (← whnf e)
 
@@ -201,19 +638,12 @@ The *arguments* of an application in WHNF may or may not be in WHNF themselves:
 -- [1 + 1]
 
 /-!
-Functions applied to too few arguments are in WHNF:
--/
-
-#eval whnf' `(Nat.add 1)
--- Nat.add 1
-
-/-!
 Applications of constants are in WHNF if the current transparency does not
 allow us to unfold the constants:
 -/
 
-#eval withTransparency .reducible $ whnf' `(Nat.add 1 1)
--- Nat.add 1 1
+#eval withTransparency .reducible $ whnf' `(List.append [1] [2])
+-- List.append [1] [2]
 
 /-!
 Lambdas are in WHNF:
@@ -253,33 +683,25 @@ h 0 1   -- Assuming `h` is a local hypothesis, it is in WHNF.
 
 On the flipside, here are some expressions that are not in WHNF.
 
-Functions applied to all their arguments are not in WHNF:
+Applications of constants are not in WHNF:
 -/
 
-#eval whnf' `(Nat.add 1 1)
--- `Nat.succ (Nat.add 1 0)`
+#eval whnf' `(List.append [1])
+-- fun x => 1 :: List.append [] x
+
+/-!
+Applications of lambdas are not in WHNF:
+-/
+
+#eval whnf' `((λ x y : Nat => x + y) 1)
+-- `fun y => 1 + y`
 
 /-!
 `let` bindings are not in WHNF:
 -/
 
 #eval whnf' `(let x : Nat := 1; x)
--- `1`
-
-/-!
-Applications of lambdas are not in WHNF:
--/
-
-#eval whnf' `((λ x : Nat => x) 1)
--- `1`
-
-/-!
-Even when a lambda is applied to too few arguments, the application is not in
-WHNF:
--/
-
-#eval whnf' `((λ x y : Nat => x + y) 1)
--- `fun y => 1 + y`
+-- 1
 
 /-!
 And again some tricky examples:
@@ -292,14 +714,14 @@ h 0 1  -- Assuming `h` is a local definition (e.g. with value `Nat.add`), its
 ```
 
 Returning to the tactic that motivated this section, let us write a function
-that matches a type of the form `P ∧ Q`, taking computation into account. WHNF
+that matches a type of the form `P ∧ Q`, avoiding extra computation. WHNF
 makes it easy:
 -/
 
 def matchAndReducing (e : Expr) : MetaM (Option (Expr × Expr)) := do
   let e ← whnf e
   match e with
-  | (.app (.app (.const ``And _ _) P _) Q _) => return some (P, Q)
+  | (.app (.app (.const ``And _) P) Q) => return some (P, Q)
   | _ => return none
 
 /-
@@ -316,10 +738,10 @@ this uses `whnf` twice:
 def matchAndReducing₂ (e : Expr) : MetaM (Option (Expr × Expr × Expr)) := do
   let e ← whnf e
   match e with
-  | (.app (.app (.const ``And _ _) P _) e' _) =>
+  | (.app (.app (.const ``And _) P) e') =>
     let e' ← whnf e'
     match e' with
-    | (.app (.app (.const ``And _ _) Q _) R _) => return some (P, Q, R)
+    | (.app (.app (.const ``And _) Q) R) => return some (P, Q, R)
     | _ => return none
   | _ => return none
 
@@ -350,272 +772,430 @@ misfire, `isDefEq` can become very expensive. In the worst case, it may have to
 reduce `s` and `t` so often that they end up in normal form anyway. But usually
 the heuristics are good and `isDefEq` is reasonably fast.
 
+If expressions `t` and `u` contain assignable metavariables, `isDefEq` may
+assign these metavariables to make `t` defeq to `u`. We also say that `isDefEq`
+*unifies* `t` and `u`; unification queries are sometimes written `t =?= u`. For
+instance, the unification `List ?m =?= List Nat` succeeds and assigns `?m :=
+Nat`. The unification `Nat.succ ?m =?= n + 1` succeeds and assigns `?m := n`.
+The unification `?m₁ + ?m₂ + ?m₃ =?= m + n - k` fails and no metavariables
+are assigned (even though there is a 'partial match' between the expressions).
 
-## Smart constructors for expressions
+Whether `isDefEq` considers a metavariable assignable is determined by two
+factors:
 
-The `MetaM` monad provides even more smart constructors to help us build
-expressions. The API also contains functions that help us explore certain
-expressions more easily. In this chapter we will visit some of those.
+1. The metavariable's depth must be equal to the current `MetavarContext` depth.
+   See the [Metavariable Depth section](#metavariable-depth).
+2. Each metavariable has a *kind* (a value of type `MetavarKind`) whose sole
+   purpose is to modify the behaviour of `isDefEq`. Possible kinds are:
+   - Natural: `isDefEq` may freely assign the metavariable. This is the default.
+   - Synthetic: `isDefEq` may assign the metavariable, but avoids doing so if
+     possible. For example, suppose `?n` is a natural metavariable and `?s` is a
+     synthetic metavariable. When faced with the unification problem
+     `?s =?= ?n`, `isDefEq` assigns `?n` rather than `?s`.
+   - Synthetic opaque: `isDefEq` never assigns the metavariable.
 
-A typical example of an expression we work with is that for the _goal_ of a tactic. This is an expression that represents a type. The tactic may attempt to find an expression that is of that type.
-If it succeeds we can then use the expression to solve the goal. However, in `MetaM` we do not have _goals_, so in this chapter we illustrate the smart methods used to manipulate expressions.
 
-Before manipulating expressions, we look at some examples of expressions.
-To do this, let's recap the definition of `natExpr`, which gives expressions for natural numbers. -/
+## Constructing Expressions
 
-def natExpr : Nat → Expr
-  | 0     => mkConst ``Nat.zero
-  | n + 1 => mkApp (mkConst ``Nat.succ) (natExpr n)
+In the previous chapter, we saw some primitive functions for building
+expressions: `mkApp`, `mkConst` and so on. There is nothing wrong with these
+functions, but the additional facilities of `MetaM` often provide more
+convenient ways.
 
-#eval natExpr 1
--- Lean.Expr.app
---   (Lean.Expr.const `Nat.succ [] (Expr.mkData 3403344051 (bi := Lean.BinderInfo.default)))
---   (Lean.Expr.const `Nat.zero [] (Expr.mkData 3114957063 (bi := Lean.BinderInfo.default)))
---   (Expr.mkData 3354277877 (approxDepth := 1) (bi := Lean.BinderInfo.default))
 
-/-
-That's already a long expression for the natural number 1! `reduce` can simplify
-it:
+### Applications
+
+When we write regular Lean code, Lean helpfully infers many implicit arguments
+and universe levels. If it did not, our code would look rather ugly: -/
+
+def appendAppend (xs ys : List α) := (xs.append ys).append xs
+
+set_option pp.all true in
+set_option pp.explicit true in
+#print appendAppend
+-- def appendAppend.{u_1} : {α : Type u_1} → List.{u_1} α → List.{u_1} α → List.{u_1} α :=
+-- fun {α : Type u_1} (xs ys : List.{u_1} α) => @List.append.{u_1} α (@List.append.{u_1} α xs ys) xs
+
+/-!
+The `.{u_1}` suffixes are universe levels, which must be given for every
+polymorphic constant. And of course the type `α` is passed around everywhere.
+
+Exactly the same problem occurs during metaprogramming when we construct
+expressions. A hand-made expression representing the right-hand side of the
+above definition looks like this:
 -/
 
-#eval reduce $ natExpr 1
--- Lean.Expr.lit (Lean.Literal.natVal 1) (Expr.mkData 4289331193 (bi := Lean.BinderInfo.default))
+def appendAppendRHSExpr₁ (u : Level) (α xs ys : Expr) : Expr :=
+  mkAppN (mkConst ``List.append [u])
+    #[α, mkAppN (mkConst ``List.append [u]) #[α, xs, ys], xs]
 
-/-! One of the first ways to construct expressions is by function application to form the expression for `f a` given expressions for `f` and `a`. One uses various methods provided by lean 4 to do this. It is generally not a good idea to try to directly define the expression as there is associated metadata.
+/-!
+Having to specify the implicit arguments and universe levels is annoying and
+error-prone. So `MetaM` provides a helper function which allows us to omit
+implicit information: `Lean.Meta.mkAppM` of type
 
-The simple methods for constructing expressions by function application are `mkApp` and `mkAppN`. These take care of the metadata, but do not attempt to unify, for example. The `mkAppN` function takes a function and an array of arguments. The name ending with `N` here (and elsewhere) is to indicate that we (in general) have multiple (`N`) arguments. On the other hand `mkApp` applies a function to a single argument.
+```lean
+mkAppM : Name → Array Expr → MetaM Expr
+```
 
-The following example illustrates constructing examples using `mkAppN`. This
-would yield an even longer expression than the previous example, but we again
-use `reduce` to simplify it:
+Like `mkAppN`, `mkAppM` constructs an application. But `mkAppN` requires us to
+give all universe levels and implicit arguments ourselves, `mkAppM` infers them.
+This means we only need to provide the explicit arguments, which makes for a
+much shorter example:
 -/
 
-def sumExprM (n m : Nat) : MetaM Expr := do
-  reduce $ mkAppN (mkConst ``Nat.add) #[natExpr n, natExpr m]
+def appendAppendRHSExpr₂ (xs ys : Expr) : MetaM Expr := do
+  mkAppM ``List.append #[← mkAppM ``List.append #[xs, ys], xs]
 
-#eval sumExprM 2 3 --Lean.Expr.lit (Lean.Literal.natVal 5) (Expr.mkData 1441793 (bi := Lean.BinderInfo.default))
+/-!
+Note the absence of any `α`s and `u`s. There is also a variant of `mkAppM`,
+`mkAppM'`, which takes an `Expr` instead of a `Name` as the first argument,
+allowing us to construct applications of expressions which are not constants.
 
-/-! Note that the _function_ to be applied is a constant, so has an expression of the form `mkConst name`. The name was given preceded by double-backticks. This means that lean resolves this to a global name, and gives an error if it cannot be resolved. A name preceded by a single backtick is a literal name.
+However, `mkAppM` is not magic: if you write `mkAppM ``List.append #[]`, you
+will get an error at runtime. This is because `mkAppM` tries to determine what
+the type `α` is, but with no arguments given to `append`, `α` could be anything,
+so `mkAppM` fails.
+
+Another occasionally useful variant of `mkAppM` is `Lean.Meta.mkAppOptM` of type
+
+```lean
+mkAppOptM : Name → Array (Option Expr) → MetaM Expr
+```
+
+Whereas `mkAppM` always infers implicit and instance arguments and always
+requires us to give explicit arguments, `mkAppOptM` lets us choose freely which
+arguments to provide and which to infer. With this, we can, for example, give
+instances explicitly, which we use in the following example to give a
+non-standard `Ord` instance.
 -/
 
-/-! Besides function application, we would like to construct expressions using λ-expressions. 
-We next illustrate how to do this by constructing a λ-expression for the function `double : Nat → Nat` given by `double n = n + n`. 
+def revOrd : Ord Nat where
+  compare x y := compare y x
 
-To construct such an expression, we _introduce_ a free variable `n`, we define an expression in terms of this variable, and finally construct the λ-expression. 
+def ordExpr : MetaM Expr := do
+  mkAppOptM ``compare #[none, mkConst ``revOrd, mkNatLit 0, mkNatLit 1]
 
-Introducing the free variable in this context is done indirectly. Roughly speaking the following happens. 
+#eval format <$> ordExpr
+-- Ord.compare.{0} Nat revOrd
+--   (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
+--   (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
 
-* A new _context_ is constructed where the free variable is defined. 
-* We have code _within_ the context that uses the free variable; to avoid name collisions, this is a function of the expression for the free variable just introduced.
-* There is a smart method that allows us to construct a λ-expression with respect to the free variable we have just created, taking care of matching names, hygeine etc.
-* Our function working within the new context (called a _continuation_) can thus return an expression that does not depend on the free variable.
+/-!
+Like `mkAppM`, `mkAppOptM` has a primed variant `Lean.Meta.mkAppOptM'` which
+takes an `Expr` instead of a `Name` as the first argument. The file which
+contains `mkAppM` also contains various other helper functions, e.g. for making
+list literals or `sorry`s.
 
-More formally, the variable is introduced by passing the code using it as a _continuation_ to 
-`withLocalDecl`. The arguments of `withLocalDecl` are:
 
-* The name of the variable
-* The _binder_ that determines whether it is explicit or not
-* The type of the variable
-* The function that turns an expression into something else (in our case, into
-  another expression). This function does not need to be pure.
+### Lambdas and Foralls
 
-The λ-expression is constructed using `mkLambdaFVars`, with the first argument
-being an array of free variables (just one in this case) with respect to which
-we take λ. The second argument is the body of the λ-expression.
+Another common task is to construct expressions involving `λ` or `∀` binders.
+Suppose we want to create the expression `λ (x : Nat), Nat.add x x`. One way is
+to write out the lambda directly:
 -/
 
-def doubleM : MetaM Expr :=
-  withLocalDecl `n BinderInfo.default (mkConst ``Nat)
-    fun n : Expr => mkLambdaFVars #[n] $ mkAppN (mkConst ``Nat.add) #[n, n] 
+def doubleExpr₁ : Expr :=
+  mkLambda `x BinderInfo.default (mkConst ``Nat)
+    (mkAppN (mkConst ``Nat.add) #[mkBVar 0, mkBVar 0])
 
-/- We used `n` in two independent ways in the above expression. The first is simply as 
-a name to be used in the body of the λ-expression. The second is as the name of the expression for the free variable created. We could have replaced one of them, or even used `Name.anonymous` for the first occurence.
+#eval ppExpr doubleExpr₁
+-- fun x => Nat.add x x
 
-Let's check if `doubleM` can indeed compute the expression for `n + n` -/
+/-!
+This works, but the use of `mkBVar` is highly unidiomatic. Lean uses a
+so-called *locally closed* variable representation. This means that all but the
+lowest-level functions in the Lean API expect expressions not to contain 'loose
+`bvar`s', where a `bvar` is loose if it is not bound by a binder in the same
+expression. (Such variables are more commonly called 'free'. The name `bvar` --
+'bound variable' -- already indicates that `bvar`s are never supposed to be
+free.)
 
-def appDoubleM (n : Nat) : MetaM Expr := do
-  reduce $ mkApp (← doubleM) (natExpr n)
+As a result, if in the above example we replace `mkAppN` with the slightly
+higher-level `mkAppM`, we get a runtime error. Adhering to the locally closed
+convention, `mkAppM` expects any expressions given to it to have no loose bound
+variables, and `mkBVar 0` obviously has one.
 
-#eval appDoubleM 3 -- Lean.Expr.lit (Lean.Literal.natVal 6) (Expr.mkData 393219 (bi := Lean.BinderInfo.default))
+So instead of using `bvar`s directly, the Lean way is to construct expressions
+with bound variables in two steps:
 
-/- 
-Observe that in the expression for double, we used the function `Nat.add` and so could specify all its arguments quite easily. However, the expression `n + n` actually resolves to an application of `HAdd.add` with many implicit parameters -- three associated types as well as a typeclass. When working with lean (at the non-meta level) we depend on the unifier and typeclass inference to fill these arguments for us.
+1. Construct the body of the expression (in our example: the body of the
+   lambda), using temporary local hypotheses (`fvar`s) to stand in for the bound
+   variables.
+2. Replace these `fvar`s with `bvar`s and, at the same time, add the
+   corresponding lambda binders.
 
-Fortunately we can use unification at the meta-level too, using the method `mkAppM` (and a similar method `mkAppM'`). The method name ending in `M` indicates that it is _monadic_ - in this case returning `MetaM Expr` rather than `Expr`. As one may expect, this usually is because some magic is happening for this to be necessary.
+This process ensures that we do not need to handle expressions with loose
+`bvar`s at any point (except during step 2, which is performed 'atomically' by a
+bespoke function). Applying the process to our example:
 
-For example, we can construct an expression for the length of a list
-using `mkAppM`. Recall that `List.length` has an implicit parameter
-`α : Type u`. This is deduced by unification, as are universe levels. -/
-
-def lenExprM (list: Expr) : MetaM Expr := do
-  reduce $ ← mkAppM ``List.length #[list]
-
-/- We test the unification in this definition. -/
-
-def egList := [1, 3, 7, 8]
-
-
-def egLenM : MetaM Expr := 
-  lenExprM (mkConst ``egList)
-
-#eval egLenM -- Lean.Expr.lit (Lean.Literal.natVal 4) (Expr.mkData 2490367 (bi := Lean.BinderInfo.default))
-
-/-! We next sketch some more methods for constructing expressions.
-
-Analogous to the construction of λ-expressions, we can construct
-∀-expressions (i.e., Π-expressions) for types. We simply replace
-`mkLambdaFVars` with `mkForallFVars`.
-
-A special case of Π-types are function types `A → B`. These can be constructed
-using the function `mkArrow`. Another very useful meta-level function is `mkEq`,
-which constructs equalities.
-
-We illustrate all these, as well as the construction of a λ-expression, by
-constructing the proposition `∀ n: Nat, f n = f (n + 1)` as a function of `f`.
-Formally this is `λ f, ∀ n, f n = f (n + 1)`. We break this into many steps to
-illustrate the different ingredients.
-
-First we build the expression for our proposition:
 -/
 
-def propM : MetaM Expr := do
+def doubleExpr₂ : MetaM Expr :=
+  withLocalDecl `x BinderInfo.default (mkConst ``Nat) λ x => do
+    let body ← mkAppM ``Nat.add #[x, x]
+    mkLambdaFVars #[x] body
+
+#eval show MetaM _ from do
+  ppExpr (← doubleExpr₂)
+-- fun x => Nat.add x x
+
+/-!
+There are two new functions. First, `Lean.Meta.withLocalDecl` has type
+
+```lean
+withLocalDecl (name : Name) (bi : BinderInfo) (type : Expr) (k : Expr → MetaM α) : MetaM α
+```
+
+Given a variable name, binder info and type, `withLocalDecl` constructs a new
+`fvar` and passes it to the computation `k`. The `fvar` is avaible in the local
+context during the execution of `k` but is deleted again afterwards. (The real
+type of `withLocalDecl` is more general; it also works for monads which are
+built on top of `MetaM`.)
+
+The second new function is `Lean.Meta.mkLambdaFVars` with type (ignoring some
+optional arguments)
+
+```
+mkLambdaFVars : Array Expr → Expr → MetaM Expr
+```
+
+This function takes an array of `fvar`s and an expression `e`. It then adds one
+lambda binder for each `fvar` `x` and replaces every occurence of `x` in `e`
+with a bound variable corresponding to the new lambda binder. The returned
+expression does not contain the `fvar`s any more, which is good since they
+disappear after we leave the `withLocalDecl` context. (Instead of `fvar`s, we
+can also give `mvar`s to `mkLambdaFVars`, despite its name.)
+
+Some variants of the above functions may be useful:
+
+- `withLocalDecls` declares multiple temporary `fvar`s.
+- `mkForallFVars` creates `∀` binders instead of `λ` binders. `mkLetFVars`
+  creates `let` binders.
+- `mkArrow` is the non-dependent version of `mkForallFVars` which construcs
+  a function type `X → Y`. Since the type is non-dependent, there is no need
+  for temporary `fvar`s.
+
+To further illustrate these concepts, we construct the expression
+
+```lean
+λ (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)
+```
+-/
+
+def somePropExpr : MetaM Expr := do
   let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
   withLocalDecl `f BinderInfo.default funcType fun f => do
-  let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
-    let lhs := mkApp f n
-    let rhs := mkApp f (← mkAppM ``Nat.succ #[n])
-    let eqn ← mkEq lhs rhs
-    mkForallFVars #[n] eqn
-  mkLambdaFVars #[f] feqn
-
-/- Now let's elaborate the expression into a term so we can see the result of
-what we did more easily. This will be further explored in the next chapter -/
-
-elab "myProp" : term => propM
-
-#check  myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
-#reduce myProp -- fun f => ∀ (n : Nat), f n = f (Nat.succ n)
-#reduce myProp Nat.succ -- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
+    let feqn ← withLocalDecl `n BinderInfo.default (mkConst ``Nat) fun n => do
+      let lhs := mkApp f n
+      let rhs := mkApp f (← mkAppM ``Nat.succ #[n])
+      let eqn ← mkEq lhs rhs
+      mkForallFVars #[n] eqn
+    mkLambdaFVars #[f] feqn
 
 /-!
-## Metavariables
-
-Metavariables are variables that can be created and assigned to only at the
-meta level, and not the object/term level. They are used principally as
-placeholders, especially for goals. They can be assigned expressions in terms of
-other metavariables. However, before being assigned to a pure (i.e., not meta)
-definition, the assignments should be resolvable to a value not involving
-metavariables.
-
-One way to create a metavariable representing an expression is to use the
-`mkFreshExprMVar` function. This function creates a metavariable that can be
-assigned an expression. One can optionally specify a type for the metavariable.
-In the example below, we create three metavariables, `mvar1`, `mvar2`, and
-`mvar3`, with `mvar1` and `mvar3` assigned type `Nat` and `mvar2` assigned the
-type `Nat → Nat`.
-
-We assign expressions to the metavariables using the `assignExprMVar` function.
-Like many functions dealing with metavariables, this takes the id of the
-metavariable as an argument. Below we assign to `mvar1` the result of function
-application of `mvar2` to `mvar3`. We then assign to `mvar2` the constant
-expression `Nat.succ` and to `mvar3` the constant expression `Nat.zero`. Clearly
-this means we have assigned `Nat.succ (Nat.zero)`, i.e., `1` to `mvar1`. We
-return `mvar1` in the function `metaOneM`. We can see, using an elaborator, that
-indeed when the expression `metaOneM` is assigned to a term, the result is `1`.
+The next line registers `someProp` as a name for the expression we've just
+constructed, allowing us to play with it more easily. The mechanisms behind this
+are discussed in the Elaboration chapter.
 -/
 
-def oneMetaVar : MetaM Expr := do
-  let zero := mkConst ``Nat.zero
-  let mvar1 ← mkFreshExprMVar (some (mkConst ``Nat))
-  let mvar2 ← mkFreshExprMVar (some (mkConst ``Nat))
-  let funcType ← mkArrow (mkConst ``Nat) (mkConst ``Nat)
-  let mvar3 ← mkFreshExprMVar (some funcType)
-  IO.println "the initial state of each metavariable:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar1.mvarId! (mkApp mvar3 mvar2)
-  IO.println "after turning `mvar1` into an application:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar2.mvarId! zero
-  IO.println "after turning the application argument into `Nat.zero`:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  assignExprMVar mvar3.mvarId! (mkConst ``Nat.succ)
-  IO.println "after turning the application function into `Nat.succ`:"
-  IO.println $ ← instantiateMVars mvar1
-  IO.println $ ← instantiateMVars mvar2
-  IO.println $ ← instantiateMVars mvar3
-  IO.println "--------------------------------"
-  return mvar1
+elab "someProp" : term => somePropExpr
 
-elab "one!" : term => oneMetaVar
+#check someProp
+-- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
+#reduce someProp Nat.succ
+-- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
 
-#eval one! -- 1
--- the initial state of each metavariable:
--- ?_uniq.3411
--- ?_uniq.3412
--- ?_uniq.3413
--- --------------------------------
--- after turning `mvar1` into an application:
--- ?_uniq.3413 ?_uniq.3412
--- ?_uniq.3412
--- ?_uniq.3413
--- --------------------------------
--- after turning the application argument into `Nat.zero`:
--- ?_uniq.3413 Nat.zero
--- Nat.zero
--- ?_uniq.3413
--- --------------------------------
--- after turning the application function into `Nat.succ`:
--- Nat.succ Nat.zero
--- Nat.zero
--- Nat.succ
--- --------------------------------
 
 /-!
-## Telescopes
+### Deconstructing Expressions
 
-Before going further, let's take a step back and think about the `Expr.lam`
-constructor:
+Just like we can construct expressions more easily in `MetaM`, we can also
+deconstruct them more easily. Particularly useful is a family of functions for
+deconstructing expressions which start with `λ` and `∀` binders.
 
-```lean
-Expr.lam : Name → Expr → Expr → Data → Expr
+When we are given a type of the form `∀ (x₁ : T₁) ... (xₙ : Tₙ), U`, we are
+often interested in doing something with the conclusion `U`. For instance, the
+`apply` tactic, when given an expression `e : ∀ ..., U`, compares `U` with the
+current target to determine whether `e` can be applied.
+
+To do this, we could repeatedly match on the type expression, removing `∀`
+binders until we get to `U`. But this would leave us with an `U` containing
+unbound `bvar`s, which, as we saw, is bad. Instead, we use
+`Lean.Meta.forallTelescope` of type (again specialized to `MetaM`)
+
+```
+forallTelescope (type : Expr) (k : Array Expr → Expr → MetaM α) : MetaM α
 ```
 
-The first `Expr` is the type of the function's input and the second is its body.
-Then we ask ourselves: how do we build a function with multiple input variables?
-Well, we use the same constructor multiple times, one for each input variable.
+Given `type = ∀ (x₁ : T₁) ... (xₙ : Tₙ), U x₁ ... xₙ`, this function creates one
+fvar `fᵢ` for each `∀`-bound variable `xᵢ` and replaces each `xᵢ` with `fᵢ` in
+the conclusion `U`. It then calls the computation `k`, passing it the `fᵢ` and
+the conclusion `U f₁ ... fₙ`. Within this computation, the `fᵢ` are registered
+in the local context; afterwards, they are deleted again (similar to
+`withLocalDecl`).
 
-As an example, let's see an approximation of how we'd build the function
-`fun (x : Nat) (y : Nat) => x + y`:
+There are many useful variants of `forallTelescope`:
+
+- `forallTelescopeReducing`: like `forallTelescope` but matching is performed up
+  to computation. This means that if you have an expression `X` which is
+  different from but defeq to `∀ x, P x`, `forallTelescopeReducing X` will
+  deconstruct `X` into `x` and `P x`. The non-reducing `forallTelescope` would
+  not recognise `X` as a quantified expression. The matching is performed by
+  essentially calling `whnf` repeatedly, using the ambient transparency.
+- `forallBoundedTelescope`: like `forallTelescopeReducing` (even though there is
+  no "reducing" in the name) but stops after a specified number of `∀` binders.
+- `forallMetaTelescope`, `forallMetaTelescopeReducing`,
+  `forallMetaBoundedTelescope`: like the corresponding non-`meta` functions, but
+  the bound variables are replaced by new `mvar`s instead of `fvar`s. Unlike the
+  non-`meta` functions, the `meta` functions do not delete the new metavariables
+  after performing some computation, so the metavariables remain in the
+  environment indefinitely.
+- `lambdaTelescope`, `lambdaTelescopeReducing`, `lambdaBoundedTelescope`,
+  `lambdaMetaTelescope`: like the corresponding `forall` functions, but for
+  `λ` binders instead of `∀`.
+
+Using one of the telescope functions, we can implement our own `apply` tactic:
+-/
+
+def myApply (goal : MVarId) (e : Expr) : MetaM (List MVarId) := do
+  -- Check that the goal is not yet assigned.
+  checkNotAssigned goal `myApply
+  -- Operate in the local context of the goal.
+  withMVarContext goal do
+    -- Get the goal's target type.
+    let target ← getMVarType goal
+    -- Get the type of the given expression.
+    let type ← inferType e
+    -- If `type` has the form `∀ (x₁ : T₁) ... (xₙ : Tₙ), U`, introduce new
+    -- metavariables for the `xᵢ` and obtain the conclusion `U`. (If `type` does
+    -- not have this form, `args` is empty and `conclusion = type`.)
+    let (args, _, conclusion) ← forallMetaTelescopeReducing type
+    -- If the conclusion unifies with the target:
+    if ← isDefEq target conclusion then
+      -- Assign the goal to `e x₁ ... xₙ`, where the `xᵢ` are the fresh
+      -- metavariables in `args`.
+      assignExprMVar goal (mkAppN e args)
+      -- `isDefEq` may have assigned some of the `args`. Report the rest as new
+      -- goals.
+      let newGoals ← args.filterMapM λ mvar => do
+        let mvarId := mvar.mvarId!
+        if ! (← isExprMVarAssigned mvarId) && ! (← isMVarDelayedAssigned mvarId) then
+          return some mvarId
+        else
+          return none
+      return newGoals.toList
+    -- If the conclusion does not unify with the target, throw an error.
+    else
+      throwTacticEx `myApply goal m!"{e} is not applicable to goal with target {target}"
+
+/-!
+The real `apply` does some additional pre- and postprocessing, but the core
+logic is what we show here. To test our tactic, we need an elaboration
+incantation, more about which in the Elaboration chapter.
+-/
+
+elab "myApply" e:term : tactic => do
+  let e ← Elab.Term.elabTerm e none
+  Elab.Tactic.liftMetaTactic (myApply · e)
+
+example (h : α → β) (a : α) : β := by
+  myApply h
+  myApply a
+
+
+/-!
+## Backtracking
+
+Many tactics naturally require backtracking: the ability to go back to a
+previous state, as if the tactic had never been executed. A few examples:
+
+- `first | t | u` first executes `t`. If `t` fails, it backtracks and executes `u`.
+- `try t` executes `t`. If `t` fails, it backtracks to the initial state,
+  erasing any changes made by `t`.
+- `trivial` attempts to solve the goal using a number of simple tactics
+  (e.g. `rfl` or `contradiction`). After each unsuccessful application of such a
+  tactic, `trivial` backtracks.
+
+Good thing, then, that Lean's core data structures are designed to enable easy
+and efficient backtracking. The corresponding API is provided by the
+`Lean.MonadBacktrack` class. `MetaM`, `TermElabM` and `TacticM` are all
+instances of this class. (`CoreM` is not but could be; apparently the Lean
+compiler does not need this instance.)
+
+`MonadBacktrack` provides two fundamental operations:
+
+- `Lean.saveState : m s` returns a representation of the current state, where
+  `m` is the monad we are in and `s` is the state type. E.g. for `MetaM`,
+  `saveState` returns a `Lean.Meta.SavedState` containing the current
+  environment, the current `MetavarContext` and various other pieces of
+  information.
+- `Lean.restoreState : s → m Unit` takes a previously saved state and restores
+  it. This effectively resets the compiler state to the previous point.
+
+With this, we can roll our own `MetaM` version of the `try` tactic:
+-/
+
+def tryM (x : MetaM Unit) : MetaM Unit := do
+  let s ← saveState
+  try
+    x
+  catch _ =>
+    restoreState s
+
+/-!
+We first save the state, then execute `x`. If `x` fails, we backtrack the state.
+
+The standard library defines many combinators like `tryM`. Here are the most
+useful ones:
+
+- `Lean.withoutModifyingState (x : m α) : m α` executes the action `x`, then
+  resets the state and returns `x`'s result. You can use this, for instance, to
+  check for definitional equality without assigning metavariables:
+  ```lean
+  withoutModifyingState $ isDefEq x y
+  ```
+  If `isDefEq` succeeds, it may assign metavariables in `x` and `y`. Using
+  `withoutModifyingState`, we can make sure this does not happen.
+- `Lean.observing? (x : m α) : m (Option α)` executes the action `x`. If `x`
+  succeeds, `observing?` returns its result. If `x` fails (throws an exception),
+  `observing?` backtracks the state and returns `none`. This is a more
+  informative version of our `tryM` combinator.
+- `Lean.commitIfNoEx (x : α) : m α` executes `x`. If `x` succeeds,
+  `commitIfNoEx` returns its result. If `x` throws an exception, `commitIfNoEx`
+  backtracks the state and rethrows the exception.
+
+Note that the builtin `try ... catch ... finally` does not perform any
+backtracking. So code which looks like this is probably wrong:
 
 ```lean
-Expr.lam `x (mkConst ``Nat) (Expr.lam `y (mkConst ``Nat) b) d') d
+try
+  doSomething
+catch e =>
+  doSomethingElse
 ```
 
-It's done by nesting a new `Expr.lam` as the body of another `Expr.lam`. Thus,
-if we wanted to, say, perform a computation that involves all the input types of
-a function as well as its body, we would have to unfold the expression
-recursively until the last nested `Expr.lam` just to gather everything we need
-to do what we want. And that's when `lambdaTelescope` comes into play.
+The `catch` branch, `doSomethingElse`, is executed in a state containing
+whatever modifications `doSomething` made before it failed. Since we probably
+want to erase these modifications, we should write instead:
 
 ```lean
-def lambdaTelescope (e : Expr) (k : Array Expr → Expr → m α) : m α
+try
+  commitIfNoEx doSomething
+catch e =>
+  doSomethingElse
 ```
 
-It makes it easier for us to do our computation with the data that we need. All
-we need to do is provide a `k` function, whose first argument is an array of
-input types and the second argument is the function body.
+Another `MonadBacktrack` gotcha is that `restoreState` does not backtrack the
+*entire* state. Caches, trace messages and the global name generator, among
+other things, are not backtracked, so changes made to these parts of the state
+are not reset by `restoreState`. This is usually what we want: if a tactic
+executed by `observing?` produces some trace messages, we want to see them even
+if the tactic fails. See `Lean.Meta.SavedState.restore` and `Lean.Core.restore`
+for details on what is and is not backtracked.
 
-There are multiple telescopes in the API and we don't intend to be exhaustive
-here. Something to note is that `m` is not necessarily the `MetaM` monad, but we
-are covering this subject here because telescopes are defined in `Lean.Meta` and
-also because we are already in `MetaM` when we want to use more powerful tools
-to deal with expressions. -/
+In the next chapter, we move towards the topic of elaboration, of which
+you've already seen several glimpses in this chapter. We start by discussing
+Lean's syntax system, which allows you to add custom syntactic constructs to the
+Lean parser.
+-/

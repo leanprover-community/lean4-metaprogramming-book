@@ -1,9 +1,4 @@
-```lean
-import Lean
-open Lean
-```
-
-# Options
+# Extra: Options
 Options are a way to communicate some special configuration to both
 your meta programs and the Lean compiler itself. Basically it's just
 a [`KVMap`](https://github.com/leanprover/lean4/blob/master/src/Lean/Data/KVMap.lean)
@@ -20,6 +15,9 @@ Setting an option to tell the Lean compiler to do something different
 with your program is quite simple with the `set_option` command:
 
 ```lean
+import Lean
+open Lean
+
 #check 1 + 1 -- 1 + 1 : Nat
 
 set_option pp.explicit true -- No custom syntax in pretty printing
@@ -63,7 +61,7 @@ To show this, let's write a command that prints the value of `pp.explicit`.
 elab "#getPPExplicit" : command => do
   let opts ← getOptions
   -- defValue = default value
-  Elab.logInfo s!"pp.explicit : {opts.get pp.explicit.name pp.explicit.defValue}"
+  logInfo s!"pp.explicit : {opts.get pp.explicit.name pp.explicit.defValue}"
 
 #getPPExplicit -- pp.explicit : false
 
