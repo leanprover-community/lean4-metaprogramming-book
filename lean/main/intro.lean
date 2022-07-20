@@ -78,6 +78,25 @@ Let's see some example use cases of metaprogramming in Lean.
 The following examples are meant for mere illustration. Don't worry if you don't
 understand the details for now.
 
+### Introducing notation (defining new syntax)
+
+Often one wants to introduce new notation, for example one more suitable for (a branch of) mathematics. For instance, in mathematics one would write the function adding `2` to a natural number as `x : Nat ↦ x + 2` or simply `x ↦ x + 2` if the domain can be inferred to be the natural numbers. The corresponding lean definitions `fun x : Nat => x + 2` and `fun x => x + 2` use `=>` which in mathematics means _implication_, so may be confusing to some.
+
+We can introduce notation using a `macro` which transforms our syntax to lean's own syntax (or syntax we previously defined). Here we introduce the `↦` notation for functions.
+-/
+import Lean
+
+macro x:ident ":" t:term " ↦ " y:term : term => do
+  `(fun $x : $t => $y)
+
+#eval (x : Nat ↦ x + 2) 2 -- 4
+
+macro x:ident " ↦ " y:term : term => do
+  `(fun $x  => $y)
+
+#eval (x ↦  x + 2) 2 -- 4
+/-!
+
 ### Building a command
 
 Suppose we want to build a helper command `#assertType` which tells whether a
@@ -87,9 +106,6 @@ given term is of a certain type. The usage will be:
 
 Let's see the code:
 -/
-
-import Lean
-
 elab "#assertType " termStx:term " : " typeStx:term : command =>
   open Lean Lean.Elab Command Term in
   liftTermElabM `assertTypeCmd
