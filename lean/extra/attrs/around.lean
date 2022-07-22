@@ -34,7 +34,16 @@ initialize renameExtension : SimplePersistentEnvExtension (Name × Name) RenameM
     name          := `renameMapExtension
     addEntryFn    := RenameMap.insertPair
     addImportedFn := fun es => mkStateFromImportedEntries (RenameMap.insertPair) {} es
+    initial       := sorry
   }
+
+/- 
+The key is Name × Name, and the value is RenameMap.
+The entires are written into the `olean` files.
+The functions `addEntryFn` tells us how to compute the values from the keys.
+So the values are "just" a caching mechanism for the keys, where the keys tell us
+what data is to be stored.
+-/
 
 def findRename? (env : Environment) : Name → Option Name :=
   (renameExtension.getState env).find?
