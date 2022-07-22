@@ -1,5 +1,6 @@
 import lean.extra.attrs.dummy
 import lean.extra.attrs.tag
+import lean.extra.attrs.parametric
 /-
 # Attributes
 
@@ -11,7 +12,7 @@ we will bounce between this file and the files in the `attrs/` folder which
 contain the implementations of the attributes. We'll see you at 
 [`./attrs/tag.lean`](./attrs/tag.lean).
 
-## Using `myTag`
+## Tag attributes with `myTag`
 
 see that we've created a tagging infrastructure based on Lean's `TagAttribute`s, which exists
 explicitly to allow us to create 'simple' attributes that wish to keep track of
@@ -35,6 +36,26 @@ This simplified mechanism exists to allow us to easily tag definitions of intere
 -- decl: tag3 | find? OfNat.ofNat.{0} Int 3 (Int.instOfNatInt 3)
 -- decl: tag1 | find? OfNat.ofNat.{0} Int 1 (Int.instOfNatInt 1)
 -- decl: tag2 | find? OfNat.ofNat.{0} Int 2 (Int.instOfNatInt 2)
+
+
+/-
+## Parametric attributes with `myParam`
+
+A parametric attribute is like a tag attribute, while adding support for
+parameters in the attribute. 
+
+We shall add an attribute called `myParam`, which recieves two parameters,
+a priority, denoted by a natural number, and an optional tag `important`.
+
+
+We'll see you at [`./attrs/parametric.lean`](./attrs/dummy.lean).
+
+-/
+
+
+
+@[myParam 10] def h1 (x : Nat) := 2*x + 1
+@[myParam 20 important] def h2 (x : Nat) := 2*x + 1
 
 
 /-
@@ -77,5 +98,11 @@ class bar
 ## Modifying the `value` with the `around` attribute
 
 We're going to write an attribute that will modify a given definition
+
+
+## Implementing `sym`:
+Scoped environment extension maintains scoping information, so it keeps track of
+whether the tag is local or not. 
 -/
+
 
