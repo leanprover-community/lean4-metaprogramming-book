@@ -1,7 +1,5 @@
 import Lean
 
-
-
 /--
 We declare a simplifcation attribute using the keyword
 `register_simp_attr`, 
