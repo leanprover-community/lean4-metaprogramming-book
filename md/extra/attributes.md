@@ -1,8 +1,8 @@
 ```lean
 import lean.extra.attrs.dummy
 import lean.extra.attrs.tag
-import lean.extra.attrs.parametric
-import lean.extra.attrs.simp
+-- import lean.extra.attrs.parametric
+-- import lean.extra.attrs.simp
 ```
 
 # Attributes
@@ -12,7 +12,7 @@ They are similar to Python's decorators and Rust's proc-macros.
 
 Unfortunately, it turns out that attributes must be defined in a separate module, so
 we will bounce between this file and the files in the `attrs/` folder which
-contain the implementations of the attributes. We'll see you at 
+contain the implementations of the attributes. We'll see you at
 [`./attrs/tag.lean`](./attrs/tag.lean).
 
 ## Tag attributes with `myTag`
@@ -44,7 +44,7 @@ This simplified mechanism exists to allow us to easily tag definitions of intere
 ## Parametric attributes with `myParam`
 
 A parametric attribute is like a tag attribute, while adding support for
-parameters in the attribute. 
+parameters in the attribute.
 
 We shall add an attribute called `myParam`, which recieves two parameters,
 a priority, denoted by a natural number, and an optional tag `important`.
@@ -100,7 +100,7 @@ Below is an example of a declaration that does not have any value.
 
 ```lean
 @[dummy_attr 52]
-class bar 
+class bar
 -- number + 1: 53
 -- src: bar | stx: (Attr.dummy_attr "dummy_attr" (num "52")) | kind: global
 -- srcDecl:
