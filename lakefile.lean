@@ -2,13 +2,13 @@ import Lake
 open Lake DSL
 
 package «lean4-metaprogramming-book» {
-  srcDir := "lean"
+  srcDir := ⟨"lean"⟩
   isLeanOnly := true
 }
 
 @[defaultTarget]
 lean_lib «lean4-metaprogramming-book» {
-  roots := #["cover"]
+  roots := #[`cover, `extra, `main]
 }
 
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
