@@ -28,7 +28,7 @@ dependency structure is as follows:
 * "`MetaM`" builds on top of "Expressions"
 
 After the chapter on tactics, you find a cheat-sheet containing a wrap-up of key
-concepts and functions. And after that, There are some chapters with extra
+concepts and functions. And after that, there are some chapters with extra
 content, showing other applications of metaprogramming in Lean 4.
 
 The rest of this chapter is a gentle introduction for what metaprogramming is,
