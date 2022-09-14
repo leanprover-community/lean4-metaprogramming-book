@@ -31,8 +31,6 @@ Thus, if you're going to write or fix content for the book, please do so in the 
 in Lean code blocks with `/- ... -/`. If you want to insert commentaries, do so
 with double dashes `--`.
 
-To open the PR, select `dev` as the target branch.
-
 ### Building the markdown files
 
 This is not required, but if you want to build the markdown files, you can do so by running `lake run build`.
