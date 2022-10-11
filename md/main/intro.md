@@ -109,7 +109,7 @@ Let's see the code:
 ```lean
 elab "#assertType " termStx:term " : " typeStx:term : command =>
   open Lean Lean.Elab Command Term in
-  liftTermElabM `assertTypeCmd
+  liftTermElabM
     try
       let tp ← elabType typeStx
       discard $ elabTermEnsuringType termStx tp
