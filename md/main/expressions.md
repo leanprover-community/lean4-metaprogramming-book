@@ -134,9 +134,9 @@ constant to the right universe arguments.
 ## Constructing Expressions
 
 The simplest expressions we can construct are constants. We use the `const`
-constructor and give it a name and a list of universe levels. In the examples in
-this chapter, the list is always empty since we only use
-non-universe-polymorphic constants.
+constructor and give it a name and a list of universe levels. Most of our
+examples only involve non-universe-polymorphic constants, in which case the list
+is empty.
 
 We also show a second form where we write the name with double backticks. This
 checks that the name in fact refers to a defined constant, which is useful to
@@ -213,5 +213,41 @@ def constZero : Expr :=
 --   (Lean.BinderInfo.default)
 ```
 
+As a more elaborate example which also involves universe levels, here is the
+`Expr` that represents `List.map (λ x => Nat.add x 1) []` (broken up into
+several definitions to make it somewhat readable):
+
+```lean
+def nat : Expr := .const ``Nat []
+
+def addOne : Expr :=
+  .lam `x nat
+    (mkAppN (.const ``Nat.add []) #[.bvar 0, mkNatLit 1])
+    BinderInfo.default
+
+def mapAddOneNil : Expr :=
+  mkAppN (.const ``List.map [levelOne, levelOne])
+    #[nat, nat, addOne, .app (.const ``List.nil [levelOne]) nat]
+```
+
+With a little trick (more about which in the Elaboration chapter), we can
+turn our `Expr` into a Lean term, which allows us to inspect it more easily.
+
+```lean
+elab "mapAddOneNil" : term => return mapAddOneNil
+
+#check mapAddOneNil
+-- List.map (fun x => Nat.add x 1) [] : List Nat
+
+set_option pp.universes true in
+set_option pp.explicit true in
+#check mapAddOneNil
+-- @List.map.{1, 1} Nat Nat (fun x => Nat.add x 1) (@List.nil.{1} Nat) : List.{1} Nat
+
+#reduce mapAddOneNil
+-- []
+```
+
 In the next chapter we explore the `MetaM` monad, which, among many other
-things, allows us to conveniently construct and destruct larger expressions.
+things, allows us to more conveniently construct and destruct larger
+expressions.
