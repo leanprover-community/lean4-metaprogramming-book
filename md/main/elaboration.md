@@ -281,13 +281,13 @@ def mytermValues := [1, 2]
 
 @[term_elab myterm1]
 def myTerm1Impl : TermElab := fun stx type? =>
-  mkAppM ``List.get! #[mkConst ``mytermValues, mkNatLit 0] -- `MetaM` code
+  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
 #eval myterm 1 -- 1
 
 -- Also works with `elab`
 elab "myterm 2" : term => do
-  mkAppM ``List.get! #[mkConst ``mytermValues, mkNatLit 1] -- `MetaM` code
+  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
 #eval myterm 2 -- 2
 ```
