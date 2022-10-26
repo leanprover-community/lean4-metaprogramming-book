@@ -41,8 +41,8 @@ end Playground
 
 - `bvar` is a __bound variable__. For example, the `x` in `fun x => x + 2` or
   `∑ x, x²`. This is any occurrence of a variable in an expression where there
-  is a binder above it. Why is the argument a `Nat`? This is called a de-Bruijn
-  index and will be explained ahead. You can figure out the type of a bound
+  is a binder above it. Why is the argument a `Nat`? This is called a de Bruijn
+  index and will be explained later. You can figure out the type of a bound
   variable by looking at its binder, since the binder always has the type
   information for it.
 - `fvar` is a __free variable__. These are variables which are not bound by a
@@ -77,14 +77,14 @@ end Playground
   `proj Prod 0 p`. This is for efficiency reasons ([todo] find link to docstring
   explaining this).
 
-## de-Bruijn Indexes
+## De Bruijn Indexes
 
 Consider the following lambda expression `(λ f x => f x x) (λ x y => x + y) 5`,
 we have to be very careful when we reduce this, because we get a clash in the
 variable `x`.
 
 To avoid variable name-clash carnage, `Expr`s use a nifty trick called
-__de-Bruijn indexes__. In de-Bruijn indexing, each variable bound by a `lam` or
+__de Bruijn indexes__. In de Bruijn indexing, each variable bound by a `lam` or
 a `forallE` is converted into a number `#n`. The number says how many binders up
 the `Expr` tree we should look to find the binder which binds this variable.
 So our above example would become (putting wildcards `_` in the type arguments
