@@ -83,9 +83,8 @@ def elabIMPLit : Syntax → MetaM Expr
   -- `mkAppM` creates an `Expr.app`, given the function `Name` and the args
   -- `mkNatLit` creates an `Expr` from a `Nat`
   | `(imp_lit| $n:num) => mkAppM ``IMPLit.nat  #[mkNatLit n.getNat]
-  -- `mkConst` creates an `Expr.const` given the constant `Name`
-  | `(imp_lit| true  ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.true]
-  | `(imp_lit| false ) => mkAppM ``IMPLit.bool #[mkConst ``Bool.false]
+  | `(imp_lit| true  ) => mkAppM ``IMPLit.bool #[.const ``Bool.true []]
+  | `(imp_lit| false ) => mkAppM ``IMPLit.bool #[.const ``Bool.false []]
   | _ => throwUnsupportedSyntax
 
 elab "test_elabIMPLit " l:imp_lit : term => elabIMPLit l
@@ -109,7 +108,7 @@ declare_syntax_cat imp_unop
 syntax "not"     : imp_unop
 
 def elabIMPUnOp : Syntax → MetaM Expr
-  | `(imp_unop| not) => return mkConst ``IMPUnOp.not
+  | `(imp_unop| not) => return .const ``IMPUnOp.not []
   | _ => throwUnsupportedSyntax
 
 declare_syntax_cat imp_binop
@@ -118,9 +117,9 @@ syntax "and"     : imp_binop
 syntax "<"       : imp_binop
 
 def elabIMPBinOp : Syntax → MetaM Expr
-  | `(imp_binop| +)   => return mkConst ``IMPBinOp.add
-  | `(imp_binop| and) => return mkConst ``IMPBinOp.and
-  | `(imp_binop| <)   => return mkConst ``IMPBinOp.less
+  | `(imp_binop| +)   => return .const ``IMPBinOp.add []
+  | `(imp_binop| and) => return .const ``IMPBinOp.and []
+  | `(imp_binop| <)   => return .const ``IMPBinOp.less []
   | _ => throwUnsupportedSyntax
 ```
 
@@ -192,7 +191,7 @@ syntax "if" imp_expr "then" imp_program "else" imp_program "fi" : imp_program
 syntax "while" imp_expr "do" imp_program "od" : imp_program
 
 partial def elabIMPProgram : Syntax → MetaM Expr
-  | `(imp_program| skip) => return mkConst ``IMPProgram.Skip
+  | `(imp_program| skip) => return .const ``IMPProgram.Skip []
   | `(imp_program| $i:ident := $e:imp_expr) => do
     let i : Expr := mkStrLit i.getId.toString
     let e ← elabIMPExpr e

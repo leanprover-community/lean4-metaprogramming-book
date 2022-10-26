@@ -5,11 +5,11 @@
 * Extract the goal: `Lean.Elab.Tactic.getMainGoal`
 
   Use as `let goal ← Lean.Elab.Tactic.getMainGoal`
-* Extract the declaration out of a metavariable: `Lean.Meta.getMVarDecl mvar`
-  when `mvar : Lean.MVarId` is in context.
-  For instance, `mvar` could be the goal extracted using `getMainGoal`
-* Extract the type of a metavariable: `Lean.MetavarDecl.type mvdecl`
-  when `mvdecl : Lean.MetavarDecl` is in context.
+* Extract the declaration out of a metavariable: `mvarId.getDecl`
+  when `mvarId : Lean.MVarId` is in context.
+  For instance, `mvarId` could be the goal extracted using `getMainGoal`
+* Extract the type of a metavariable: `mvarId.getType`
+  when `mvarId : Lean.MVarId` is in context.
 * Extract the type of the main goal: `Lean.Elab.Tactic.getMainTarget`
 
   Use as `let goal_type ← Lean.Elab.Tactic.getMainTarget`
@@ -17,8 +17,7 @@
   Achieves the same as 
 ```lean
 let goal ← Lean.Elab.Tactic.getMainGoal
-let goal_decl ← Lean.Meta.getMVarDecl goal
-let goal_type := goal_decl.type
+let goal_type ← goal.getType
 ```
 * Extract local context: `Lean.MonadLCtx.getLCtx`
 
@@ -37,10 +36,8 @@ let goal_type := goal_decl.type
   Use as `ldecl.toExpr`, when `ldecl : Lean.LocalDecl` is in context
   
   For instance, `ldecl` could be `let ldecl ← Lean.MonadLCtx.getLCtx`
-* Check whether two expressions are definitionally equal: `Lean.Meta.isExprDefEq ex1 ex2`
+* Check whether two expressions are definitionally equal: `Lean.Meta.isDefEq ex1 ex2`
   when `ex1 ex2 : Lean.Expr` are in context. Returns a `Lean.MetaM Bool`
-  
-  `isDefEq ex1 ex2` appears to be a synonym
 * Close a goal: `Lean.Elab.Tactic.closeMainGoal expr`
   when `expr : Lean.Expr` is in context
 

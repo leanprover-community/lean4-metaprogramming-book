@@ -103,7 +103,7 @@ Can you extend `delabFooFinal` to also account for non full applications?
 
 ## Unexpanders
 While delaborators are obviously quite powerful it is quite often not necessary
-to use them. If you look in the Lean compiler for `@[delab` or rather `@[builtinDelab`
+to use them. If you look in the Lean compiler for `@[delab` or rather `@[builtin_delab`
 (a special version of the `delab` attribute for compiler use, we don't care about it),
 you will see there are quite few occurences of it. This is because the majority
 of pretty printing is in fact done by so called unexpanders. Unlike delaborators
@@ -117,14 +117,14 @@ weaker than `DelabM` but it still has:
   is the only valid one
 
 Unexpanders are always specific to applications of one constant. They are registered
-using the `appUnexpand` attribute, followed by the name of said constant. The unexpander
+using the `app_unexpander` attribute, followed by the name of said constant. The unexpander
 is passed the entire application of the constant after the `Expr` has been delaborated,
 without implicit arguments. Let's see this in action:
 
 ```lean
 def myid {α : Type} (x : α) := x
 
-@[appUnexpander myid]
+@[app_unexpander myid]
 def unexpMyId : Unexpander
   -- hygiene disabled so we can actually return `id` without macro scopes etc.
   | `(myid $arg) => set_option hygiene false in `(id $arg)
@@ -181,12 +181,12 @@ As you can see, the pretty printing output right now is rather ugly to look at.
 We can do better with an unexpander:
 
 ```lean
-@[appUnexpander LangExpr.numConst]
+@[app_unexpander LangExpr.numConst]
 def unexpandNumConst : Unexpander
   | `(LangExpr.numConst $x:num) => `([Lang| $x])
   | _ => throw ()
 
-@[appUnexpander LangExpr.ident]
+@[app_unexpander LangExpr.ident]
 def unexpandIdent : Unexpander
   | `(LangExpr.ident $x:str) =>
     let str := x.getString
@@ -194,7 +194,7 @@ def unexpandIdent : Unexpander
     `([Lang| $name])
   | _ => throw ()
 
-@[appUnexpander LangExpr.letE]
+@[app_unexpander LangExpr.letE]
 def unexpandLet : Unexpander
   | `(LangExpr.letE $x:str [Lang| $v:lang] [Lang| $b:lang]) =>
     let str := x.getString

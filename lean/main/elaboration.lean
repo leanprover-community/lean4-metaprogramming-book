@@ -62,7 +62,7 @@ look at how the elaboration process actually works:
    the resulting `Syntax` is recursively elaborated as a command again.
 2. If no macro can be applied, we search for all `CommandElab`s that have been
    registered for the `SyntaxKind` of the `Syntax` we are elaborating,
-   using the `commandElabAttribute`.
+   using the `command_elab` attribute.
 3. All of these `CommandElab` are then tried in order until one of them does not throw an
    `unsupportedSyntaxException`, Lean's way of indicating that the elaborator
    "feels responsible"
@@ -78,7 +78,8 @@ Now that we know both what a `CommandElab` is and how they are used, we can
 start looking into writing our own. The steps for this, as we learned above, are:
 1. Declaring the syntax
 2. Declaring the elaborator
-3. Registering the elaborator as responsible for the syntax via `commandElabAttribute`
+3. Registering the elaborator as responsible for the syntax via the `command_elab`
+   attribute.
 
 Let's see how this is done:
 -/
@@ -89,7 +90,7 @@ open Lean Elab Command Term Meta
 
 syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 
-@[commandElab mycommand1]
+@[command_elab mycommand1]
 def mycommand1Impl : CommandElab := fun stx => do -- declare and register the elaborator
   logInfo "Hello World"
 
@@ -109,7 +110,7 @@ Note that, due to the fact that command elaboration supports multiple
 registered elaborators for the same syntax, we can in fact overload
 syntax, if we want to.
 -/
-@[commandElab mycommand1]
+@[command_elab mycommand1]
 def myNewImpl : CommandElab := fun stx => do
   logInfo "new!"
 
@@ -132,7 +133,7 @@ elab "#check" "mycheck" : command => do
 /-
 This is actually extending the original `#check`
 -/
-@[commandElab Lean.Parser.Command.check] def mySpecialCheck : CommandElab := fun stx => do
+@[command_elab Lean.Parser.Command.check] def mySpecialCheck : CommandElab := fun stx => do
   if let some str := stx[1].isStrLit? then
     logInfo s!"Specially elaborated string literal!: {str} : String"
   else
@@ -213,7 +214,7 @@ The second one is very specific to the term elaboration loop.
 ### Term elaboration
 The basic idea of term elaboration is the same as command elaboration:
 expand macros and recurse or run term elaborators that have been registered
-for the `Syntax` via the `termElabAttribute` (they might in turn run term elaboration)
+for the `Syntax` via the `term_elab` attribute (they might in turn run term elaboration)
 until we are done. There is, however, one special action that a term elaborator
 can do during its execution.
 
@@ -277,15 +278,15 @@ syntax (name := myterm1) "myterm 1" : term
 
 def mytermValues := [1, 2]
 
-@[termElab myterm1]
+@[term_elab myterm1]
 def myTerm1Impl : TermElab := fun stx type? =>
-  mkAppM ``List.get! #[mkConst ``mytermValues, mkNatLit 0] -- `MetaM` code
+  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
 #eval myterm 1 -- 1
 
 -- Also works with `elab`
 elab "myterm 2" : term => do
-  mkAppM ``List.get! #[mkConst ``mytermValues, mkNatLit 1] -- `MetaM` code
+  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
 #eval myterm 2 -- 2
 
@@ -306,7 +307,7 @@ def getCtors (typ : Name) : MetaM (List Name) := do
     pure val.ctors
   | _ => pure []
 
-@[termElab myanon]
+@[term_elab myanon]
 def myanonImpl : TermElab := fun stx typ? => do
   -- Attempt to postpone execution if the type is not known or is a metavariable.
   -- Metavariables are used by things like the function elaborator to fill
