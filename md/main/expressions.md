@@ -99,10 +99,44 @@ is __closed__. The process of replacing all instances of an unbound `bvar` with
 an `Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
 
+## Universe Levels
+
+Some expressions involve universe levels, represented by the `Lean.Level` type.
+A universe level is a natural number, a universe parameter (introduced with a
+`universe` declaration), a universe metavariable or the maximum of two
+universes. They are relevant for two kinds of expressions.
+
+First, sorts are represented by `Expr.sort u`, where `u` is a `Level`. `Prop` is
+`sort Level.zero`; `Type` is `sort (Level.succ Level.zero)`.
+
+Second, universe-polymorphic constants have universe arguments. A
+universe-polymorphic constant is one whose type contains universe parameters.
+For example, the `List.map` function is universe-polymorphic, as the
+`pp.universes` pretty-printing option shows:
+
+```lean
+set_option pp.universes true in
+#check @List.map
+```
+
+The `.{u_1,u_2}` suffix after `List.map` means that `List.map` has two universe
+arguments, `u_1` and `u_2`. The `.{u_1}` suffix after `List` (which is itself a
+universe-polymorphic constant) means that `List` is applied to the universe
+argument `u_1`, and similar for `.{u_2}`.
+
+In fact, whenever you use a universe-polymorphic constant, you must apply it to
+the correct universe arguments. This application is represented by the `List
+Level` argument of `Expr.const`. When we write regular Lean code, Lean infers
+the universes automatically, so we do not need think about them much. But when
+we construct `Expr`s, we must be careful to apply each universe-polymorphic
+constant to the right universe arguments.
+
 ## Constructing Expressions
 
 The simplest expressions we can construct are constants. We use the `const`
-constructor and give it a name and a list of universe levels.
+constructor and give it a name and a list of universe levels. In the examples in
+this chapter, the list is always empty since we only use
+non-universe-polymorphic constants.
 
 We also show a second form where we write the name with double backticks. This
 checks that the name in fact refers to a defined constant, which is useful to
