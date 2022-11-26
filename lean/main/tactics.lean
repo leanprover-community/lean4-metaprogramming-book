@@ -24,11 +24,10 @@ a `sorry`. We write this as a macro expansion, which expands the piece of syntax
 
 import Lean.Elab.Tactic
 
---  should this be `macro "custom_sorry_macro" : tactic => `(tactic| sorry)`?
-macro "custom_sorry" : tactic => `(tactic| sorry)
+macro "custom_sorry_macro" : tactic => `(tactic| sorry)
 
 example : 1 = 42 := by
-  custom_sorry
+  custom_sorry_macro
 
 /-
 ### Implementing `trivial`: Extensible Tactics by Macro Expansion
