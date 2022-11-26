@@ -23,6 +23,7 @@ a `sorry`. We write this as a macro expansion, which expands the piece of syntax
 ```lean
 import Lean.Elab.Tactic
 
+--  should this be `macro "custom_sorry_macro" : tactic => `(tactic| sorry)`?
 macro "custom_sorry" : tactic => `(tactic| sorry)
 
 example : 1 = 42 := by
@@ -276,7 +277,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
 ```
 
 Recall that we are looking for a local declaration that has the same type as the
-hypothesis. We get the type of `LocalDefinition` by calling
+hypothesis. We get the type of `LocalDefinition` by calling  --should this be `LocalDecl`?
 `Lean.Meta.inferType` on the local declaration's expression.
 
 ```lean
@@ -297,7 +298,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
   rfl
 ```
 
-We check if the type of the `LocalDefinition` is equal to the goal type with
+We check if the type of the `LocalDefinition` is equal to the goal type with  --should this be `LocalDecl`?
 `Lean.Meta.isExprDefEq`. See that we check if the types are equal at `eq?`, and
 we print that `H1` has the same type as the goal
 (`local decl[EQUAL? true]: name: H1`), and we print that `H2` does not have the
