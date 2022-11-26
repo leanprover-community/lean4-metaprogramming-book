@@ -230,7 +230,6 @@ error messages.
 ```lean
 elab "custom_assump_0" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     dbg_trace f!"goal type: {goalType}"
 
@@ -306,7 +305,6 @@ same type (`local decl[EQUAL? false]: name: H2 `):
 ```lean
 elab "list_local_decls_3" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
     ctx.forM fun decl: Lean.LocalDecl => do
@@ -333,7 +331,6 @@ goal with `Lean.Meta.isExprDefEq`:
 ```lean
 elab "custom_assump_1" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     let lctx ← Lean.MonadLCtx.getLCtx
     -- Iterate over the local declarations...
