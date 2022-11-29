@@ -62,7 +62,8 @@ We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 
 example : 43 = 43 ∧ 42 = 42:= by
   custom_tactic
--- tactic 'rfl' failed, equality expected{indentExpr targetType}
+-- tactic 'rfl' failed, equality expected
+--   43 = 43 ∧ 42 = 42
 -- ⊢ 43 = 43 ∧ 42 = 42
 
 /-
@@ -97,7 +98,7 @@ also *recursively* call `custom_tactic` in the two subcases.
 
 ### Implementing `<;>`: Tactic Combinators by Macro Expansion
 
-Recall that in the previous section, we say that `a <;> b` meant "run `a`, and
+Recall that in the previous section, we said that `a <;> b` meant "run `a`, and
 then run `b` for all goals". In fact, `<;>` itself is a tactic macro. In this
 section, we will implement the syntax `a and_then b` which will stand for
 "run `a`, and then run `b` for all goals".
@@ -185,8 +186,8 @@ theorem test_custom_sorry : 1 = 2 := by
   custom_sorry_2
 
 #print test_custom_sorry
--- theorem wrong_2 : 1 = 2 :=
--- sorryAx (1 = 2)
+-- theorem test_custom_sorry : 1 = 2 :=
+-- sorryAx (1 = 2) true
 
 /-
 And we no longer have the error `unsolved goals: ⊢ 1 = 2`.
@@ -231,7 +232,6 @@ error messages.
 
 elab "custom_assump_0" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     dbg_trace f!"goal type: {goalType}"
 
@@ -245,8 +245,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
 
 example (H1 : 1 = 1): 2 = 2 := by
   custom_assump_0
--- 1) goal: _uniq.713
--- 2) goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+-- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
 -- unsolved goals
 -- H1 : 1 = 1
 -- ⊢ 2 = 2
@@ -307,7 +306,6 @@ same type (`local decl[EQUAL? false]: name: H2 `):
 
 elab "list_local_decls_3" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
     ctx.forM fun decl: Lean.LocalDecl => do
@@ -334,7 +332,6 @@ goal with `Lean.Meta.isExprDefEq`:
 
 elab "custom_assump_1" : tactic =>
   Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
     let goalType ← Lean.Elab.Tactic.getMainTarget
     let lctx ← Lean.MonadLCtx.getLCtx
     -- Iterate over the local declarations...
@@ -530,14 +527,14 @@ elab "faq_get_hypotheses" : tactic =>
   let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
   ctx.forM (fun (decl : Lean.LocalDecl) => do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
-    let declType := decl.type -- Find the expression of the declaration.
+    let declType := decl.type -- Find the type of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
     dbg_trace f!" local decl: name: {declName} | expr: {declExpr} | type: {declType}"
   )
 
 example (H1 : 1 = 1) (H2 : 2 = 2): 3 = 3 := by
   faq_get_hypotheses
-  -- local decl: name: test_faq_get_hypotheses | expr: _uniq.10814 | type: ...
+  -- local decl: name: _example | expr: _uniq.10814 | type: ...
   -- local decl: name: H1 | expr: _uniq.10815 | type: ...
   -- local decl: name: H2 | expr: _uniq.10816 | type: ...
   rfl
