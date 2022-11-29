@@ -275,7 +275,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
 ```
 
 Recall that we are looking for a local declaration that has the same type as the
-hypothesis. We get the type of `LocalDefinition` by calling  --should this be `LocalDecl`?
+hypothesis. We get the type of `LocalDecl` by calling
 `Lean.Meta.inferType` on the local declaration's expression.
 
 ```lean
@@ -296,7 +296,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
   rfl
 ```
 
-We check if the type of the `LocalDefinition` is equal to the goal type with  --should this be `LocalDecl`?
+We check if the type of the `LocalDecl` is equal to the goal type with
 `Lean.Meta.isExprDefEq`. See that we check if the types are equal at `eq?`, and
 we print that `H1` has the same type as the goal
 (`local decl[EQUAL? true]: name: H1`), and we print that `H2` does not have the
