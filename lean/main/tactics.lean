@@ -407,7 +407,7 @@ of our computation, `liftMetaTactic` expects us to return a `List MVarId` as the
 resulting list of goals.
 
 The only substantial difference between `custom_let` and `custom_have` is that
-the former uses `Lean.Meta.define` and the later uses `Lean.Meta.assert`:
+the former uses `Lean.MVarId.define` and the later uses `Lean.MVarId.assert`:
 -/
 
 open Lean.Elab.Tactic in
@@ -416,8 +416,8 @@ elab "custom_let " n:ident " : " t:term " := " v:term : tactic =>
     let t ← elabTerm t none
     let v ← elabTermEnsuringType v t
     liftMetaTactic fun mvarId => do
-      let mvarIdNew ← Lean.Meta.define mvarId n.getId t v
-      let (_, mvarIdNew) ← Lean.Meta.intro1P mvarIdNew
+      let mvarIdNew ← mvarId.define n.getId t v
+      let (_, mvarIdNew) ← mvarIdNew.intro1P
       return [mvarIdNew]
 
 open Lean.Elab.Tactic in
@@ -426,8 +426,8 @@ elab "custom_have " n:ident " : " t:term " := " v:term : tactic =>
     let t ← elabTerm t none
     let v ← elabTermEnsuringType v t
     liftMetaTactic fun mvarId => do
-      let mvarIdNew ← Lean.Meta.assert mvarId n.getId t v
-      let (_, mvarIdNew) ← Lean.Meta.intro1P mvarIdNew
+      let mvarIdNew ← mvarId.assert n.getId t v
+      let (_, mvarIdNew) ← mvarIdNew.intro1P
       return [mvarIdNew]
 
 theorem test_faq_have : True := by
@@ -503,7 +503,7 @@ elab "faq_get_goals" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goals ← Lean.Elab.Tactic.getGoals
     goals.forM $ fun goal => do
-      let goalType ← Lean.Meta.getMVarType goal
+      let goalType ← goal.getType
       dbg_trace f!"goal: {goal.name} | type: {goalType}"
 
 example (b : Bool) : b = true := by
