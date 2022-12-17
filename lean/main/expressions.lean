@@ -91,13 +91,29 @@ So our above example would become (putting wildcards `_` in the type arguments
 for now for brevity):
 ``app (app (lam `f _ (lam `x _ (app (app #1 #0) #0))) (lam `x _ (lam `y _ (app (app plus #1) #0)))) five``
 Now we don't need to rename variables when we perform β-reduction. We also
-really easily check if two `Expr`s containing bound expressions are equal.
+really easily check if two `Expr`s containing bound expressions are equal. This
+is why the signature of the `bvar` case is `Nat → Expr` and not
+`Name → Expr`.
 
-This is why the signature of the `bvar` case is `Nat → Expr` and not
-`Name → Expr`. If in our `Expr`, all `bvar`s are bound, we say that the `Expr`
-is __closed__. The process of replacing all instances of an unbound `bvar` with
-an `Expr` is called __instantiation__. Going the other way is called
+If a de Bruijn index is too large for the number of binders preceding it, we say
+it is a __loose `bvar`__; otherwise we say it is __bound__. For example, in the
+expression ``lam `x _ (app #0 #1)`` the `bvar` `#0` is bound by the preceding
+binder and `#1` is loose. The fact that Lean calls all de Bruijn indexes `bvar`s
+("bound variables") points to an important invariant: outside of some very
+low-level functions, Lean expects that expressions do not contain any loose
+`bvar`s. Instead, whenever we would be tempted to introduce a loose `bvar`, we
+immediately convert it into an `fvar` ("free variable"). Precisely how that
+works is discussed in the next chapter.
+
+If there are no loose `bvar`s in an expression, we say that the expression is
+__closed__. The process of replacing all instances of a loose `bvar` with an
+`Expr` is called __instantiation__. Going the other way is called
 __abstraction__.
+
+If you are familiar with the standard terminology around variables, Lean's
+terminology may be confusing, so here's a map: Lean's "bvars" are usually called
+just "variables"; Lean's "loose" is usually called "free"; and Lean's "fvars"
+might be called "local hypotheses".
 
 ## Universe Levels
 
