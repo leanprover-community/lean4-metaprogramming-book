@@ -1206,4 +1206,57 @@ In the next chapter, we move towards the topic of elaboration, of which
 you've already seen several glimpses in this chapter. We start by discussing
 Lean's syntax system, which allows you to add custom syntactic constructs to the
 Lean parser.
+
+# Exercises
+
+1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
+Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure "(a) that val must have the target type of mvarId and (b) that val must only contain fvars from the local context of mvarId."
+
+2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
+
+3. [**Metavariables**] Fill in the missing lines in the following code.
+
+```
+#eval show MetaM Unit from do
+  let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
+  let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+
+  -- Create `mvar1` with type `Nat`
+  -- let mvar1 ← ...
+  -- Create `mvar2` with type `Nat`
+  -- let mvar2 ← ...
+  -- Create `mvar3` with type `Nat`
+  -- let mvar3 ← ...
+
+  -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
+  -- ...
+
+  -- Assign `mvar3` to `1`
+  -- ...
+
+  -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
+  ...
+```
+
+4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below. What would be the 1) metavariable's `type` and `userName` 2) the `type`s and `userName`s of all local declarations in this metavariable's local context (including implementation details)?
+Print them all out.
+
+```
+elab "explore" : tactic =>
+  Lean.Elab.Tactic.withMainContext do
+    let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
+    let metavarDecl : MetavarDecl ← mvarId.getDecl
+
+    IO.println "Our metavariable"
+    -- ...
+
+    IO.println "All of its local declarations"
+    -- ...
+
+theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
+  explore
+  sorry
+```
+
+5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
 -/
