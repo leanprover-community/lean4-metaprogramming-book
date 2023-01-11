@@ -44,7 +44,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   IO.println instantiatedMvar1 -- Nat.add (Nat.add 2 ?_uniq.2) 1
 
 /- 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-a) What would be the metavariable's `type` and `userName`?  
+a) What would be the `type` and `userName` of metavariable `mvarId`?  
 b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
 Print them all out. ...
 -/
