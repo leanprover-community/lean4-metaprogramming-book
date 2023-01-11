@@ -8,8 +8,8 @@ package «lean4-metaprogramming-book» {
 
 @[default_target]
 lean_lib «lean4-metaprogramming-book» {
-  roots := #[`cover, `extra, `main]
-  globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main]
+  roots := #[`cover, `extra, `main, `solutions]
+  globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
 }
 
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
