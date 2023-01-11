@@ -184,10 +184,10 @@ def expr2 := (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))
   IO.println s!"a: {← instantiateMVars a}"
 
 /- 9. [**Computation**] Write down what you expect the following code to output. ...-/
-@[reducible] def reducibleDef     : Nat := 1
+@[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
 @[instance] def instanceDef       : Nat := 2 -- same as `instance`
 def defaultDef                    : Nat := 3
-@[irreducible] def irreducibleDef : Nat := 4 -- same as `abbrev`
+@[irreducible] def irreducibleDef : Nat := 4
 
 @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
