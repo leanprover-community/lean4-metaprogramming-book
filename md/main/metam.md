@@ -1207,9 +1207,6 @@ Lean parser.
 
 # Exercises
 
-import Lean
-open Lean Meta
-
 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
 Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.
 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
