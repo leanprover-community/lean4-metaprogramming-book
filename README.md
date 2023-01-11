@@ -20,8 +20,8 @@ A PDF is [available here for download](../../releases/download/latest/Metaprogra
     1. [Pretty Printing](md/extra/pretty-printing.md)
 * Solutions to exercises
     1. ...
-    2. [Expressions: Solutions](md/solutions/expressions.md)
-    3. [`MetaM`: Solutions](md/solutions/metam.md)
+    2. [Expressions](md/solutions/expressions.md)
+    3. [`MetaM`](md/solutions/metam.md)
 
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
