@@ -1212,7 +1212,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
 3. [**Metavariables**] Fill in the missing lines in the following code.
 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-  a) What would be the metavariable's `type` and `userName`?  
+  a) What would be the `type` and `userName` of metavariable `mvarId`?  
   b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
   Print them all out.
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
@@ -1231,10 +1231,10 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
 9. [**Computation**] Write down what you expect the following code to output.
 
 ```
-@[reducible] def reducibleDef     : Nat := 1
+@[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
 @[instance] def instanceDef       : Nat := 2 -- same as `instance`
 def defaultDef                    : Nat := 3
-@[irreducible] def irreducibleDef : Nat := 4 -- same as `abbrev`
+@[irreducible] def irreducibleDef : Nat := 4
 
 @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
