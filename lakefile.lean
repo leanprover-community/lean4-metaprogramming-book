@@ -29,6 +29,7 @@ script build do
   if ← runCmd "python" #["-m", "lean2md", "lean/main", "md/main"] then return 1
   if ← runCmd "python" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
   if ← runCmd "python" #["-m", "lean2md", "lean/solutions", "md/solutions"] then return 1
+  if ← runCmd "python" #["-m", "lean2md", "lean/exercises", "lean/exercises"] then return 1
 
   return 0
 
