@@ -1,8 +1,8 @@
 /-
 ---
 title: "Metaprogramming in Lean 4"
-author: [Arthur Paulino, Damiano Testa, Edward Ayers, Evgenia Karunus, Henrik Böving,
-         Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat]
+author: [Arthur Paulino, Damiano Testa, Edward Ayers, Evgenia Karunus,
+        Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat]
 # abusing this field just because the template puts it at a decent right-sized spot
 date: "Formatted for PDF by Julian Berman using [Pascal Wagler's Template](https://github.com/Wandmalfarbe/pandoc-latex-template)"
 mainfont: "DejaVu Serif"
