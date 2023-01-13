@@ -1205,7 +1205,7 @@ you've already seen several glimpses in this chapter. We start by discussing
 Lean's syntax system, which allows you to add custom syntactic constructs to the
 Lean parser.
 
-# Exercises
+## Exercises
 
 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
 Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.

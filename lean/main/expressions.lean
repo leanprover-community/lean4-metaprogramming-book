@@ -253,7 +253,7 @@ set_option pp.explicit true in
 things, allows us to more conveniently construct and destruct larger
 expressions.
 
-# Exercises
+## Exercises
 
 1. Create expression `1 + 2` with `Expr.app`.
 2. Create expression `1 + 2` with `Lean.mkAppN`.
