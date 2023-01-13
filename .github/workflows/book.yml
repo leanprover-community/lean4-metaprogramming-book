@@ -1,9 +1,6 @@
 name: Book
 
-on:
-  push:
-    branches:
-      - master
+on: [push]
 
 jobs:
   book:
@@ -31,7 +28,15 @@ jobs:
       # Minted doesn't like filenames with spaces in them unfortunately, so we mv.
       run: mv out.tex 'Metaprogramming in Lean 4.tex' && mv out.pdf 'Metaprogramming in Lean 4.pdf'
 
+    - name: Upload PDF to artifact storage
+      if: github.ref != 'refs/heads/master'
+      uses: actions/upload-artifact@v3
+      with:
+        name: "Metaprogramming in Lean 4"
+        path: "Metaprogramming in Lean 4.pdf"
+
     - uses: "marvinpinto/action-automatic-releases@latest"
+      if: github.ref == 'refs/heads/master'
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         automatic_release_tag: "latest"
