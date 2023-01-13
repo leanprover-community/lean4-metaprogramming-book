@@ -3,7 +3,9 @@ import Lean
 open Lean Meta
 ```
 
-# Expressions: Solutions
+# Solutions
+
+## Expressions: Solutions
 
 1. Create expression `1 + 2` with `Expr.app`.
 
@@ -131,14 +133,14 @@ def nine : Expr :=
   Expr.lam `p (Expr.sort Lean.Level.zero)
   (
     Expr.lam `hP (Expr.bvar 0)
-    (Expr.bvar 1)
+    (Expr.bvar 0)
     BinderInfo.default
   )
   BinderInfo.default
 
 elab "nine" : term => return nine
-#check nine  -- fun p hP => p : (p : Prop) → p → Prop
-#reduce nine -- fun p hP => p
+#check nine  -- fun p hP => hP : ∀ (p : Prop), p → p
+#reduce nine -- fun p hP => hP
 ```
 
 10. [**Universe levels**] Create expression `Type 6`.

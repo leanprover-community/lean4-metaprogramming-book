@@ -1,7 +1,8 @@
 import Lean
 open Lean Meta
 
-/- # Expressions: Solutions -/
+/- # Solutions -/
+/- ## Expressions: Solutions -/
 
 /- 1. Create expression `1 + 2` with `Expr.app`. -/
 def one : Expr :=
