@@ -13,7 +13,9 @@ We by no means intend to provide an exhaustive exploration/explanation of the
 entire Lean 4 metaprogramming API. We also don't cover the topic of monadic
 programming in Lean 4. However, we hope that the examples provided will be
 simple enough for the reader to follow and comprehend without a super deep
-understanding of monadic programming.
+understanding of monadic programming. The book
+[Functional Programming in Lean](https://leanprover.github.io/functional_programming_in_lean/)
+is a highly recomended source on that subject.
 
 ## Book structure
 
@@ -33,7 +35,10 @@ content, showing other applications of metaprogramming in Lean 4.
 
 The rest of this chapter is a gentle introduction for what metaprogramming is,
 offering some small examples to serve as appetizers for what the book shall
-cover. 
+cover.
+
+Note: the code snippets aren't self-contained. They are supposed to be run/read
+incrementally,starting from the beginning of each chapter.
 
 ## What does it mean to be in meta?
 
