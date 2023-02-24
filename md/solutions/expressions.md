@@ -7,7 +7,7 @@ open Lean Meta
 
 ## Expressions: Solutions
 
-1. Create expression `1 + 2` with `Expr.app`.
+### 1.
 
 ```lean
 def one : Expr :=
@@ -18,7 +18,7 @@ elab "one" : term => return one
 #reduce one -- 3
 ```
 
-2. Create expression `1 + 2` with `Lean.mkAppN`.
+### 2.
 
 ```lean
 def two : Expr :=
@@ -29,7 +29,7 @@ elab "two" : term => return two
 #reduce two -- 3
 ```
 
-3. Create expression `λ x => 1 + x`.
+### 3.
 
 ```lean
 def three : Expr :=
@@ -42,7 +42,7 @@ elab "three" : term => return three
 #reduce three 6 -- 7
 ```
 
-4. [**De Bruijn Indexes**] Create expression `λ a, λ b, λ c, (b * a) + c`.
+### 4.
 
 ```lean
 def four : Expr :=
@@ -70,7 +70,7 @@ elab "four" : term => return four
 #reduce four 666 1 2 -- 668
 ```
 
-5. Create expression `λ x y => x + y`.
+### 5.
 
 ```lean
 def five :=
@@ -87,7 +87,7 @@ elab "five" : term => return five
 #reduce five 4 5 -- 9
 ```
 
-6. Create expression `λ x, String.append "hello, " x`.
+### 6.
 
 ```lean
 def six :=
@@ -100,7 +100,7 @@ elab "six" : term => return six
 #eval six "world" -- "Hello, world"
 ```
 
-7. Create expression `∀ x : Prop, x ∧ x`.
+### 7.
 
 ```lean
 def seven : Expr :=
@@ -113,7 +113,7 @@ elab "seven" : term => return seven
 #reduce seven -- ∀ (x : Prop), x ∧ x
 ```
 
-8. Create expression `Nat → String`.
+### 8.
 
 ```lean
 def eight : Expr :=
@@ -126,7 +126,7 @@ elab "eight" : term => return eight
 #reduce eight -- Nat → String
 ```
 
-9. Create expression `λ (p : Prop) => (λ hP : p => hP)`.
+### 9.
 
 ```lean
 def nine : Expr :=
@@ -143,7 +143,7 @@ elab "nine" : term => return nine
 #reduce nine -- fun p hP => hP
 ```
 
-10. [**Universe levels**] Create expression `Type 6`.
+### 10.
 
 ```lean
 def ten : Expr :=

@@ -376,8 +376,9 @@ syntax (name := our_alias) (docComment)? "our_alias " ident " ← " ident* : com
 We want `alias hi ← hello yes` to print out the identifiers after `←` - that is, "hello" and "yes".
 
 Please add these semantics:
-**a)** using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`.
-**b)** using `syntax` + `elab_rules`.
+
+**a)** using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`.  
+**b)** using `syntax` + `elab_rules`.  
 **c)** using `elab`.
 
 3. Here is some syntax taken from a real mathlib tactic `nth_rewrite`.
@@ -390,8 +391,9 @@ syntax (name := nthRewriteSeq) "nth_rewrite " (config)? num rwRuleSeq (ppSpace l
 We want `nth_rewrite 5 [←add_zero a] at h` to print out `"rewrite location!"` if the user provided location, and `"rewrite target!"` if the user didn't provide location.
 
 Please add these semantics:
-**a)** using `syntax` + `@[tactic nthRewrite] def evalNthRewrite : Lean.Elab.Tactic.Tactic`.
-**b)** using `syntax` + `elab_rules`.
+
+**a)** using `syntax` + `@[tactic nthRewrite] def evalNthRewrite : Lean.Elab.Tactic.Tactic`.  
+**b)** using `syntax` + `elab_rules`.  
 **c)** using `elab`.
 
 -/

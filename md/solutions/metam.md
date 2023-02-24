@@ -5,8 +5,7 @@ open Lean Meta
 
 ## `MetaM`: Solutions
 
-1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
-Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`".*
+### 1.
 
 ```lean
 #eval show MetaM Unit from do
@@ -17,7 +16,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   IO.println s!"value in hi: {← instantiateMVars hi}" -- Nat.succ Nat.zero
 ```
 
-2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
+### 2.
 
 ```lean
 -- It would output the same expression we gave it - there were no metavariables to instantiate.
@@ -26,7 +25,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   IO.println instantiatedExpr -- fun (x : Nat) => x
 ```
 
-3. [**Metavariables**] Fill in the missing lines in the following code. ...
+### 3.
 
 ```lean
 #eval show MetaM Unit from do
@@ -51,10 +50,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   IO.println instantiatedMvar1 -- Nat.add (Nat.add 2 ?_uniq.2) 1
 ```
 
-4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-a) What would be the `type` and `userName` of metavariable `mvarId`?  
-b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
-Print them all out. ...
+### 4.
 
 ```lean
 elab "explore" : tactic => do
@@ -81,7 +77,7 @@ theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   sorry
 ```
 
-5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
+### 5.
 
 ```lean
 -- The type of our metavariable `2 + 2`. We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
@@ -98,10 +94,7 @@ theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   solve
 ```
 
-6. [**Computation**] What is the normal form of the following expressions:  
-a) `λ x => x` of type `Bool → Bool`  
-b) `(λ x => x) ((true && false) || true)` of type `Bool`  
-c) `800 + 2` of type `Nat`
+### 6.
 
 ```lean
 def sixA : Bool → Bool := λ x => x
@@ -117,7 +110,7 @@ def sixC : Nat := 800 + 2
 #eval Lean.Meta.reduce (Expr.const `sixC [])
 ```
 
-7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`.
+### 7.
 
 ```lean
 #eval show MetaM Unit from do
@@ -128,13 +121,7 @@ def sixC : Nat := 800 + 2
   IO.println isEqual -- true
 ```
 
-8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.  
-a) `5 =?= (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))`  
-b) `2 + 1 =?= 1 + 2`  
-c) `?a =?= 2`, where `?a` has a type `String`  
-d) `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type  
-e) `2 + ?a =?= 3`  
-f) `2 + ?a =?= 2 + 1`
+### 8.
 
 ```lean
 -- a) `5 =?= (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))`
@@ -198,7 +185,7 @@ def expr2 := (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))
   IO.println s!"a: {← instantiateMVars a}"
 ```
 
-9. [**Computation**] Write down what you expect the following code to output. ...
+### 9.
 
 ```lean
 @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
@@ -232,10 +219,7 @@ def defaultDef                    : Nat := 3
   dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
 ```
 
-10. [**Constructing Expressions**] Create expression `λ x, 1 + x` in two ways:  
-a) not idiomatically, with loose bound variables  
-b) idiomatically.  
-In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
+### 10.
 
 ```lean
 -- Non-idiomatic: we can only use `Lean.mkAppN`.
@@ -257,7 +241,7 @@ def tenB : MetaM Expr := do
   ppExpr (← tenB) -- fun x => Nat.add 1 x
 ```
 
-11. [**Constructing Expressions**] Create expression `∀ (yellow: Nat), yellow`.
+### 11.
 
 ```lean
 def eleven : MetaM Expr :=
@@ -267,10 +251,7 @@ def eleven : MetaM Expr :=
   dbg_trace (← eleven) -- forall (yellow : Nat), yellow
 ```
 
-12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:  
-a) not idiomatically, with loose bound variables  
-b) idiomatically.  
-In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
+### 12.
 
 ```lean
 -- Non-idiomatic: we can only use `Lean.mkApp3`.
@@ -297,7 +278,7 @@ def twelveB : MetaM Expr := do
   ppExpr (← twelveB) -- ∀ (n : Nat), n = Nat.add n 1
 ```
 
-13. [**Constructing Expressions**] Create expression `λ (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
+### 13.
 
 ```lean
 def thirteen : MetaM Expr := do
@@ -317,7 +298,7 @@ def thirteen : MetaM Expr := do
   ppExpr (← thirteen) -- fun f => (n : Nat) → Eq Nat (f n) (f (Nat.add n 1))
 ```
 
-14. [**Constructing Expressions**] What would you expect the output of the following code to be?...
+### 14.
 
 ```lean
 #eval show Lean.Elab.Term.TermElabM _ from do
@@ -334,8 +315,7 @@ def thirteen : MetaM Expr := do
   dbg_trace conclusion -- forall (a.1 : Prop) (b.1 : Prop), (Or a.1 b.1) -> b.1 -> (And a.1 a.1)
 ```
 
-15. [**Backtracking**] Check that the expressions `?a + Int` and `"hi" + ?b` are definitionally equal with `isDefEq` (make sure to use the proper types or `Option.none` for the types of your metavariables!).
-Use `saveState` and `restoreState` to revert metavariable assignments.
+### 15.
 
 ```lean
 #eval show MetaM Unit from do
