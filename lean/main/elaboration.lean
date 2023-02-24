@@ -340,3 +340,58 @@ syntax sugar of the `elab` syntax instead:
 -- This `t` syntax will effectively perform the first two lines of `myanonImpl`
 elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do 
   sorry
+
+
+/-!
+
+## Exercises
+
+1. Consider the following code. Rewrite `syntax` + `@[term_elab hi]... : TermElab` combination using just `elab`.
+
+```
+syntax (name := hi) term " ♥ " " ♥ "? " ♥ "? : term
+
+@[term_elab hi]
+def heartElab : TermElab := λ stx tp =>
+  match stx with
+    | `($l:term ♥) => do
+      let nExpr ← elabTermEnsuringType l (mkConst `Nat)
+      return Expr.app (Expr.app (Expr.const `Nat.add []) nExpr) (mkNatLit 1)
+    | `($l:term ♥♥) => do
+      let nExpr ← elabTermEnsuringType l (mkConst `Nat)
+      return Expr.app (Expr.app (Expr.const `Nat.add []) nExpr) (mkNatLit 2)
+    | `($l:term ♥♥♥) => do
+      let nExpr ← elabTermEnsuringType l (mkConst `Nat)
+      return Expr.app (Expr.app (Expr.const `Nat.add []) nExpr) (mkNatLit 3)
+    | _ =>
+      throwUnsupportedSyntax
+```
+
+2. Here is some syntax taken from a real mathlib command `alias`.
+
+```
+syntax (name := our_alias) (docComment)? "our_alias " ident " ← " ident* : command
+```
+
+We want `alias hi ← hello yes` to print out the identifiers after `←` - that is, "hello" and "yes".
+
+Please add these semantics:
+**a)** using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`.
+**b)** using `syntax` + `elab_rules`.
+**c)** using `elab`.
+
+3. Here is some syntax taken from a real mathlib tactic `nth_rewrite`.
+
+```
+open Parser.Tactic
+syntax (name := nthRewriteSeq) "nth_rewrite " (config)? num rwRuleSeq (ppSpace location)? : tactic
+```
+
+We want `nth_rewrite 5 [←add_zero a] at h` to print out `"rewrite location!"` if the user provided location, and `"rewrite target!"` if the user didn't provide location.
+
+Please add these semantics:
+**a)** using `syntax` + `@[tactic nthRewrite] def evalNthRewrite : Lean.Elab.Tactic.Tactic`.
+**b)** using `syntax` + `elab_rules`.
+**c)** using `elab`.
+
+-/

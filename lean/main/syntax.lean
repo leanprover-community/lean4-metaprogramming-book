@@ -556,10 +556,10 @@ the bound variables, we refer the reader to the macro chapter.
 ## Exercises
 
 1. Create an "urgent minus 💀" notation such that `5 * 8 💀 4` returns `20`, and `8 💀 6 💀 1` returns `3`.
-  a) Using `notation` command.
-  b) Using `infix` command.
-  c) Using `syntax` command.
-  Hint: multiplication in Lean 4 is defined as `infixl:70 " * " => HMul.hMul`.
+**a)** Using `notation` command.
+**b)** Using `infix` command.
+**c)** Using `syntax` command.
+Hint: multiplication in Lean 4 is defined as `infixl:70 " * " => HMul.hMul`.
 
 2. Consider the following syntax categories: `term`, `command`, `tactic`; and 3 syntax rules given below. Make use of each of these newly defined syntaxes.
 
