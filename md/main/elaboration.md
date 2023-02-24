@@ -391,6 +391,6 @@ We want `nth_rewrite 5 [←add_zero a] at h` to print out `"rewrite location!"` 
 
 Please add these semantics:
 
-**a)** using `syntax` + `@[tactic nthRewrite] def evalNthRewrite : Lean.Elab.Tactic.Tactic`.  
+**a)** using `syntax` + `@[tactic nthRewrite] def elabNthRewrite : Lean.Elab.Tactic.Tactic`.  
 **b)** using `syntax` + `elab_rules`.  
 **c)** using `elab`.

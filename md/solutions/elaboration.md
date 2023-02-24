@@ -63,10 +63,10 @@ aliasC hi.hello ← d.d w.w nnn
 ```lean
 open Parser.Tactic
 
--- a) using `syntax` + `@[tactic nthRewrite] def evalNthRewrite : Lean.Elab.Tactic.Tactic`.
+-- a) using `syntax` + `@[tactic nthRewrite] def elabNthRewrite : Lean.Elab.Tactic.Tactic`.
 syntax (name := nthRewriteA) "nth_rewriteA " (config)? num rwRuleSeq (ppSpace location)? : tactic
 
-@[tactic nthRewriteA] def evalNthRewrite : Lean.Elab.Tactic.Tactic := λ stx => do
+@[tactic nthRewriteA] def elabNthRewrite : Lean.Elab.Tactic.Tactic := λ stx => do
   match stx with
   | `(tactic| nth_rewriteA $[$cfg]? $n $rules $_loc) =>
     Lean.logInfo "rewrite location!"
