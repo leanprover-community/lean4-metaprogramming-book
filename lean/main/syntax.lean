@@ -220,10 +220,12 @@ syntax "[Bool|" boolean_expr "]" : term
 ### Syntax combinators
 In order to declare more complex syntax, it is often very desirable to have
 some basic operations on syntax already built-in, these include:
+
 - helper parsers without syntax categories (i.e. not extendable)
 - alternatives
 - repetitive parts
 - optional parts
+
 While all of these do have an encoding based on syntax categories, this
 can make things quite ugly at times, so Lean provides an easier way to do all
 of these.
