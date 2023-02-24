@@ -1,9 +1,9 @@
 import Lean
 open Lean Elab Command Term Meta
 
-/-
-1. Consider the following code... Rewrite `syntax` + `@[term_elab hi]... : TermElab` combination using just `elab`.
--/
+/- ## Elaboration: Solutions -/
+
+/- ### 1. -/
 
 elab n:term "♥" a:"♥"? b:"♥"? : term => do
   let nExpr : Expr ← elabTermEnsuringType n (mkConst `Nat)
@@ -19,9 +19,7 @@ elab n:term "♥" a:"♥"? b:"♥"? : term => do
 #eval 7 ♥♥ -- 9
 #eval 7 ♥♥♥ -- 10
 
-/-
-2. Here is some syntax taken from a real mathlib command `alias`...
--/
+/- ### 2. -/
 
 -- a) using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`
 syntax (name := aliasA) (docComment)? "aliasA " ident " ← " ident* : command
@@ -54,9 +52,7 @@ elab "aliasC " x:ident " ← " ys:ident* : command =>
 
 aliasC hi.hello ← d.d w.w nnn
 
-/-
-3. Here is some syntax taken from a real mathlib tactic `nth_rewrite`...
--/
+/- ### 3. -/
 
 open Parser.Tactic
 
