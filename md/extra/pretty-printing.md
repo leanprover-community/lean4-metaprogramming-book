@@ -17,7 +17,7 @@ order they are listed in:
 
 ## Delaboration
 As its name suggests, the delaborator is in a sense the opposite of the
-elaborator. The job of the elaborator is to take an `Expr` produced by
+elaborator. The job of the delaborator is to take an `Expr` produced by
 the elaborator and turn it back into a `Syntax` which, if elaborated,
 should produce an `Expr` that behaves equally to the input one.
 
