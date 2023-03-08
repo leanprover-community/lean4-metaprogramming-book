@@ -223,6 +223,7 @@ some basic operations on syntax already built-in, these include:
 - alternatives
 - repetitive parts
 - optional parts
+
 While all of these do have an encoding based on syntax categories, this
 can make things quite ugly at times, so Lean provides an easier way to do all
 of these.
