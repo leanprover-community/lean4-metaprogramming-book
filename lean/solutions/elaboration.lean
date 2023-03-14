@@ -59,7 +59,7 @@ open Parser.Tactic
 -- a) using `syntax` + `@[tactic nthRewrite] def elabNthRewrite : Lean.Elab.Tactic.Tactic`.
 syntax (name := nthRewriteA) "nth_rewriteA " (config)? num rwRuleSeq (ppSpace location)? : tactic
 
-@[tactic nthRewriteA] def elabNthRewrite : Lean.Elab.Tactic.Tactic := λ stx => do
+@[tactic nthRewriteA] def elabNthRewrite : Lean.Elab.Tactic.Tactic := fun stx => do
   match stx with
   | `(tactic| nth_rewriteA $[$cfg]? $n $rules $_loc) =>
     Lean.logInfo "rewrite location!"

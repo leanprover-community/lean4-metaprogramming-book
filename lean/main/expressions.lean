@@ -257,12 +257,12 @@ expressions.
 
 1. Create expression `1 + 2` with `Expr.app`.
 2. Create expression `1 + 2` with `Lean.mkAppN`.
-3. Create expression `λ x => 1 + x`.
-4. [**De Bruijn Indexes**] Create expression `λ a, λ b, λ c, (b * a) + c`.
-5. Create expression `λ x y => x + y`.
-6. Create expression `λ x, String.append "hello, " x`.
+3. Create expression `fun x => 1 + x`.
+4. [**De Bruijn Indexes**] Create expression `fun a, fun b, fun c, (b * a) + c`.
+5. Create expression `fun x y => x + y`.
+6. Create expression `fun x, String.append "hello, " x`.
 7. Create expression `∀ x : Prop, x ∧ x`.
 8. Create expression `Nat → String`.
-9. Create expression `λ (p : Prop) => (λ hP : p => hP)`.
+9. Create expression `fun (p : Prop) => (λ hP : p => hP)`.
 10. [**Universe levels**] Create expression `Type 6`.
 -/
