@@ -4,7 +4,7 @@ open Lean Meta
 /- # Solutions -/
 /- ## Expressions: Solutions -/
 
-/- 1. Create expression `1 + 2` with `Expr.app`. -/
+/- ### 1. -/
 def one : Expr :=
   Expr.app (Expr.app (Expr.const `Nat.add []) (mkNatLit 1)) (mkNatLit 2)
 
@@ -12,7 +12,7 @@ elab "one" : term => return one
 #check one  -- Nat.add 1 2 : Nat
 #reduce one -- 3
 
-/- 2. Create expression `1 + 2` with `Lean.mkAppN`. -/
+/- ### 2. -/
 def two : Expr :=
   Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2]
 
@@ -20,7 +20,7 @@ elab "two" : term => return two
 #check two  -- Nat.add 1 2 : Nat
 #reduce two -- 3
 
-/- 3. Create expression `λ x => 1 + x`. -/
+/- ### 3. -/
 def three : Expr :=
   Expr.lam `x (Expr.const `Nat [])
   (Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Expr.bvar 0])
@@ -30,7 +30,7 @@ elab "three" : term => return three
 #check three    -- fun x => Nat.add 1 x : Nat → Nat
 #reduce three 6 -- 7
 
-/- 4. [**De Bruijn Indexes**] Create expression `λ a, λ b, λ c, (b * a) + c`. -/
+/- ### 4. -/
 def four : Expr :=
   Expr.lam `a (Expr.const `Nat [])
   (
@@ -55,7 +55,7 @@ elab "four" : term => return four
 #check four -- fun a b c => Nat.add (Nat.mul b a) c : Nat → Nat → Nat → Nat
 #reduce four 666 1 2 -- 668
 
-/- 5. Create expression `λ x y => x + y`. -/
+/- ### 5. -/
 def five :=
   Expr.lam `x (Expr.const `Nat [])
   (
@@ -69,7 +69,7 @@ elab "five" : term => return five
 #check five      -- fun x y => Nat.add x y : Nat → Nat → Nat
 #reduce five 4 5 -- 9
 
-/- 6. Create expression `λ x, String.append "hello, " x`. -/
+/- ### 6. -/
 def six :=
   Expr.lam `x (Expr.const `String [])
   (Lean.mkAppN (Expr.const `String.append []) #[Lean.mkStrLit "Hello, ", Expr.bvar 0])
@@ -79,7 +79,7 @@ elab "six" : term => return six
 #check six        -- fun x => String.append "Hello, " x : String → String
 #eval six "world" -- "Hello, world"
 
-/- 7. Create expression `∀ x : Prop, x ∧ x`. -/
+/- ### 7. -/
 def seven : Expr :=
   Expr.forallE `x (Expr.sort Lean.Level.zero)
   (Expr.app (Expr.app (Expr.const `And []) (Expr.bvar 0)) (Expr.bvar 0))
@@ -89,7 +89,7 @@ elab "seven" : term => return seven
 #check seven  -- ∀ (x : Prop), x ∧ x : Prop
 #reduce seven -- ∀ (x : Prop), x ∧ x
 
-/- 8. Create expression `Nat → String`. -/
+/- ### 8. -/
 def eight : Expr :=
   Expr.forallE `notUsed
   (Expr.const `Nat []) (Expr.const `String [])
@@ -99,7 +99,7 @@ elab "eight" : term => return eight
 #check eight  -- Nat → String : Type
 #reduce eight -- Nat → String
 
-/- 9. Create expression `λ (p : Prop) => (λ hP : p => hP)`. -/
+/- ### 9. -/
 def nine : Expr :=
   Expr.lam `p (Expr.sort Lean.Level.zero)
   (
@@ -113,7 +113,7 @@ elab "nine" : term => return nine
 #check nine  -- fun p hP => hP : ∀ (p : Prop), p → p
 #reduce nine -- fun p hP => hP
 
-/- 10. [**Universe levels**] Create expression `Type 6`. -/
+/- ### 10. -/
 def ten : Expr :=
   Expr.sort (Nat.toLevel 7)
 

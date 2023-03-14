@@ -22,6 +22,9 @@ A PDF is [available here for download](../../releases/download/latest/Metaprogra
     1. ...
     2. [Expressions](md/solutions/expressions.md)
     3. [`MetaM`](md/solutions/metam.md)
+    4. [`Syntax`](md/solutions/syntax.md)
+    5. ...
+    6. [Elaboration](md/solutions/elaboration.md)
 
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)

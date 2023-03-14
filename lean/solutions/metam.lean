@@ -3,8 +3,7 @@ open Lean Meta
 
 /- ## `MetaM`: Solutions -/
 
-/- 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
-Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`".* -/
+/- ### 1. -/
 
 #eval show MetaM Unit from do
   let hi ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
@@ -13,14 +12,14 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   hi.mvarId!.assign (Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero []))
   IO.println s!"value in hi: {← instantiateMVars hi}" -- Nat.succ Nat.zero
 
-/- 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output? -/
+/- ### 2. -/
 
 -- It would output the same expression we gave it - there were no metavariables to instantiate.
 #eval show MetaM Unit from do
   let instantiatedExpr ← instantiateMVars (Expr.lam `x (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default)
   IO.println instantiatedExpr -- fun (x : Nat) => x
 
-/- 3. [**Metavariables**] Fill in the missing lines in the following code. ... -/
+/- ### 3. -/
 
 #eval show MetaM Unit from do
   let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
@@ -43,11 +42,7 @@ Notice that changing the type of the metavarible from `Nat` to, for example, `St
   let instantiatedMvar1 ← instantiateMVars mvar1
   IO.println instantiatedMvar1 -- Nat.add (Nat.add 2 ?_uniq.2) 1
 
-/- 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-a) What would be the `type` and `userName` of metavariable `mvarId`?  
-b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
-Print them all out. ...
--/
+/- ### 4. -/
 
 elab "explore" : tactic => do
   let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
@@ -72,7 +67,7 @@ theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   explore
   sorry
 
-/- 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`. -/
+/- ### 5. -/
 
 -- The type of our metavariable `2 + 2`. We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
 elab "solve" : tactic => do
@@ -87,18 +82,13 @@ elab "solve" : tactic => do
 theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   solve
 
+/- ### 6. -/
 
-/- 6. [**Computation**] What is the normal form of the following expressions:  
-a) `λ x => x` of type `Bool → Bool`  
-b) `(λ x => x) ((true && false) || true)` of type `Bool`  
-c) `800 + 2` of type `Nat`
--/
-
-def sixA : Bool → Bool := λ x => x
+def sixA : Bool → Bool := fun x => x
 -- .lam `x (.const `Bool []) (.bvar 0) (Lean.BinderInfo.default)
 #eval Lean.Meta.reduce (Expr.const `sixA [])
 
-def sixB : Bool := (λ x => x) ((true && false) || true)
+def sixB : Bool := (fun x => x) ((true && false) || true)
 -- .const `Bool.true []
 #eval Lean.Meta.reduce (Expr.const `sixB [])
 
@@ -106,7 +96,8 @@ def sixC : Nat := 800 + 2
 -- .lit (Lean.Literal.natVal 802)
 #eval Lean.Meta.reduce (Expr.const `sixC [])
 
-/- 7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`. -/
+/- ### 7. -/
+
 #eval show MetaM Unit from do
   let litExpr := Expr.lit (Lean.Literal.natVal 1)
   let standardExpr := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
@@ -114,18 +105,11 @@ def sixC : Nat := 800 + 2
   let isEqual ← Lean.Meta.isDefEq litExpr standardExpr
   IO.println isEqual -- true
 
-/- 8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.  
-a) `5 =?= (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))`  
-b) `2 + 1 =?= 1 + 2`  
-c) `?a =?= 2`, where `?a` has a type `String`  
-d) `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type  
-e) `2 + ?a =?= 3`  
-f) `2 + ?a =?= 2 + 1`
--/
+/- ### 8. -/
 
--- a) `5 =?= (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))`
+-- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
 -- Definitionally equal.
-def expr2 := (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))
+def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 #eval show MetaM Unit from do
   let expr1 := Lean.mkNatLit 5
   let expr2 := Expr.const `expr2 []
@@ -183,7 +167,7 @@ def expr2 := (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))
 
   IO.println s!"a: {← instantiateMVars a}"
 
-/- 9. [**Computation**] Write down what you expect the following code to output. ...-/
+/- ### 9. -/
 @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
 @[instance] def instanceDef       : Nat := 2 -- same as `instance`
 def defaultDef                    : Nat := 3
@@ -214,11 +198,7 @@ def defaultDef                    : Nat := 3
   let reducedExpr ← Meta.reduce constantExpr
   dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
 
-/- 10. [**Constructing Expressions**] Create expression `λ x, 1 + x` in two ways:  
-a) not idiomatically, with loose bound variables  
-b) idiomatically.  
-In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
--/
+/- ### 10. -/
 
 -- Non-idiomatic: we can only use `Lean.mkAppN`.
 def tenA : MetaM Expr := do
@@ -227,7 +207,7 @@ def tenA : MetaM Expr := do
 
 -- Idiomatic: we can use both `Lean.mkAppN` and `Lean.Meta.mkAppM`.
 def tenB : MetaM Expr := do
-  Lean.Meta.withLocalDecl `x .default (Expr.const `Nat []) (λ x => do
+  Lean.Meta.withLocalDecl `x .default (Expr.const `Nat []) (fun x => do
     -- let body := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, x]
     let body ← Lean.Meta.mkAppM `Nat.add #[Lean.mkNatLit 1, x]
     Lean.Meta.mkLambdaFVars #[x] body
@@ -238,7 +218,7 @@ def tenB : MetaM Expr := do
 #eval show MetaM _ from do
   ppExpr (← tenB) -- fun x => Nat.add 1 x
 
-/- 11. [**Constructing Expressions**] Create expression `∀ (yellow: Nat), yellow`. -/
+/- ### 11. -/
 
 def eleven : MetaM Expr :=
   return Expr.forallE `yellow (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default
@@ -246,11 +226,7 @@ def eleven : MetaM Expr :=
 #eval show MetaM _ from do
   dbg_trace (← eleven) -- forall (yellow : Nat), yellow
 
-/- 12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:  
-a) not idiomatically, with loose bound variables  
-b) idiomatically.  
-In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
--/
+/- ### 12. -/
 
 -- Non-idiomatic: we can only use `Lean.mkApp3`.
 def twelveA : MetaM Expr := do
@@ -261,7 +237,7 @@ def twelveA : MetaM Expr := do
 
 -- Idiomatic: we can use both `Lean.mkApp3` and `Lean.Meta.mkEq`.
 def twelveB : MetaM Expr := do
-  withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (λ x => do
+  withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (fun x => do
     let nPlusOne := Expr.app (Expr.app (Expr.const `Nat.add []) x) (Lean.mkNatLit 1)
     -- let forAllBody := Lean.mkApp3 (Expr.const ``Eq []) (Expr.const `Nat []) x nPlusOne
     let forAllBody ← Lean.Meta.mkEq x nPlusOne
@@ -275,10 +251,10 @@ def twelveB : MetaM Expr := do
 #eval show MetaM _ from do
   ppExpr (← twelveB) -- ∀ (n : Nat), n = Nat.add n 1
 
-/- 13. [**Constructing Expressions**] Create expression `λ (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically. -/
+/- ### 13. -/
 def thirteen : MetaM Expr := do
-  withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (λ y => do
-    let lamBody ← withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (λ x => do
+  withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (fun y => do
+    let lamBody ← withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (fun x => do
       let fn := Expr.app y x
       let fnPlusOne := Expr.app y (Expr.app (Expr.app (Expr.const `Nat.add []) (x)) (Lean.mkNatLit 1))
       let forAllBody := mkApp3 (mkConst ``Eq []) (Expr.const `Nat []) fn fnPlusOne
@@ -292,7 +268,7 @@ def thirteen : MetaM Expr := do
 #eval show MetaM _ from do
   ppExpr (← thirteen) -- fun f => (n : Nat) → Eq Nat (f n) (f (Nat.add n 1))
 
-/- 14. [**Constructing Expressions**] What would you expect the output of the following code to be?... -/
+/- ### 14. -/
 
 #eval show Lean.Elab.Term.TermElabM _ from do
   let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
@@ -307,8 +283,7 @@ def thirteen : MetaM Expr := do
   let (_, _, conclusion) ← lambdaMetaTelescope expr
   dbg_trace conclusion -- forall (a.1 : Prop) (b.1 : Prop), (Or a.1 b.1) -> b.1 -> (And a.1 a.1)
 
-/- 15. [**Backtracking**] Check that the expressions `?a + Int` and `"hi" + ?b` are definitionally equal with `isDefEq` (make sure to use the proper types or `Option.none` for the types of your metavariables!).
-Use `saveState` and `restoreState` to revert metavariable assignments. -/
+/- ### 15. -/
 
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
