@@ -97,11 +97,11 @@ theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
 ### 6.
 
 ```lean
-def sixA : Bool → Bool := λ x => x
+def sixA : Bool → Bool := fun x => x
 -- .lam `x (.const `Bool []) (.bvar 0) (Lean.BinderInfo.default)
 #eval Lean.Meta.reduce (Expr.const `sixA [])
 
-def sixB : Bool := (λ x => x) ((true && false) || true)
+def sixB : Bool := (fun x => x) ((true && false) || true)
 -- .const `Bool.true []
 #eval Lean.Meta.reduce (Expr.const `sixB [])
 
@@ -124,9 +124,9 @@ def sixC : Nat := 800 + 2
 ### 8.
 
 ```lean
--- a) `5 =?= (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))`
+-- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
 -- Definitionally equal.
-def expr2 := (λ x => 5) ((λ y : Nat → Nat => y) (λ z : Nat => z))
+def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 #eval show MetaM Unit from do
   let expr1 := Lean.mkNatLit 5
   let expr2 := Expr.const `expr2 []
@@ -229,7 +229,7 @@ def tenA : MetaM Expr := do
 
 -- Idiomatic: we can use both `Lean.mkAppN` and `Lean.Meta.mkAppM`.
 def tenB : MetaM Expr := do
-  Lean.Meta.withLocalDecl `x .default (Expr.const `Nat []) (λ x => do
+  Lean.Meta.withLocalDecl `x .default (Expr.const `Nat []) (fun x => do
     -- let body := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, x]
     let body ← Lean.Meta.mkAppM `Nat.add #[Lean.mkNatLit 1, x]
     Lean.Meta.mkLambdaFVars #[x] body
@@ -263,7 +263,7 @@ def twelveA : MetaM Expr := do
 
 -- Idiomatic: we can use both `Lean.mkApp3` and `Lean.Meta.mkEq`.
 def twelveB : MetaM Expr := do
-  withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (λ x => do
+  withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (fun x => do
     let nPlusOne := Expr.app (Expr.app (Expr.const `Nat.add []) x) (Lean.mkNatLit 1)
     -- let forAllBody := Lean.mkApp3 (Expr.const ``Eq []) (Expr.const `Nat []) x nPlusOne
     let forAllBody ← Lean.Meta.mkEq x nPlusOne
@@ -282,8 +282,8 @@ def twelveB : MetaM Expr := do
 
 ```lean
 def thirteen : MetaM Expr := do
-  withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (λ y => do
-    let lamBody ← withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (λ x => do
+  withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (fun y => do
+    let lamBody ← withLocalDecl `n BinderInfo.default (Expr.const `Nat []) (fun x => do
       let fn := Expr.app y x
       let fnPlusOne := Expr.app y (Expr.app (Expr.app (Expr.const `Nat.add []) (x)) (Lean.mkNatLit 1))
       let forAllBody := mkApp3 (mkConst ``Eq []) (Expr.const `Nat []) fn fnPlusOne

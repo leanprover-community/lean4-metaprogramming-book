@@ -351,7 +351,7 @@ elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
 syntax (name := hi) term " ♥ " " ♥ "? " ♥ "? : term
 
 @[term_elab hi]
-def heartElab : TermElab := λ stx tp =>
+def heartElab : TermElab := fun stx tp =>
   match stx with
     | `($l:term ♥) => do
       let nExpr ← elabTermEnsuringType l (mkConst `Nat)

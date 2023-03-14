@@ -16,7 +16,7 @@ end a
 
 namespace b
   set_option quotPrecheck false
-  scoped infixl:71 " 💀 " => λ lhs rhs => lhs - rhs
+  scoped infixl:71 " 💀 " => fun lhs rhs => lhs - rhs
 end b
 
 namespace c
@@ -56,7 +56,7 @@ example : 2 + 2 = 4 := by
 syntax (name := colors) (("blue"+) <|> ("red"+)) num : command
 
 @[command_elab colors]
-def elabColors : CommandElab := λ stx => Lean.logInfo "success!"
+def elabColors : CommandElab := fun stx => Lean.logInfo "success!"
 
 blue blue 443
 red red red 4
@@ -68,7 +68,7 @@ red red red 4
 syntax (name := help) "#better_help" "option" (ident)? : command
 
 @[command_elab help]
-def elabHelp : CommandElab := λ stx => Lean.logInfo "success!"
+def elabHelp : CommandElab := fun stx => Lean.logInfo "success!"
 
 #better_help option
 #better_help option pp.r
@@ -82,7 +82,7 @@ def elabHelp : CommandElab := λ stx => Lean.logInfo "success!"
 syntax (name := bigsumin) "∑ " Std.ExtendedBinder.extBinder "in " term "," term : term
 
 @[term_elab bigsumin]
-def elabSum : TermElab := λ stx tp =>
+def elabSum : TermElab := fun stx tp =>
   return mkNatLit 666
 
 #eval ∑ x in { 1, 2, 3 }, x^2

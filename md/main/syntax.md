@@ -577,6 +577,8 @@ Hint: multiplication in Lean 4 is defined as `infixl:70 " * " => HMul.hMul`.
 - `blue 7`
 - `blue blue blue blue blue 18`
 
+(So, either all `red`s followed by a number; or all `blue`s followed by a number; `red blue blue 5` - shouldn't work.)
+
 Use the following code template:
 
 ```
@@ -617,3 +619,4 @@ syntax (name := bigsumin) ...
 ```
 
 Hint: use the `Std.ExtendedBinder.extBinder` parser.
+Hint: you need Std4 installed in your Lean project for these imports to work.
