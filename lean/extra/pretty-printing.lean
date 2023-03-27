@@ -6,12 +6,13 @@ Lean does not actually recall the `Syntax` it used to create some `Expr`:
 there has to be code that tells it how to do that.
 In the big picture, the pretty printer consists of three parts run in the
 order they are listed in:
-- the [delaborator](https://github.com/leanprover/lean4/tree/master/src/Lean/PrettyPrinter/Delaborator)
+
+- the **[delaborator](https://github.com/leanprover/lean4/tree/master/src/Lean/PrettyPrinter/Delaborator)**
   this will be our main interest since we can easily extend it with our own code.
   Its job is to turn `Expr` back into `Syntax`.
-- the [parenthesizer](https://github.com/leanprover/lean4/blob/master/src/Lean/PrettyPrinter/Parenthesizer.lean)
+- the **[parenthesizer](https://github.com/leanprover/lean4/blob/master/src/Lean/PrettyPrinter/Parenthesizer.lean)**
   responsible for adding parenthesis into the `Syntax` tree, where it thinks they would be useful
-- the [formatter](https://github.com/leanprover/lean4/blob/master/src/Lean/PrettyPrinter/Formatter.lean)
+- the **[formatter](https://github.com/leanprover/lean4/blob/master/src/Lean/PrettyPrinter/Formatter.lean)**
   responsible for turning the parenthesized `Syntax` tree into a `Format` object that contains
   more pretty printing information like explicit whitespaces
 
@@ -26,8 +27,9 @@ is an alias for `DelabM Syntax`, where `DelabM` is the delaboration monad.
 All of this machinery is defined [here](https://github.com/leanprover/lean4/blob/master/src/Lean/PrettyPrinter/Delaborator/Basic.lean).
 `DelabM` provides us with quite a lot of options you can look up in the documentation
 (TODO: Docs link). We will merely highlight the most relevant parts here.
+
 - It has a `MonadQuotation` instance which allows us to declare `Syntax` objects
-  using the familiar quotation syntax. 
+  using the familiar quotation syntax.
 - It can run `MetaM` code.
 - It has a `MonadExcept` instance for throwing errors.
 - It can interact with `pp` options using functions like `whenPPOption`.
@@ -112,6 +114,7 @@ they are of type `Lean.PrettyPrinter.Unexpander` which in turn is an alias for
 `Syntax` to `Syntax` translations, quite similar to macros, except that they
 are supposed to be the inverse of macros. The `UnexpandM` monad is quite a lot
 weaker than `DelabM` but it still has:
+
 - `MonadQuotation` for syntax quotations
 - The ability to throw errors, although not very informative ones: `throw ()`
   is the only valid one
