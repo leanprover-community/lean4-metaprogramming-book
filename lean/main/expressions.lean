@@ -1,19 +1,32 @@
 /-
 # Expressions
 
-Expressions (terms of type `Expr`) carry the data used to communicate with the
-Lean kernel for core tasks such as type inference and definitional equality
-checks.
+Expressions (terms of type `Expr`) are an abstract syntax tree for Lean
+programs. This means that each term which can be written in Lean has a
+corresponding `Expr`. For example, the application `f e` is represented by the
+expression `Expr.app ⟦f⟧ ⟦e⟧`, where `⟦f⟧` is a representation of `f` and `⟦e⟧`
+a representation of `e`. Similarly, the term `Nat` is represented by the
+expression ``Expr.const `Nat []``. (The backtick and empty list are discussed
+below.)
 
-In Lean, terms and types are represented by expressions. For instance, let's
-consider `1` of type `Nat`. The type `Nat` is represented as a constant with the
-name "Nat". And then `1` is an application of the function `Nat.succ` to the
-term `Nat.zero`, so all this is represented as an application, given a constant
-named "Nat.succ" and a constant named "Nat.zero".
+The ultimate purpose of a Lean tactic block is to generate a term which serves
+as a proof of the theorem we want to prove. Thus, the purpose of a tactic is to
+produce (part of) an `Expr` of the right type. Much metaprogramming therefore
+comes down to manipulating expressions: constructing new ones and taking apart
+existing ones.
 
-That example gives us an idea of what we're aiming at: we use expressions to
-represent all Lean terms at the meta level. Let's check the precise definition
-of [`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean).
+Once a tactic block is finished, the `Expr` is sent to the kernel, which checks
+whether it is well-typed and whether it really has the type claimed by the
+theorem. As a result, tactic bugs are not fatal: if you make a mistake, the
+kernel will ultimately catch it. However, many internal Lean functions also
+assume that expressions are well-typed, so you may crash Lean before the
+expression ever reaches the kernel. To avoid this, Lean provides many functions
+which help with the manipulation of expressions. This chapter and the next
+survey the most important ones.
+
+Let's get concrete and look at the
+[`Expr`](https://github.com/leanprover/lean4/blob/master/src/Lean/Expr.lean)
+type:
 -/
 
 import Lean
@@ -76,6 +89,22 @@ end Playground
   rather than storing the projection `π₁ p` as `app π₁ p`, it is expressed as
   `proj Prod 0 p`. This is for efficiency reasons ([todo] find link to docstring
   explaining this).
+
+You've probably noticed that you can write many Lean programs which do not have
+an obvious corresponding `Expr`. For example, what about `match` statements,
+`do` blocks or `by` blocks? These constructs, and many more, must indeed first
+be translated into expressions. The part of Lean which performs this
+(substantial) task is called the elaborator and is discussed in its own chapter.
+The benefit of this setup is that once the translation to `Expr` is done, we
+have a relatively simple structure to work with. (The downside is that going
+back from `Expr` to a high-level Lean program can be challenging.)
+
+The elaborator also fills in any implicit or typeclass instance arguments which
+you may have omitted from your Lean program. Thus, at the `Expr` level,
+constants are always applied to all their arguments, implicit or not. This is
+both a blessing (because you get a lot of information which is not obvious from
+the source code) and a curse (because when you build an `Expr`, you must supply
+any implicit or instance arguments yourself).
 
 ## De Bruijn Indexes
 
