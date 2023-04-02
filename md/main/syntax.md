@@ -115,7 +115,7 @@ If precedence is ambiguous Lean will default to right associativity.
 Lastly, if we define overlapping notation such as:
 
 ```lean
--- define `a ~ b mod rel` to mean that a and b are equivalent with respect to some equivalance relation rel
+-- define `a ~ b mod rel` to mean that a and b are equivalent with respect to some equivalence relation rel
 notation:65 a:65 " ~ " b:65 " mod " rel:65 => rel a b
 ```
 
@@ -258,7 +258,7 @@ syntax binDigit := binZero <|> binOne
 ```
 
 Where the `<|>` operator implements the "accept the left or the right" behaviour.
-We can also chain them to achieve parsers that accept arbitrarily many, arbitrarly complex
+We can also chain them to achieve parsers that accept arbitrarily many, arbitrarily complex
 other ones. Now we will define the concept of a binary number, usually this would be written
 as digits directly after each other but we will instead use comma separated ones to showcase
 the repetition feature:

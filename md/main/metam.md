@@ -918,7 +918,7 @@ This works, but the use of `bvar` is highly unidiomatic. Lean uses a so-called
 *locally closed* variable representation. This means that all but the
 lowest-level functions in the Lean API expect expressions not to contain 'loose
 `bvar`s', where a `bvar` is loose if it is not bound by a binder in the same
-expression. (Outsied of Lean, such variables are usually called 'free'. The name
+expression. (Outside of Lean, such variables are usually called 'free'. The name
 `bvar` -- 'bound variable' -- already indicates that `bvar`s are never supposed
 to be free.)
 
@@ -958,7 +958,7 @@ withLocalDecl (name : Name) (bi : BinderInfo) (type : Expr) (k : Expr → MetaM 
 ```
 
 Given a variable name, binder info and type, `withLocalDecl` constructs a new
-`fvar` and passes it to the computation `k`. The `fvar` is avaible in the local
+`fvar` and passes it to the computation `k`. The `fvar` is available in the local
 context during the execution of `k` but is deleted again afterwards.
 
 The second new function is `Lean.Meta.mkLambdaFVars` with type (ignoring some
@@ -969,7 +969,7 @@ mkLambdaFVars : Array Expr → Expr → MetaM Expr
 ```
 
 This function takes an array of `fvar`s and an expression `e`. It then adds one
-lambda binder for each `fvar` `x` and replaces every occurence of `x` in `e`
+lambda binder for each `fvar` `x` and replaces every occurrence of `x` in `e`
 with a bound variable corresponding to the new lambda binder. The returned
 expression does not contain the `fvar`s any more, which is good since they
 disappear after we leave the `withLocalDecl` context. (Instead of `fvar`s, we
@@ -1208,7 +1208,7 @@ Lean parser.
 ## Exercises
 
 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
-Notice that changing the type of the metavarible from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.
+Notice that changing the type of the metavariable from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.
 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
 3. [**Metavariables**] Fill in the missing lines in the following code.
 

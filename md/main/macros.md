@@ -177,7 +177,7 @@ we've already seen in the syntax chapter and up to now in this chapter,
 next we'll discuss some more advanced anti-quotations.
 
 ### Advanced anti-quotations
-For convenince we can also use anti-quotations in a way similar to
+For convenience we can also use anti-quotations in a way similar to
 format strings: `` `($(mkIdent `c)) `` is the same as: `` let x := mkIdent `c; `($x) ``.
 
 Furthermore there are sometimes situations in which we are not working
@@ -258,7 +258,7 @@ macro_rules
 ```
 
 In this case the `$[...],*` part is the splice. On the match side it tries
-to match the pattern we define inside of it repetetively (given the seperator
+to match the pattern we define inside of it repetitively (given the separator
 we tell it to). However unlike regular separator matching it does not
 give us an `Array` or `SepArray`, instead it allows us to write another
 splice on the right hand side that gets evaluated for each time the
@@ -326,7 +326,7 @@ will not allow name clashes like the one in the `const` example.
 Note that this extends to *all* names that are introduced using syntax
 quotations, that is if you write a macro that produces:
 `` `(def foo := 1) ``, the user will not be able to access `foo`
-because the name will subject to hygienie. Luckily there is a way to
+because the name will subject to hygiene. Luckily there is a way to
 circumvent this. You can use `mkIdent` to generate a raw identifier,
 for example: `` `(def $(mkIdent `foo) := 1) ``. In this case it won't
 be subject to hygiene and accessible to the user.
@@ -469,7 +469,7 @@ def setOf {α : Type} (p : α → Prop) : Set α := p
 The goal for this section will be to allow for both `{x : X | p x}`
 and `{x ∈ X, p x}` notations. In principle there are two ways to do this:
 1. Define a syntax and macro for each way to bind a variable we might think of
-2. Define a syntax cateogry of binders that we could reuse across other
+2. Define a syntax category of binders that we could reuse across other
    binder constructs such as `Σ` or `Π` as well and implement macros for
    the `{ | }` case
 

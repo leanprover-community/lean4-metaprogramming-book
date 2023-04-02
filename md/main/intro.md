@@ -15,7 +15,7 @@ programming in Lean 4. However, we hope that the examples provided will be
 simple enough for the reader to follow and comprehend without a super deep
 understanding of monadic programming. The book
 [Functional Programming in Lean](https://leanprover.github.io/functional_programming_in_lean/)
-is a highly recomended source on that subject.
+is a highly recommended source on that subject.
 
 ## Book structure
 
