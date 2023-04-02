@@ -107,7 +107,7 @@ Can you extend `delabFooFinal` to also account for non full applications?
 While delaborators are obviously quite powerful it is quite often not necessary
 to use them. If you look in the Lean compiler for `@[delab` or rather `@[builtin_delab`
 (a special version of the `delab` attribute for compiler use, we don't care about it),
-you will see there are quite few occurences of it. This is because the majority
+you will see there are quite few occurrences of it. This is because the majority
 of pretty printing is in fact done by so called unexpanders. Unlike delaborators
 they are of type `Lean.PrettyPrinter.Unexpander` which in turn is an alias for
 `Syntax → Lean.PrettyPrinter.UnexpandM Syntax`. As you can see, they are
