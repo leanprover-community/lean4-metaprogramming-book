@@ -150,8 +150,8 @@ instance : Coe (TSyntax `a) (TSyntax `b) where
 Which will allow Lean to perform the type cast automatically. If you
 notice that your `a` can not be used in place of the `b` here congrats,
 you just discovered a bug in your `Syntax` function. Similar to the Lean
-compiler you could can also declare functions that are specific to certain
-`TSynax` variants. For example as we have seen in the syntax chapter
+compiler, you could also declare functions that are specific to certain
+`TSyntax` variants. For example as we have seen in the syntax chapter
 there exists the function:
 -/
 #check TSyntax.getNat -- TSyntax.getNat : TSyntax numLitKind → Nat
