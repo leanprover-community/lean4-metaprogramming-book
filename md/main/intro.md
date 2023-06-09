@@ -204,7 +204,7 @@ macro_rules
 -- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
--- Arith.mul (Arith.add (Arith.symbol "x") (Arith.symbol "y")) (Arith.symbol "z")
+-- Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z")
 ```
 
 ### Writing our own tactic
@@ -228,7 +228,7 @@ elab "suppose " n:ident " : " t:term : tactic => do
   mvarId.withContext do
     let t ← elabType t
     let p ← mkFreshExprMVar t MetavarKind.syntheticOpaque n
-    let (_, mvarIdNew) ← intro1P $ ← mvarId.assert n t p
+    let (_, mvarIdNew) ← MVarId.intro1P $ ← mvarId.assert n t p
     replaceMainGoal [p.mvarId!, mvarIdNew]
   evalTactic $ ← `(tactic|rotate_left)
 
