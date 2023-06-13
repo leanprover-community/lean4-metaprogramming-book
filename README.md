@@ -17,14 +17,16 @@ A PDF is [available here for download](../../releases/download/latest/Metaprogra
 * Extra
     1. [Options](md/extra/options.md)
     2. [Attributes](md/extra/attributes.md)
-    1. [Pretty Printing](md/extra/pretty-printing.md)
+    3. [Pretty Printing](md/extra/pretty-printing.md)
 * Solutions to exercises
-    1. ...
+    1. Introduction
     2. [Expressions](md/solutions/expressions.md)
     3. [`MetaM`](md/solutions/metam.md)
     4. [`Syntax`](md/solutions/syntax.md)
-    5. ...
+    5. Macros
     6. [Elaboration](md/solutions/elaboration.md)
+    7. DSLs
+    8. [Tactics](md/solutions/tactics.md)
 
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
