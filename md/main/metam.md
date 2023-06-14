@@ -1212,47 +1212,47 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
 3. [**Metavariables**] Fill in the missing lines in the following code.
 
-  ```
-  #eval show MetaM Unit from do
-    let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
-    let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+    ```lean
+    #eval show MetaM Unit from do
+      let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
+      let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
 
-    -- Create `mvar1` with type `Nat`
-    -- let mvar1 ← ...
-    -- Create `mvar2` with type `Nat`
-    -- let mvar2 ← ...
-    -- Create `mvar3` with type `Nat`
-    -- let mvar3 ← ...
+      -- Create `mvar1` with type `Nat`
+      -- let mvar1 ← ...
+      -- Create `mvar2` with type `Nat`
+      -- let mvar2 ← ...
+      -- Create `mvar3` with type `Nat`
+      -- let mvar3 ← ...
 
-    -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
-    -- ...
+      -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
+      -- ...
 
-    -- Assign `mvar3` to `1`
-    -- ...
+      -- Assign `mvar3` to `1`
+      -- ...
 
-    -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
-    ...
-  ```
+      -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
+      ...
+    ```
 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-  a) What would be the `type` and `userName` of metavariable `mvarId`?  
-  b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
+  **a)** What would be the `type` and `userName` of metavariable `mvarId`?  
+  **b)** What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
   Print them all out.
 
-  ```
-  elab "explore" : tactic => do
-    let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
-    let metavarDecl : MetavarDecl ← mvarId.getDecl
+    ```lean
+    elab "explore" : tactic => do
+      let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
+      let metavarDecl : MetavarDecl ← mvarId.getDecl
 
-    IO.println "Our metavariable"
-    -- ...
+      IO.println "Our metavariable"
+      -- ...
 
-    IO.println "All of its local declarations"
-    -- ...
+      IO.println "All of its local declarations"
+      -- ...
 
-  theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
-    explore
-    sorry
-  ```
+    theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
+      explore
+      sorry
+    ```
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
 6. [**Computation**] What is the normal form of the following expressions:  
   **a)** `fun x => x` of type `Bool → Bool`  
@@ -1268,36 +1268,36 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
   **f)** `2 + ?a =?= 2 + 1`
 9. [**Computation**] Write down what you expect the following code to output.
 
-```
-@[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
-@[instance] def instanceDef       : Nat := 2 -- same as `instance`
-def defaultDef                    : Nat := 3
-@[irreducible] def irreducibleDef : Nat := 4
+    ```lean
+    @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
+    @[instance] def instanceDef       : Nat := 2 -- same as `instance`
+    def defaultDef                    : Nat := 3
+    @[irreducible] def irreducibleDef : Nat := 4
 
-@[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
+    @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
-#eval show MetaM Unit from do
-  let constantExpr := Expr.const `sum []
+    #eval show MetaM Unit from do
+      let constantExpr := Expr.const `sum []
 
-  Meta.withTransparency Meta.TransparencyMode.reducible do
-    let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- ...
+      Meta.withTransparency Meta.TransparencyMode.reducible do
+        let reducedExpr ← Meta.reduce constantExpr
+        dbg_trace (← ppExpr reducedExpr) -- ...
 
-  Meta.withTransparency Meta.TransparencyMode.instances do
-    let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- ...
+      Meta.withTransparency Meta.TransparencyMode.instances do
+        let reducedExpr ← Meta.reduce constantExpr
+        dbg_trace (← ppExpr reducedExpr) -- ...
 
-  Meta.withTransparency Meta.TransparencyMode.default do
-    let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- ...
+      Meta.withTransparency Meta.TransparencyMode.default do
+        let reducedExpr ← Meta.reduce constantExpr
+        dbg_trace (← ppExpr reducedExpr) -- ...
 
-  Meta.withTransparency Meta.TransparencyMode.all do
-    let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- ...
+      Meta.withTransparency Meta.TransparencyMode.all do
+        let reducedExpr ← Meta.reduce constantExpr
+        dbg_trace (← ppExpr reducedExpr) -- ...
 
-  let reducedExpr ← Meta.reduce constantExpr
-  dbg_trace (← ppExpr reducedExpr) -- ...
-```
+      let reducedExpr ← Meta.reduce constantExpr
+      dbg_trace (← ppExpr reducedExpr) -- ...
+    ```
 10. [**Constructing Expressions**] Create expression `fun x, 1 + x` in two ways:  
   **a)** not idiomatically, with loose bound variables  
   **b)** idiomatically.  
@@ -1310,19 +1310,19 @@ def defaultDef                    : Nat := 3
 13. [**Constructing Expressions**] Create expression `fun (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?
 
-```
-#eval show Lean.Elab.Term.TermElabM _ from do
-  let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
-  let expr ← Elab.Term.elabTermAndSynthesize stx none
+    ```lean
+    #eval show Lean.Elab.Term.TermElabM _ from do
+      let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
+      let expr ← Elab.Term.elabTermAndSynthesize stx none
 
-  let (_, _, conclusion) ← forallMetaTelescope expr
-  dbg_trace conclusion -- ...
+      let (_, _, conclusion) ← forallMetaTelescope expr
+      dbg_trace conclusion -- ...
 
-  let (_, _, conclusion) ← forallMetaBoundedTelescope expr 2
-  dbg_trace conclusion -- ...
+      let (_, _, conclusion) ← forallMetaBoundedTelescope expr 2
+      dbg_trace conclusion -- ...
 
-  let (_, _, conclusion) ← lambdaMetaTelescope expr
-  dbg_trace conclusion -- ...
-```
+      let (_, _, conclusion) ← lambdaMetaTelescope expr
+      dbg_trace conclusion -- ...
+    ```
 15. [**Backtracking**] Check that the expressions `?a + Int` and `"hi" + ?b` are definitionally equal with `isDefEq` (make sure to use the proper types or `Option.none` for the types of your metavariables!).
 Use `saveState` and `restoreState` to revert metavariable assignments.

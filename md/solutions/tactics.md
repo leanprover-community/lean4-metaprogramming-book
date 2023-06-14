@@ -1,8 +1,11 @@
+```lean
 import Lean.Elab.Tactic
 open Lean Elab Tactic Meta
+```
 
-/- ### 1. -/
+### 1.
 
+```lean
 elab "step_1" : tactic => do
   let mvarId ← getMainGoal
   let goalType ← getMainTarget
@@ -102,9 +105,11 @@ theorem gradual (p q : Prop) : p ∧ q ↔ q ∧ p := by
   step_2
   step_3
   step_4
+```
 
-/- ### 2. -/
+### 2.
 
+```lean
 elab "forker_a" : tactic => do
   liftMetaTactic fun mvarId => do
     let (Expr.app (Expr.app (Expr.const `And _) p) q) ← mvarId.getType | Lean.Meta.throwTacticEx `forker mvarId ("Goal is not of the form P ∧ Q")
@@ -154,9 +159,11 @@ example (A B C : Prop) : A → B → C → (A ∧ B) ∧ C := by
   assumption
   assumption
   assumption
+```
 
-/- ### 3. -/
+### 3.
 
+```lean
 elab "introductor_a" : tactic => do
   withMainContext do
     liftMetaTactic fun mvarId => do
@@ -187,9 +194,11 @@ example (a b c : Nat) : (ab: a = b) → (bc: b = c) → (a = c) := by
   -- introductor_b
   -- introductor_c
   sorry
+```
 
-/- ### 4. -/
+### 4.
 
+```lean
 elab "incredibly_helpful" : tactic => do
   withMainContext do
     liftMetaTactic fun mvarId => do
@@ -203,9 +212,11 @@ example (n : Int) : ∃ m, n + n = m := by
   intros
   apply Exists.intro (n + n)
   rfl
+```
 
-/- ### 5. -/
+### 5.
 
+```lean
 elab "andify " a:ident b:ident : tactic =>
   withMainContext do
     let goal ← getMainGoal
@@ -227,3 +238,4 @@ example (a b c : Nat) (ab: a = b) (bc: b = c) : (a = c) := by
   andify ab bc
   rw [ab]
   rw [bc]
+```

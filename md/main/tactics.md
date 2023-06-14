@@ -586,3 +586,154 @@ A: `Lean.Meta.Tactic.*` contains low level code that uses the `Meta` monad to
 implement basic features such as rewriting. `Lean.Elab.Tactic.*` contains
 high-level code that connects the low level development in `Lean.Meta` to the
 tactic infrastructure and the parsing front-end.
+
+## Exercises
+
+1. Consider the theorem `p ∧ q ↔ q ∧ p`. We could either write its proof as a proof term, or construct it using the tactics.
+    When we are writing the proof of this theorem *as a proof term*, we're gradually filling up `_`s with certain expressions, step by step. Each such step corresponds to a tactic.  
+
+    There are many combinations of steps in which we could write this proof term - but consider the sequence of steps we wrote below. Please write each step as a tactic.  
+    The tactic `step_1` is filled in, please do the same for the remaining tactics (for the sake of the exercise, try to use lower-level apis, such as `mkFreshExprMVar`, `mvarId.assign` and `modify fun _ => { goals := ~)`.
+
+    ```lean
+    -- [this is the initial goal]
+    example : p ∧ q ↔ q ∧ p :=
+      _
+
+    -- step_1
+    example : p ∧ q ↔ q ∧ p :=
+      Iff.intro _ _
+
+    -- step_2
+    example : p ∧ q ↔ q ∧ p :=
+      Iff.intro
+        (
+          fun hA =>
+          _
+        )
+        (
+          fun hB =>
+          (And.intro hB.right hB.left)
+        )
+
+    -- step_3
+    example : p ∧ q ↔ q ∧ p :=
+      Iff.intro
+        (
+          fun hA =>
+          (And.intro _ _)
+        )
+        (
+          fun hB =>
+          (And.intro hB.right hB.left)
+        )
+
+    -- step_4
+    example : p ∧ q ↔ q ∧ p :=
+      Iff.intro
+        (
+          fun hA =>
+          (And.intro hA.right hA.left)
+        )
+        (
+          fun hB =>
+          (And.intro hB.right hB.left)
+        )
+    ```
+
+    ```lean
+    elab "step_1" : tactic => do
+      let mvarId ← getMainGoal
+      let goalType ← getMainTarget
+
+      let Expr.app (Expr.app (Expr.const `Iff _) a) b := goalType | throwError "Goal type is not of the form `a ↔ b`"
+
+      -- 1. Create new `_`s with appropriate types.
+      let mvarId1 ← mkFreshExprMVar (Expr.forallE `xxx a b .default) (userName := "red")
+      let mvarId2 ← mkFreshExprMVar (Expr.forallE `yyy b a .default) (userName := "blue") 
+
+      -- 2. Assign the main goal to the expression `Iff.intro _ _`.
+      mvarId.assign (mkAppN (Expr.const `Iff.intro []) #[a, b, mvarId1, mvarId2])
+
+      -- 3. Report the new `_`s to Lean as the new goals.
+      modify fun _ => { goals := [mvarId1.mvarId!, mvarId2.mvarId!] }
+    ```
+
+    ```lean
+    theorem gradual (p q : Prop) : p ∧ q ↔ q ∧ p := by
+      step_1
+      step_2
+      step_3
+      step_4
+    ```
+
+2. In the first exercise, we used lower-level `modify` api to update our goals.  
+    `liftMetaTactic`, `setGoals`, `appendGoals`, `replaceMainGoal`, `closeMainGoal`, etc. are all syntax sugars on top of `modify fun s : State => { s with goals := myMvarIds }`.  
+    Please rewrite the `forker` tactic with:  
+
+    **a)** `liftMetaTactic`  
+    **b)** `setGoals`  
+    **c)** `replaceMainGoal`  
+
+    ```lean
+    elab "forker" : tactic => do
+      let mvarId ← getMainGoal
+      let goalType ← getMainTarget
+
+      let (Expr.app (Expr.app (Expr.const `And _) p) q) := goalType | Lean.Meta.throwTacticEx `forker mvarId (m!"Goal is not of the form P ∧ Q")
+
+      mvarId.withContext do
+        let mvarIdP ← mkFreshExprMVar p (userName := "red")
+        let mvarIdQ ← mkFreshExprMVar q (userName := "blue")
+
+        let proofTerm := mkAppN (Expr.const `And.intro []) #[p, q, mvarIdP, mvarIdQ]
+        mvarId.assign proofTerm
+
+        modify fun state => { goals := [mvarIdP.mvarId!, mvarIdQ.mvarId!] ++ state.goals.drop 1 }
+    ```
+
+    ```lean
+    example (A B C : Prop) : A → B → C → (A ∧ B) ∧ C := by
+      intro hA hB hC
+      forker
+      forker
+      assumption
+      assumption
+      assumption
+    ```
+
+3. In the first exercise, you created your own `intro` in `step_2` (with a hardcoded hypothesis name, but the basics are the same). When writing tactics, we usually want to use functions such as `intro`, `intro1`, `intro1P`, `introN` or `introNP`.
+
+    For each of the points below, create a tactic `introductor` (one per each point), that turns the goal `(ab: a = b) → (bc: b = c) → (a = c)`:
+
+    **a)** into the goal `(a = c)` with hypotheses `(ab✝: a = b)` and `(bc✝: b = c)`.  
+    **b)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(ab: a = b)`.  
+    **c)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(hello: a = b)`.  
+
+    ```lean
+    example (a b c : Nat) : (ab: a = b) → (bc: b = c) → (a = c) := by
+      introductor
+      sorry
+    ```
+
+    Hint: **"P"** in `intro1P` and `introNP` stands for **"Preserve"**.
+
+
+4. Create a tactic `incredibly_helpful` that turns the goal `∃ m, n + n = m` into the goal `Nat → True → String → ∃ m, n + n = m`. Use the `assert` function.
+
+    ```lean
+    example (n : Int) : ∃ m, n + n = m := by
+      incredibly_helpful
+      intros
+      apply Exists.intro (n + n)
+      rfl
+    ```
+
+5. Create a tactic `andify a b` that takes the propositions `a` and `b`, and creates a new hypothesis `a_and_b` with type `And.intro a b`.
+
+    ```lean
+    example (a b c : Nat) (ab: a = b) (bc: b = c) : (a = c) := by
+      andify ab bc
+      rw [ab]
+      rw [bc]
+    ```
