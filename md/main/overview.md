@@ -11,7 +11,7 @@ Metaprogramming in Lean is deeply connected to the compilation steps - parsing, 
 > Leonardo de Moura, Sebastian Ullrich ([The Lean 4 Theorem Prover and Programming Language](https://pp.ipd.kit.edu/uploads/publikationen/demoura21lean4.pdf))
 
 <p align="center">
-<img width="700px" src="https://71022.cdn.cke-cs.com/RructTCFEHceQFc13ldy/images/325233868b9e52982d5835dac90abfd1cc5a06be3eb0e41c.png/w_1592"/>
+<img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
 </p>
 
 First we will have Lean code as a string. Then `Syntax` object. Then `Expr` object. Then we can execute it.  
@@ -77,7 +77,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level functions, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
 
 <p align="center">
-<img src="https://71022.cdn.cke-cs.com/RructTCFEHceQFc13ldy/images/118a91998ce7632aac13efad0cab55f476bf2a2b0c3706b1.png/w_2118"/>
+<img src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/7ad8930a-a486-41c9-b6af-2e8455b804a4"/>
 </p>
 
 In the image above, each row shows the commands that you have to use together (if you use one of them). For example, you cannot use `elab_rules` if you do not have the appropriate `syntax ~ : command` defined yet.
@@ -150,7 +150,7 @@ The behaviour of syntax sugars (`elab`, `macro`, etc.) can be understood from th
 Lean will execute the afforementioned **parsing**/**elaboration**/**evaluation** steps for you automatically if you use `syntax`, `macro` and `elab` commands, however, when you're writing your tactics, you will also frequently need to perform these transitions manually. You can use the following functions for that:
 
 <p align="center">
-<img width="650px" src="https://71022.cdn.cke-cs.com/RructTCFEHceQFc13ldy/images/11ed9f7c1e0b70a73922a06b24d94033b85028030fdd4670.png/w_1474"/>
+<img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/b403e650-dab4-4843-be8c-8fb812695a3a"/>
 </p>
 
 Note how all functions that let us turn `Syntax` into `Expr` start with "elab", short for "elaboration"; and all functions that let us turn `Expr` (or `Syntax`) into `actual code` start with "eval", short for "evaluation".
