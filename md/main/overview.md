@@ -74,35 +74,30 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
     **Tactic** stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
     This corresponds to out intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
 
-These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level functions, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
+These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level commands, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
 
 <p align="center">
-<img width="850px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/7ad8930a-a486-41c9-b6af-2e8455b804a4"/>
+<img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/38e9d3fd-af93-4f89-b17b-e56a3b13244a"/>
 </p>
 
-In the image above, each row shows the commands that you have to use together (if you use one of them). For example, you cannot use `elab_rules` if you do not have the appropriate `syntax ~ : command` defined yet.
-
-Let's consider **Syntax → Expr** commands:
+In the image above:
 
 - `syntax ~ : command` - low-level command we just discussed (I write `command` here for succinctness, but it can be `term`, `:tactic`, etc.).  
 
+- `@[macro] def ~ : Macro` - low-level command we just discussed.  
+
 - `@[command_elab ~] def ~ : CommandElab` - low-level command we just discussed (I write `CommandElab` here for succinctness, but it can be `Tactic`, `TermElab`, etc.).  
 
-- `elab_rules` - sugar for `@[command_elab ~] def ~ : CommandElab`.  
-
-- `elab` - combination of `syntax ~ : command` and `@[command_elab ~] def ~ : CommandElab`.  
-
-Let's consider **Syntax → Expr** commands:
-
-- `syntax ~ : command` - low-level command we just discussed.  
-
-- `@[macro] def ~ : Macro` - low-level command we just discussed.  
 
 - `macro_rules` - sugar for `@[macro] def ~ : Macro`.  
 
+- `elab_rules` - sugar for `@[command_elab ~] def ~ : CommandElab`.  
+
 - `macro` - combination of `syntax ~ : command` and `@[macro] def ~ : Macro`.  
 
-- `notation`, `prefix`, `infix`, `postfix` - combination of `syntax ~ : command` and `@[macro] def ~ : Macro` - they differ from `macro` in that you can only define rather simple syntax using them.
+- `notation`, `prefix`, `infix`, `postfix` - combination of `syntax ~ : command` and `@[macro] def ~ : Macro`. These commands differ from `macro` in that you can only define rather simple syntax with them.
+
+- `elab` - combination of `syntax ~ : command` and `@[command_elab ~] def ~ : CommandElab`.  
 
 ## Order of execution: syntax, macro, elab
 
@@ -157,7 +152,7 @@ Note how all functions that let us turn `Syntax` into `Expr` start with "elab", 
 
 ## Assigning meaning: macro VS elaboration?
 
-In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" [Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290). So - use `macro`s for creating syntax sugars, notations, and shortcuts, and prefer `elab`s for writing out code with some programming logic, even if it's potentially implementable in a `macro`.
+In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" ([Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290)). So - use `macro`s for creating syntax sugars, notations, and shortcuts, and prefer `elab`s for writing out code with some programming logic, even if it's potentially implementable in a `macro`.
 
 ## Additional comments
 
