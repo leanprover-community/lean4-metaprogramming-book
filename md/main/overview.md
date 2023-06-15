@@ -77,7 +77,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level functions, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
 
 <p align="center">
-<img src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/7ad8930a-a486-41c9-b6af-2e8455b804a4"/>
+<img width="850px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/7ad8930a-a486-41c9-b6af-2e8455b804a4"/>
 </p>
 
 In the image above, each row shows the commands that you have to use together (if you use one of them). For example, you cannot use `elab_rules` if you do not have the appropriate `syntax ~ : command` defined yet.
@@ -133,15 +133,15 @@ red -- finally, blue!
 
 The process is as follows:
 
-> match appropriate `syntax` rule (happens to have `name := xxx`) ➤  
-> apply `@[macro xxx]` ➤
->
-> match appropriate syntax rule (happens to have `name := yyy`) ➤  
-> apply `@[macro yyy]` ➤
->
-> match appropriate `syntax` rule (happens to have `name := zzz`) ➤  
-> can't find any macros with name `zzz` to apply,  
-> so apply `@[command_elab zzz]`.  🎉.
+- match appropriate `syntax` rule (happens to have `name := xxx`) ➤  
+    apply `@[macro xxx]` ➤
+
+- match appropriate `syntax` rule (happens to have `name := yyy`) ➤  
+    apply `@[macro yyy]` ➤
+
+- match appropriate `syntax` rule (happens to have `name := zzz`) ➤  
+    can't find any macros with name `zzz` to apply,  
+    so apply `@[command_elab zzz]`.  🎉.
 
 The behaviour of syntax sugars (`elab`, `macro`, etc.) can be understood from these first principles.
 
@@ -157,7 +157,7 @@ Note how all functions that let us turn `Syntax` into `Expr` start with "elab", 
 
 ## Assigning meaning: macro VS elaboration?
 
-In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" (Zulip thread)[https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290]. So - use `macro`s for creating syntax sugars, notations, and shortcuts, and prefer `elab`s for writing out code with some programming logic, even if it's potentially implementable in a `macro`.
+In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" [Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290). So - use `macro`s for creating syntax sugars, notations, and shortcuts, and prefer `elab`s for writing out code with some programming logic, even if it's potentially implementable in a `macro`.
 
 ## Additional comments
 
