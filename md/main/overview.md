@@ -1,6 +1,8 @@
 # Overview
 
-In this chapter, we will go through the fundamental concepts behind Lean metaprogramming, and how they interact. In the next chapters, you will learn the particulars. As you read on, you might want to return to this chapter occasionally to remind yourself of how it all fits together.
+In this chapter, we will provide an overview of the primary steps involved in the Lean compilation process, including parsing, elaboration, and evaluation. As alluded to in the introduction, metaprogramming in Lean involves plunging into the heart of this process. We will explore the fundamental objects involved, `Expr` and `Syntax`, learn what they signify, and discover how one can be turned into another (and back!).
+
+In the next chapters, you will learn the particulars. As you read on, you might want to return to this chapter occasionally to remind yourself of how it all fits together.
 
 ## Connection to compilers
 
@@ -10,11 +12,14 @@ Metaprogramming in Lean is deeply connected to the compilation steps - parsing, 
 >
 > Leonardo de Moura, Sebastian Ullrich ([The Lean 4 Theorem Prover and Programming Language](https://pp.ipd.kit.edu/uploads/publikationen/demoura21lean4.pdf))
 
+Lean compilation process can be summed up in the following diagram:
+
 <p align="center">
 <img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
 </p>
 
 First we will have Lean code as a string. Then `Syntax` object. Then `Expr` object. Then we can execute it.  
+
 So, the compiler sees a string of Lean code, say `"let a := 2"`, and the following process unfolds:
 
 1. **apply a relevant `syntax` rule** (`"let a := 2"` ➤ `Syntax`)  
@@ -27,7 +32,7 @@ So, the compiler sees a string of Lean code, say `"let a := 2"`, and the followi
 
 3. **apply a single `elab`** (`Syntax` ➤ `Expr`)  
 
-    Finally, it's time to infuse your syntax with meaning - Lean finds an `elab` rule that's matched to the appropriate `syntax` rule by the name argument (both the `syntax` rule and `elab` rule have this argument, and they must match). The newfound `elab` returns a particular `Expr` object.
+    Finally, it's time to infuse your syntax with meaning - Lean finds an `elab` rule that's matched to the appropriate `syntax` rule by the `:name` argument (both the `syntax` rule and `elab` rule have this argument, and they must match). The newfound `elab` returns a particular `Expr` object.
     This completes the elaboration step.
 
 Expression (`Expr`) is then converted to the executable code during the evaluation step - we don't have to specify that in any way, Lean compiler will handle that for us.
@@ -45,11 +50,13 @@ Elaboration is a loaded term in Lean, for example you can meet the following usa
 >
 > ([Theorem Proving in Lean 2](http://leanprover.github.io/tutorial/08_Building_Theories_and_Proofs.html))
 
-These definitions are not mutually exclusive - elaboration is the transformation of `Syntax` into `Expr`s - it's just so that for this transformation to happen we need a lot of trickery - we need to infer implicit arguments, instantiate metavariables, perform unification, resolve identifiers, etc. etc. - and these actions can be referred to as "elaboration" on their own; similarly to how "checking if you turned off the lights in your apartment" (metavariable instantiation) can be referred to as "going to school" (elaboration).
+We, on the other hand, just defined elaboration as the process of turning `Syntax` objects into `Expr` objects.
 
-There also exists a process opposite to elaboration in Lean - it's called, appropriately enough, delaboration. During delaboration, `Expr` is turned into the `Syntax` object; and then the formatter turns it into a `Format` object, which can be displayed in Lean's infoview. Every time you log something to the screen, or see some output upon hovering over `#check`, it's the work of delaborator.
+These definitions are not mutually exclusive - elaboration is, indeed, the transformation of `Syntax` into `Expr`s - it's just so that for this transformation to happen we need a lot of trickery - we need to infer implicit arguments, instantiate metavariables, perform unification, resolve identifiers, etc. etc. - and these actions can be referred to as "elaboration" on their own; similarly to how "checking if you turned off the lights in your apartment" (metavariable instantiation) can be referred to as "going to school" (elaboration).
 
-Throughout this book you will see references to the elaborator; and in the "Pretty Printing" extra chapter you can read on delaborators.
+There also exists a process opposite to elaboration in Lean - it's called, appropriately enough, delaboration. During delaboration, `Expr` is turned into the `Syntax` object; and then the formatter turns it into a `Format` object, which can be displayed in Lean's infoview. Every time you log something to the screen, or see some output upon hovering over `#check`, it's the work of the delaborator.
+
+Throughout this book you will see references to the elaborator; and in the "Extra: Pretty Printing" chapter you can read on delaborators.
 
 ## 3 essential functions and their syntax sugars
 
@@ -63,7 +70,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 - **macro: `@[macro xxx] def ourMacro : Macro := ...`**
 
     For example, ``@[macro xxx] def ourMacro : Macro := λ stx => match stx with | _ => `(tactic| pick_goal 2)``. Whenever your Lean code matches the syntax rule with the name `xxx`, this macro will be applied.  
-    If the syntax rule was syntax `(name := xxx) "swap" : tactic`, this macro will syntactically turn `swap` into `pick_goal 2` - and the subsequent elaboration step will be handled by the `pick_goal 2` syntax rule.
+    If the syntax rule was `syntax (name := xxx) "swap" : tactic`, this macro will syntactically turn `swap` into `pick_goal 2` - and the subsequent elaboration step will be handled by the `pick_goal 2` syntax rule.
 
 - **elab: `@[command_elab xxx] def ourElab : CommandElab := ...`**
 
