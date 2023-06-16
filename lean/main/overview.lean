@@ -65,24 +65,41 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 
 - **syntax rule: `syntax (name := xxx) ... : command`**
 
-    For example, `syntax (name := xxx) "#help" "option" (ident)? : command` is a syntax rule that will match (remember the regex analogy) all strings in the form of `"#help option hi.hello"` or just `"#help option"`.   
+    For example,
+    ```
+    syntax (name := xxx) "#help" "option" (ident)? : command
+    ```
+    This is a syntax rule that will match (remember the regex analogy) all strings in the form of `"#help option hi.hello"` or just `"#help option"`.  
     Other widespread syntax categories are `tactic` and `term`, all of these are used in different physical places in your code.
 
 - **macro: `@[macro xxx] def ourMacro : Macro := ...`**
 
-    For example, ``@[macro xxx] def ourMacro : Macro := λ stx => match stx with | _ => `(tactic| pick_goal 2)``. Whenever your Lean code matches the syntax rule with the name `xxx`, this macro will be applied.  
-    If the syntax rule was `syntax (name := xxx) "swap" : tactic`, this macro will syntactically turn `swap` into `pick_goal 2` - and the subsequent elaboration step will be handled by the `pick_goal 2` syntax rule.
+    For example,
+    ```
+    @[macro xxx]
+    def ourMacro : Macro := λ stx =>
+      match stx with | _ => `(tactic| pick_goal 2)
+    ```
+    Whenever your Lean code matches the syntax rule with the name `"xxx"`, this macro will be applied.  
+    If the syntax rule was `syntax (name := xxx) "swap" : tactic`, this macro will syntactically turn `"swap"` into `"pick_goal 2"` - and the subsequent elaboration step will be handled by the syntax rule that matches `"pick_goal 2"`.
 
 - **elab: `@[command_elab xxx] def ourElab : CommandElab := ...`**
 
-    For example, ``@[term_elab our_help] def ourElab : TermElab := λ stx tp => (Expr.app (Expr.const `Nat.add []))``.  
-    Our `elab` function can be of different types - the **CommandElab** and **TermElab** that you saw already, and **Tactic**.  
-    **TermElab** stands for **Syntax → Option Expr → TermElabM Expr**, so the elaboration function is expected to return the **Expr** object.  
+    For example,
+    ```
+    @[command_elab xxx]
+    def ourElab : CommandElab := λ stx tp =>
+      Lean.logInfo "Helping"
+    ```  
+    Our elab function can be of different types - the **CommandElab** you have just seen, **TermElab** and **Tactic**.  
+
+    **TermElab** stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
     **CommandElab** stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
     **Tactic** stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
-    This corresponds to out intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
 
-These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level commands, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
+    This corresponds to our intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
+
+These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level commands, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars for these commands, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
 
 <p align="center">
 <img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/38e9d3fd-af93-4f89-b17b-e56a3b13244a"/>
@@ -109,7 +126,7 @@ In the image above:
 
 ## Order of execution: syntax, macro, elab
 
-We have hinted at the flow of execution of these three essential functions here and there, however let's lay it out explicitly. The order of execution follows the following pseudocodey template: `(syntax; macro)+ elab`.
+We have hinted at the flow of execution of these three essential functions here and there, however let's lay it out explicitly. The order of execution follows the following pseudocodey template: `syntax (macro; syntax)* elab`.
 
 Consider the following example.
 
@@ -151,7 +168,7 @@ The behaviour of syntax sugars (`elab`, `macro`, etc.) can be understood from th
 
 ## Manual conversions between `Syntax`/`Expr`/executable-code
 
-Lean will execute the afforementioned **parsing**/**elaboration**/**evaluation** steps for you automatically if you use `syntax`, `macro` and `elab` commands, however, when you're writing your tactics, you will also frequently need to perform these transitions manually. You can use the following functions for that:
+Lean will execute the aforementioned **parsing**/**elaboration**/**evaluation** steps for you automatically if you use `syntax`, `macro` and `elab` commands, however, when you're writing your tactics, you will also frequently need to perform these transitions manually. You can use the following functions for that:
 
 <p align="center">
 <img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/b403e650-dab4-4843-be8c-8fb812695a3a"/>
