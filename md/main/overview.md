@@ -32,14 +32,14 @@ So, the compiler sees a string of Lean code, say `"let a := 2"`, and the followi
 
 3. **apply a single elab** (`Syntax` ➤ `Expr`)  
 
-    Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `:name` argument (**macros**, **syntax rules** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
+    Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `:name` argument (**syntax rules**, **macros** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
     This completes the elaboration step.
 
 Expression (`Expr`) is then converted to the executable code during the evaluation step - we don't have to specify that in any way, Lean compiler will handle that for us.
 
 ## Elaboration and delaboration
 
-Elaboration is a loaded term in Lean, for example you can meet the following usage of the word "elaboration", which defines elaboration as *"taking a partially-specified expression and inferring what is left implicit"*:
+Elaboration is a overloaded term in Lean, for example you can meet the following usage of the word "elaboration", which defines elaboration as *"taking a partially-specified expression and inferring what is left implicit"*:
 
 
 > When you enter an expression like `λ x y z, f (x + y) z` for Lean to process, you are leaving information implicit. For example, the types of `x`, `y`, and `z` have to be inferred from the context, the notation `+` may be overloaded, and there may be implicit arguments to `f` that need to be filled in as well.
@@ -68,7 +68,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 
 In the image above, you see `notation`, `prefix`, `infix`, and `postfix` - all of these are combinations of `syntax` and `@[macro xxx] def ourMacro`, just like `macro`. These commands differ from `macro` in that you can only define syntax of particular form with them.
 
-All of these commands are used in Lean and Mathlib source code extensively, so it's well worth memorizing them. Most of them are syntax sugars, however, and you can understand their behaviour by studying the behaviour of these 3 low-level commands: `syntax` (a **syntax rule**), `@[macro xxx] def ourMacro` (a **macro**), and `@[command_elab xxx] def ourElab` (an **elab**).
+All of these commands are used in Lean and Mathlib source code extensively, so it's well worth memorizing them. Most of them are syntax sugars, however, and you can understand their behaviour by studying the behaviour of the following 3 low-level commands: `syntax` (a **syntax rule**), `@[macro xxx] def ourMacro` (a **macro**), and `@[command_elab xxx] def ourElab` (an **elab**).
 
 To give a more concrete example, imagine we're implementing a `#help` command, that can also be written as `#h`. Then we can write our **syntax rule**, **macro**, and **elab** as follows:
 
@@ -76,18 +76,18 @@ To give a more concrete example, imagine we're implementing a `#help` command, t
 <img width="900px" src="https://github.com/lakesare/lean4-metaprogramming-book/assets/7578559/adc1284f-3c0a-441d-91b8-7d87b6035688"/>
 </p>
 
-This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 non-syntax-sugary commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command (by the way - `#explode` is a real command from Mathlib 4, as is `#help`) - *"Displays proof in a Fitch table"*.
+This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 low-level commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command (by the way - `#explode` is a real command from Mathlib 4, as is `#help`) - *"Displays proof in a Fitch table"*.
 
 If we write `#h "#explode"`, the **syntax rule** with the name `:shortcut_h` will match it (remember the regex analogy). After that, Lean will find the **macro** with the same name, which will turn `#h "#explode"` into `#help "#explode"`. After that, the **syntax rule** with the name `:default_h` will match it. After that, Lean, having found no **macros** with the name `:default_h`, will find an **elab** with the name `:default_h` - and we'll see *"Displays proof in a Fitch table"* logged in VSCode's infoview.
 
 If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` attributes on its own.
 
 If we were defining something other than a command, instead of `: command` we could write `: term`, or `: tactic`, or any other syntax category.  
-The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`.  
+The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`:  
 
-`TermElab` stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
-`CommandElab` stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
-`Tactic` stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
+- `TermElab` stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
+- `CommandElab` stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
+- `Tactic` stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
 
 This corresponds to our intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
 
