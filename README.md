@@ -6,14 +6,15 @@ A PDF is [available here for download](../../releases/download/latest/Metaprogra
 
 * Main
     1. [Introduction](md/main/intro.md)
-    2. [Expressions](md/main/expressions.md)
-    3. [`MetaM`](md/main/metam.md)
-    4. [`Syntax`](md/main/syntax.md)
-    5. [Macros](md/main/macros.md)
-    6. [Elaboration](md/main/elaboration.md)
-    7. [DSLs](md/main/dsls.md)
-    8. [Tactics](md/main/tactics.md)
-    9. [Cheat sheet](md/main/cheat-sheet.md)
+    2. [Overview](md/main/overview.md)
+    3. [Expressions](md/main/expressions.md)
+    4. [`MetaM`](md/main/metam.md)
+    5. [`Syntax`](md/main/syntax.md)
+    6. [Macros](md/main/macros.md)
+    7. [Elaboration](md/main/elaboration.md)
+    8. [DSLs](md/main/dsls.md)
+    9. [Tactics](md/main/tactics.md)
+    10. [Cheat sheet](md/main/cheat-sheet.md)
 * Extra
     1. [Options](md/extra/options.md)
     2. [Attributes](md/extra/attributes.md)
