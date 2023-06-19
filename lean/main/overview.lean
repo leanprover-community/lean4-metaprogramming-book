@@ -212,6 +212,7 @@ interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
 a recursive function to traverse an expression is well founded. Thus, we can
 use the `partial` keyword if we're convinced that our function terminates. In
-the worst case scenario, our function gets stuck in a loop but the kernel is
-not reached/affected.
+the worst case scenario, our function gets stuck in a loop, Lean server crashes
+in VSCode, but the soundness of the underlying type theory implemented in kernel
+isn't affected.
 -/
