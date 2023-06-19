@@ -76,11 +76,12 @@ To give a more concrete example, imagine we're implementing a `#help` command, t
 <img width="900px" src="https://github.com/lakesare/lean4-metaprogramming-book/assets/7578559/adc1284f-3c0a-441d-91b8-7d87b6035688"/>
 </p>
 
-This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 low-level commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command (by the way - `#explode` is a real command from Mathlib 4, as is `#help`) - *"Displays proof in a Fitch table"*.
+This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 low-level commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command - *"Displays proof in a Fitch table"*.
 
-If we write `#h "#explode"`, the **syntax rule** with the name `:shortcut_h` will match it (remember the regex analogy). After that, Lean will find the **macro** with the same name, which will turn `#h "#explode"` into `#help "#explode"`. After that, the **syntax rule** with the name `:default_h` will match it. After that, Lean, having found no **macros** with the name `:default_h`, will find an **elab** with the name `:default_h` - and we'll see *"Displays proof in a Fitch table"* logged in VSCode's infoview.
+If we write `#h "#explode"`, Lean will travel the `syntax (name := shortcut_h)` ➤ `@[macro shortcut_h] def helpMacro` ➤ `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.  
+If we write `#help "#explode"`, Lean will travel the `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.
 
-If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` attributes on its own.
+Note how the matching between **syntax rules**, **macros**, and **elabs** is done via the `name` attribute. If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` attributes on its own.
 
 If we were defining something other than a command, instead of `: command` we could write `: term`, or `: tactic`, or any other syntax category.  
 The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`:  
