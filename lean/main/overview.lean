@@ -23,17 +23,17 @@ First we will have Lean code as a string. Then `Syntax` object. Then `Expr` obje
 
 So, the compiler sees a string of Lean code, say `"let a := 2"`, and the following process unfolds:
 
-1. **apply a relevant `syntax` rule** (`"let a := 2"` ➤ `Syntax`)  
+1. **apply a relevant syntax rule** (`"let a := 2"` ➤ `Syntax`)  
 
-    During the parsing step, Lean applies all declared `syntax` rules to turn a string of Lean code into the `Syntax` object. `syntax` rules are basically glorified regular expressions - when you write a Lean string that matches a certain `syntax` rule's regex, that rule will be used to handle subsequent steps.
+    During the parsing step, Lean applies all declared **syntax** rules to turn a string of Lean code into the `Syntax` object. **syntax** rules are basically glorified regular expressions - when you write a Lean string that matches a certain **syntax** rule's regex, that rule will be used to handle subsequent steps.
 
-2. **apply all `macro`s in a loop** (`Syntax` ➤ `Syntax`)  
+2. **apply all macros in a loop** (`Syntax` ➤ `Syntax`)  
 
-    During the elaboration step, each `macro` simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed in a similar way (steps 1 and 2), until there are no more `macro`s to apply.
+    During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed in a similar way (steps 1 and 2), until there are no more **macro**s to apply.
 
-3. **apply a single `elab`** (`Syntax` ➤ `Expr`)  
+3. **apply a single elab** (`Syntax` ➤ `Expr`)  
 
-    Finally, it's time to infuse your syntax with meaning - Lean finds an `elab` rule that's matched to the appropriate `syntax` rule by the `:name` argument (both the `syntax` rule and `elab` rule have this argument, and they must match). The newfound `elab` returns a particular `Expr` object.
+    Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** rule that's matched to the appropriate **syntax** rule by the `:name` argument (both the **syntax** rule and **elab** rule have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
     This completes the elaboration step.
 
 Expression (`Expr`) is then converted to the executable code during the evaluation step - we don't have to specify that in any way, Lean compiler will handle that for us.
@@ -61,9 +61,15 @@ Throughout this book you will see references to the elaborator; and in the "Extr
 
 ## 3 essential functions and their syntax sugars
 
-Now, when you're reading Lean source code, you will see 11(+?) commands specifying the **parsing**/**elaboration**/**evaluation** process.  Most of them are syntax sugar, and you only need **3 commands** to do metaprogramming in Lean:
+Now, when you're reading Lean source code, you will see 11(+?) commands specifying the **parsing**/**elaboration**/**evaluation** process:
 
-- **syntax rule: `syntax (name := xxx) ... : command`**
+<p align="center">
+<img width="500px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/9b83f06c-49c4-4d93-9d42-72e0499ae6c8"/>
+</p>
+
+As you can see from the image above, most of them are syntax sugars, and you only need **3 commands** to do metaprogramming in Lean:
+
+- **syntax rule: `syntax`**
 
     For example,
     ```
@@ -72,7 +78,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
     This is a syntax rule that will match (remember the regex analogy) all strings in the form of `"#help option hi.hello"` or just `"#help option"`.  
     Other widespread syntax categories are `tactic` and `term`, all of these are used in different physical places in your code.
 
-- **macro: `@[macro xxx] def ourMacro : Macro := ...`**
+- **macro: `@[macro xxx] def ourMacro`**
 
     For example,
     ```
@@ -83,7 +89,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
     Whenever your Lean code matches the syntax rule with the name `"xxx"`, this macro will be applied.  
     If the syntax rule was `syntax (name := xxx) "swap" : tactic`, this macro will syntactically turn `"swap"` into `"pick_goal 2"` - and the subsequent elaboration step will be handled by the syntax rule that matches `"pick_goal 2"`.
 
-- **elab: `@[command_elab xxx] def ourElab : CommandElab := ...`**
+- **elab: `@[command_elab xxx] def ourElab`**
 
     For example,
     ```
@@ -91,38 +97,24 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
     def ourElab : CommandElab := λ stx tp =>
       Lean.logInfo "Helping"
     ```  
-    Our elab function can be of different types - the **CommandElab** you have just seen, **TermElab** and **Tactic**.  
+    Finally, the elaboration command provides our syntax with meaning. If Lean matched some syntax rule, and didn't find any further macros to apply, it will find the elab with the matching name (`"xxx"`), and execute it.
 
-    **TermElab** stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
-    **CommandElab** stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
-    **Tactic** stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
 
-    This corresponds to our intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
+In the image above, you saw `notation`, `prefix`, `infix`, and `postfix` - all of these are combinations of `syntax` and `@[macro xxx] def ourMacro`, just like `macro`. These commands differ from `macro` in that you can only define syntax of particular form with them.
 
-These `syntax (name := xxx) ... : command`, `@[macro xxx] def ourMacro : Macro := ...` and `@[command_elab xxx] def ourElab : CommandElab := ...` are the 3 essential, low-level commands, and you can get away with them only. Lean standard library and Mathlib use many syntax sugars for these commands, however, so memorizing them is well worth the effort. I'm summing them up in the next diagram.
+To give a more concrete example, imagine we're implementing a `#help` command, that can also be written as `#h`. Then we can write our **syntax**, **macro**, and **elab** as follows:
 
 <p align="center">
-<img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/38e9d3fd-af93-4f89-b17b-e56a3b13244a"/>
+<img width="900px" src="https://github.com/lakesare/lean4-metaprogramming-book/assets/7578559/adc1284f-3c0a-441d-91b8-7d87b6035688"/>
 </p>
 
-In the image above:
+This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. If we were defining something other than a command, instead of `: command` we could write `: term` or `: tactic`. The elab function can also be of different types - the `CommandElab` we used to implement the `#help` command - but also `TermElab` and `Tactic`.  
 
-- `syntax ~ : command` - low-level command we just discussed (I write `command` here for succinctness, but it can be `term`, `:tactic`, etc.).  
+**TermElab** stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
+**CommandElab** stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
+**Tactic** stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
 
-- `@[macro] def ~ : Macro` - low-level command we just discussed.  
-
-- `@[command_elab ~] def ~ : CommandElab` - low-level command we just discussed (I write `CommandElab` here for succinctness, but it can be `Tactic`, `TermElab`, etc.).  
-
-
-- `macro_rules` - sugar for `@[macro] def ~ : Macro`.  
-
-- `elab_rules` - sugar for `@[command_elab ~] def ~ : CommandElab`.  
-
-- `macro` - combination of `syntax ~ : command` and `@[macro] def ~ : Macro`.  
-
-- `notation`, `prefix`, `infix`, `postfix` - combination of `syntax ~ : command` and `@[macro] def ~ : Macro`. These commands differ from `macro` in that you can only define rather simple syntax with them.
-
-- `elab` - combination of `syntax ~ : command` and `@[command_elab ~] def ~ : CommandElab`.  
+This corresponds to our intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
 
 ## Order of execution: syntax, macro, elab
 
