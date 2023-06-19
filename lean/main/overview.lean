@@ -79,7 +79,7 @@ To give a more concrete example, imagine we're implementing a `#help` command, t
 
 This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 non-syntax-sugary commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command (by the way - `#explode` is a real command from Mathlib 4, as is `#help`) - *"Displays proof in a Fitch table"*.
 
-If we write `#h "#explode"`, the **syntax rule** with the name `:shortcut_h` will match it (remember the regex analogy). After that, Lean will find the **macro** with the same name, which will turn `#h "#explode"` into `#help "#explode"`. After that, the **syntax rule** with the name `:default_h` will match it. After that, Lean, having found no **macros** with the name `:default_h`, will find an **elab** with the name `:default_h` - and we'll see "*"Displays proof in a Fitch table""* logged in VSCode's infoview.
+If we write `#h "#explode"`, the **syntax rule** with the name `:shortcut_h` will match it (remember the regex analogy). After that, Lean will find the **macro** with the same name, which will turn `#h "#explode"` into `#help "#explode"`. After that, the **syntax rule** with the name `:default_h` will match it. After that, Lean, having found no **macros** with the name `:default_h`, will find an **elab** with the name `:default_h` - and we'll see *"Displays proof in a Fitch table"* logged in VSCode's infoview.
 
 If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` attributes on its own.
 
