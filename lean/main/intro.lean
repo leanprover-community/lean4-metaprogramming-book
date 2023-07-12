@@ -145,7 +145,7 @@ thrown. The term expression itself doesn't matter to us here, as we're calling
 `elabTermEnsuringType` as a sanity check.
 
 We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
-elaborate metavariables right away. Without that line, `#assertType 5  : ?_`
+elaborate metavariables right away. Without that line, `#assertType [] : ?_`
 would result in `success`.
 
 If no error is thrown until now then the elaboration succeeded and we can use
