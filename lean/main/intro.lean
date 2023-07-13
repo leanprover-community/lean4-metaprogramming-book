@@ -61,7 +61,7 @@ and Scala. In Coq, it's OCaml. In Agda, it's Haskell. In Lean 4, the meta code i
 mostly written in Lean itself, with a few components written in C++.
 
 One cool thing about Lean, though, is that it allows us to define custom syntax
-nodes and implement meta-level routines to elaborate those in the
+nodes and implement meta-level routines to elaborate them in the
 very same development environment that we use to perform object-level
 activities. So for example, one can write notation to instantiate a
 term of a certain type and use it right away, in the same file! This concept is
