@@ -131,17 +131,17 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 #assertType 5  : Nat -- success
 #assertType [] : Nat -- failure
 
-/-! We started by using `elab` to define a `command` syntax, which when parsed
-by the compiler, will trigger the incoming computation.
+/-! We started by using `elab` to define a `command` syntax. When parsed
+by the compiler, it will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
 use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
 `elabType` and `elabTermEnsuringType` to build expressions out of the
 syntax nodes `typeStx` and `termStx`.
 
-First, we elaborate the expected type `tp : Expr` and then we use it to elaborate
-the term expression, which should have the type `tp` otherwise an error will be
-thrown. The term expression itself doesn't matter to us here, as we're calling
+First, we elaborate the expected type `tp : Expr`, then we use it to elaborate
+the term expression. The term should have the type `tp` otherwise an error will be
+thrown. We then discard the resulting term expression, since it doesn't matter to us here - we're calling
 `elabTermEnsuringType` as a sanity check.
 
 We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
