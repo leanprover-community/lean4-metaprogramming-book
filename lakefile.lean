@@ -3,7 +3,6 @@ open Lake DSL
 
 package «lean4-metaprogramming-book» {
   srcDir := ⟨"lean"⟩
-  isLeanOnly := true
 }
 
 @[default_target]
