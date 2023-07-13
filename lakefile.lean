@@ -3,7 +3,6 @@ open Lake DSL
 
 package «lean4-metaprogramming-book» {
   srcDir := ⟨"lean"⟩
-  isLeanOnly := true
 }
 
 @[default_target]
@@ -25,10 +24,10 @@ def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
 script build do
   let _ ← runCmd "rm" #["-rf", "md"]
 
-  if ← runCmd "python" #["-m", "lean2md", "lean", "md"] then return 1
-  if ← runCmd "python" #["-m", "lean2md", "lean/main", "md/main"] then return 1
-  if ← runCmd "python" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
-  if ← runCmd "python" #["-m", "lean2md", "lean/solutions", "md/solutions"] then return 1
+  if ← runCmd "python3" #["-m", "lean2md", "lean", "md"] then return 1
+  if ← runCmd "python3" #["-m", "lean2md", "lean/main", "md/main"] then return 1
+  if ← runCmd "python3" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
+  if ← runCmd "python3" #["-m", "lean2md", "lean/solutions", "md/solutions"] then return 1
 
   return 0
 
