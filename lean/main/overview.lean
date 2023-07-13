@@ -19,7 +19,7 @@ The Lean compilation process can be summed up in the following diagram:
 <img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
 </p>
 
-First, we will have Lean code as a string. Then `Syntax` object. Then `Expr` object. Then we can execute it.  
+First, we will start with Lean code as a string. Then we'll see it become a `Syntax` object, and then an `Expr` object. Then finally we can execute it.  
 
 So, the compiler sees a string of Lean code, say `"let a := 2"`, and the following process unfolds:
 
@@ -29,18 +29,18 @@ So, the compiler sees a string of Lean code, say `"let a := 2"`, and the followi
 
 2. **apply all macros in a loop** (`Syntax` ➤ `Syntax`)  
 
-    During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed similarly (steps 1 and 2), until there are no more **macros** to apply.
+    During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed similarly (repeating steps 1 and 2), until there are no more **macros** to apply.
 
 3. **apply a single elab** (`Syntax` ➤ `Expr`)  
 
     Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `name` argument (**syntax rules**, **macros** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
     This completes the elaboration step.
 
-The expression (`Expr`) is then converted to the executable code during the evaluation step - we don't have to specify that in any way, the Lean compiler will handle that for us.
+The expression (`Expr`) is then converted into executable code during the evaluation step - we don't have to specify that in any way, the Lean compiler will handle doing so for us.
 
 ## Elaboration and delaboration
 
-Elaboration is an overloaded term in Lean. For example, you can meet the following usage of the word "elaboration", which defines elaboration as *"taking a partially-specified expression and inferring what is left implicit"*:
+Elaboration is an overloaded term in Lean. For example, you might encounter the following usage of the word "elaboration", wherein the intention is *"taking a partially-specified expression and inferring what is left implicit"*:
 
 
 > When you enter an expression like `λ x y z, f (x + y) z` for Lean to process, you are leaving information implicit. For example, the types of `x`, `y`, and `z` have to be inferred from the context, the notation `+` may be overloaded, and there may be implicit arguments to `f` that need to be filled in as well.
@@ -184,7 +184,7 @@ interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
 a recursive function to traverse an expression is well-founded. Thus, we can
 use the `partial` keyword if we're convinced that our function terminates. In
-the worst-case scenario, our function gets stuck in a loop, Lean server crashes
+the worst-case scenario, our function gets stuck in a loop, causing the Lean server to crash
 in VSCode, but the soundness of the underlying type theory implemented in the kernel
 isn't affected.
 -/
