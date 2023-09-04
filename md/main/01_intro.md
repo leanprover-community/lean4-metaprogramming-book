@@ -39,7 +39,7 @@ offering some small examples to serve as appetizers for what the book shall
 cover.
 
 Note: the code snippets aren't self-contained. They are supposed to be run/read
-incrementally,starting from the beginning of each chapter.
+incrementally, starting from the beginning of each chapter.
 
 ## What does it mean to be in meta?
 
