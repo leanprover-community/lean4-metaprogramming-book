@@ -1,3 +1,4 @@
+/-
 # Introduction
 
 ## What's the goal of this book?
@@ -5,7 +6,8 @@
 This book aims to build up enough knowledge about metaprogramming in Lean 4 so
 you can be comfortable enough to:
 
-* Start building your own meta helpers
+* Start building your own meta helpers (defining new Lean notation such as `∑`,
+building new Lean commands such as `#check`, writing your own tactics such as `use`, etc.)
 * Read and discuss metaprogramming API's like the ones in Lean 4 core and
 Mathlib4
 
@@ -19,7 +21,7 @@ is a highly recommended source on that subject.
 
 ## Book structure
 
-The book is organized in a way to build up enough content for the chapters that
+The book is organized in a way to build up enough context for the chapters that
 cover DSLs and tactics. Backtracking the pre-requisites for each chapter, the
 dependency structure is as follows:
 
@@ -30,15 +32,15 @@ dependency structure is as follows:
 * "`MetaM`" builds on top of "Expressions"
 
 After the chapter on tactics, you find a cheat-sheet containing a wrap-up of key
-concepts and functions. And after that, There are some chapters with extra
-content, showing other applications of metaprogramming in Lean 4.
+concepts and functions. And after that, there are some chapters with extra
+content, showing other applications of metaprogramming in Lean 4. Most chapters contain exercises in the end of the chapter - and in the end of the book you will have full solutions to those exercises.  
 
 The rest of this chapter is a gentle introduction for what metaprogramming is,
 offering some small examples to serve as appetizers for what the book shall
 cover.
 
 Note: the code snippets aren't self-contained. They are supposed to be run/read
-incrementally,starting from the beginning of each chapter.
+incrementally, starting from the beginning of each chapter.
 
 ## What does it mean to be in meta?
 
@@ -46,8 +48,8 @@ When we write code in most programming languages such as Python, C, Java or
 Scala, we usually have to stick to a pre-defined syntax otherwise the compiler
 or the interpreter won't be able to figure out what we're trying to say. In
 Lean, that would be defining an inductive type, implementing a function, proving
-a theorem etc. The compiler, then, has to parse the code, build an abstract
-syntax tree and elaborate its syntax nodes into terms that can be processed by
+a theorem, etc. The compiler, then, has to parse the code, build an AST (abstract
+syntax tree) and elaborate its syntax nodes into terms that can be processed by
 the language kernel. We say that such activities performed by the compiler are
 done in the __meta-level__, which will be studied throughout the book. And we
 also say that the common usage of the language syntax is done in the
@@ -55,40 +57,45 @@ __object-level__.
 
 In most systems, the meta-level activities are done in a different language to
 the one that we use to write code. In Isabelle, the meta-level language is ML
-and Scala. In Coq, it's OCaml. In Agda it's Haskell. In Lean 4, the meta code is
+and Scala. In Coq, it's OCaml. In Agda, it's Haskell. In Lean 4, the meta code is
 mostly written in Lean itself, with a few components written in C++.
 
 One cool thing about Lean, though, is that it allows us to define custom syntax
 nodes and to implement our own meta-level routines to elaborate those in the
 very same development environment that we use to perform object-level
 activities. So for example, one can write their own notation to instantiate a
-term of a certain type and use it right away, on the same file! This concept is
+term of a certain type and use it right away, in the same file! This concept is
 generally called
 [__reflection__](https://en.wikipedia.org/wiki/Reflective_programming). We can
 say that, in Lean, the meta-level is _reflected_ to the object-level.
 
-Since the objects defined in the meta-level are not the ones we're most
-interested in proving theorems about, it can sometimes be overly tedious to
-prove that they are type correct. For example, we don't care about proving that
-a recursive function to traverse an expression is well founded. Thus, we can
-use the `partial` keyword if we're convinced that our function terminates. In
-the worst case scenario, our function gets stuck in a loop but the kernel is
-not reached/affected.
+If you have done some metaprogramming in languages such as Ruby, Python or Javascript,
+it probably took a form of making use of predefined metaprogramming methods in order to define
+something on the fly. For example, in Ruby you can use `Class.new` and `define_method`
+to define a new class and its new method (with new code inside!) on the fly, as your program is executing.
 
-Let's see some example use cases of metaprogramming in Lean.
+We don't usually need to define new commands or tactics "on the fly" in Lean, but spiritually
+similar feats are possible with Lean metaprogramming, and are equally straightforward, e.g. you can define
+a new Lean command using a simple one-liner `elab "#help" : command => do ...normal Lean code...`.
+
+In Lean, however, we will frequently want to directly manipulate
+Lean's CST (Concrete Syntax Tree, Lean's `Syntax` type) and
+Lean's AST (Abstract Syntax Tree, Lean's `Expr` type) instead of using "normal Lean code",
+especially when we're writing tactics. So Lean metaprogramming is more challenging to master -
+a large chunk of this book is contributed to studying these types and how we can manipulate them.
 
 ## Metaprogramming examples
 
-The following examples are meant for mere illustration. Don't worry if you don't
-understand the details for now.
+Next, we introduce a number of examples of Lean metaprogramming, so that you start getting a taste for
+what metaprogramming in Lean is, and what it will enable you to achieve. These examples are meant as
+mere illustration - do not worry if you don't understand the details for now.
 
 ### Introducing notation (defining new syntax)
 
 Often one wants to introduce new notation, for example one more suitable for (a branch of) mathematics. For instance, in mathematics one would write the function adding `2` to a natural number as `x : Nat ↦ x + 2` or simply `x ↦ x + 2` if the domain can be inferred to be the natural numbers. The corresponding lean definitions `fun x : Nat => x + 2` and `fun x => x + 2` use `=>` which in mathematics means _implication_, so may be confusing to some.
 
 We can introduce notation using a `macro` which transforms our syntax to lean's own syntax (or syntax we previously defined). Here we introduce the `↦` notation for functions.
-
-```lean
+-/
 import Lean
 
 macro x:ident ":" t:term " ↦ " y:term : term => do
@@ -100,7 +107,7 @@ macro x:ident " ↦ " y:term : term => do
   `(fun $x  => $y)
 
 #eval (x ↦  x + 2) 2 -- 4
-```
+/-!
 
 ### Building a command
 
@@ -110,8 +117,7 @@ given term is of a certain type. The usage will be:
 `#assertType <term> : <type>`
 
 Let's see the code:
-
-```lean
+-/
 elab "#assertType " termStx:term " : " typeStx:term : command =>
   open Lean Lean.Elab Command Term in
   liftTermElabM
@@ -124,9 +130,8 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 
 #assertType 5  : Nat -- success
 #assertType [] : Nat -- failure
-```
 
-We started by using `elab` to define a `command` syntax, which, when parsed
+/-! We started by using `elab` to define a `command` syntax, which, when parsed
 by the compiler, will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
@@ -154,22 +159,21 @@ addition, multiplication, naturals, and variables.  We'll define an AST
 (Abstract Syntax Tree) to encode the data of our expressions, and use operators
 `+` and `*` to denote building an arithmetic AST. Here's the AST that we will be
 parsing:
+-/
 
-```lean
 inductive Arith : Type where
   | add : Arith → Arith → Arith -- e + f
   | mul : Arith → Arith → Arith -- e * f
   | nat : Nat → Arith           -- constant
   | var : String → Arith        -- variable
-```
 
-Now we declare a syntax category to describe the grammar that we will be
+/-! Now we declare a syntax category to describe the grammar that we will be
 parsing. Notice that we control the precedence of `+` and `*` by giving a lower
 precedence weight to the `+` syntax than to the `*` syntax indicating that
 multiplication binds tighter than addition (the higher the number, the tighter
 the binding). This allows us to declare _precedence_ when defining new syntax.
+-/
 
-```lean
 declare_syntax_cat arith
 syntax num                        : arith -- nat for Arith.nat
 syntax str                        : arith -- strings for Arith.var
@@ -205,8 +209,8 @@ macro_rules
 
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
 -- Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z")
-```
 
+/-!
 ### Writing our own tactic
 
 Let's create a tactic that adds a new hypothesis to the context with a given
@@ -219,8 +223,8 @@ It's going to be called `suppose` and is used like this:
 `suppose <name> : <type>`
 
 So let's see the code:
+-/
 
-```lean
 open Lean Meta Elab Tactic Term in
 elab "suppose " n:ident " : " t:term : tactic => do
   let n : Name := n.getId
@@ -236,9 +240,8 @@ example : 0 + a = a := by
   suppose add_comm : 0 + a = a + 0
   rw [add_comm]; rfl     -- closes the initial main goal
   rw [Nat.zero_add]; rfl -- proves `add_comm`
-```
 
-We start by storing the main goal in `mvarId` and using it as a parameter of
+/-! We start by storing the main goal in `mvarId` and using it as a parameter of
 `withMVarContext` to make sure that our elaborations will work with types that
 depend on other variables in the context.
 
@@ -250,23 +253,4 @@ To require the proof of the new hypothesis as a goal, we call `replaceMainGoal`
 passing a list with `p.mvarId!` in the head. And then we can use the
 `rotate_left` tactic to move the recently added top goal to the bottom.
 
-## Printing Messages
-
-In the `#assertType` example, we used `logInfo` to make our command print
-something. If, instead, we just want to perform a quick debug, we can use
-`dbg_trace`.
-
-They behave a bit differently though, as we can see below:
-
-```lean
-elab "traces" : tactic => do
-  let array := List.replicate 2 (List.range 3)
-  Lean.logInfo m!"logInfo: {array}"
-  dbg_trace f!"dbg_trace: {array}"
-
-example : True := by -- `example` is underlined in blue, outputting:
-                     -- dbg_trace: [[0, 1, 2], [0, 1, 2]]
-  traces -- now `traces` is underlined in blue, outputting
-         -- logInfo: [[0, 1, 2], [0, 1, 2]]
-  trivial
-```
+-/

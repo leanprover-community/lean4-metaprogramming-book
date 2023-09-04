@@ -5,28 +5,29 @@ Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Evgenia Karunus, Henrik BÃ
 A PDF is [available here for download](../../releases/download/latest/Metaprogramming.in.Lean.4.pdf) (and is rebuilt on each change).
 
 * Main
-    1. [Introduction](md/main/intro.md)
-    2. [Expressions](md/main/expressions.md)
-    3. [`MetaM`](md/main/metam.md)
-    4. [`Syntax`](md/main/syntax.md)
-    5. [Macros](md/main/macros.md)
-    6. [Elaboration](md/main/elaboration.md)
-    7. [DSLs](md/main/dsls.md)
-    8. [Tactics](md/main/tactics.md)
-    9. [Cheat sheet](md/main/cheat-sheet.md)
-* Extra
-    1. [Options](md/extra/options.md)
-    2. [Attributes](md/extra/attributes.md)
-    3. [Pretty Printing](md/extra/pretty-printing.md)
+    1. [Introduction](md/main/01_intro.md)
+    2. [Overview](md/main/02_overview.md)
+    3. [Expressions](md/main/03_expressions.md)
+    4. [`MetaM`](md/main/04_metam.md)
+    5. [`Syntax`](md/main/05_syntax.md)
+    6. [Macros](md/main/06_macros.md)
+    7. [Elaboration](md/main/07_elaboration.md)
+    8. [DSLs](md/main/08_dsls.md)
+    9. [Tactics](md/main/09_tactics.md)
+    10. [Cheat sheet](md/main/10_cheat-sheet.md)
+    1. [Options](md/extra/01_options.md)
+    2. [Attributes](md/extra/02_attributes.md)
+    3. [Pretty Printing](md/extra/03_pretty-printing.md)
 * Solutions to exercises
     1. Introduction
-    2. [Expressions](md/solutions/expressions.md)
-    3. [`MetaM`](md/solutions/metam.md)
-    4. [`Syntax`](md/solutions/syntax.md)
-    5. Macros
-    6. [Elaboration](md/solutions/elaboration.md)
-    7. DSLs
-    8. [Tactics](md/solutions/tactics.md)
+    2. Overview
+    3. [Expressions](md/solutions/03_expressions.md)
+    4. [`MetaM`](md/solutions/04_metam.md)
+    5. [`Syntax`](md/solutions/05_syntax.md)
+    6. Macros
+    7. [Elaboration](md/solutions/07_elaboration.md)
+    8. DSLs
+    9. [Tactics](md/solutions/09_tactics.md)
 
 Sources to extract material from:
 * [Material written by Ed](https://github.com/leanprover-community/mathlib4/blob/tutorial/docs/metaprogramming/02_metavariables.md)
