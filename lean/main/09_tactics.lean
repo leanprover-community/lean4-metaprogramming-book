@@ -718,24 +718,4 @@ tactic infrastructure and the parsing front-end.
     ```
 
     Hint: **"P"** in `intro1P` and `introNP` stands for **"Preserve"**.
-
-
-4. Create a tactic `incredibly_helpful` that turns the goal `∃ m, n + n = m` into the goal `Nat → True → String → ∃ m, n + n = m`. Use the `assert` function.
-
-    ```lean
-    example (n : Int) : ∃ m, n + n = m := by
-      incredibly_helpful
-      intros
-      apply Exists.intro (n + n)
-      rfl
-    ```
-
-5. Create a tactic `andify a b` that takes the propositions `a` and `b`, and creates a new hypothesis `a_and_b` with type `And.intro a b`.
-
-    ```lean
-    example (a b c : Nat) (ab: a = b) (bc: b = c) : (a = c) := by
-      andify ab bc
-      rw [ab]
-      rw [bc]
-    ```
 -/
