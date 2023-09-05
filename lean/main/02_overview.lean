@@ -13,34 +13,34 @@ Metaprogramming in Lean is deeply connected to the compilation steps - parsing, 
 >
 > Leonardo de Moura, Sebastian Ullrich ([The Lean 4 Theorem Prover and Programming Language](https://pp.ipd.kit.edu/uploads/publikationen/demoura21lean4.pdf))
 
-Lean compilation process can be summed up in the following diagram:
+The Lean compilation process can be summed up in the following diagram:
 
 <p align="center">
 <img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
 </p>
 
-First we will have Lean code as a string. Then `Syntax` object. Then `Expr` object. Then we can execute it.  
+First, we will start with Lean code as a string. Then we'll see it become a `Syntax` object, and then an `Expr` object. Then finally we can execute it.  
 
 So, the compiler sees a string of Lean code, say `"let a := 2"`, and the following process unfolds:
 
 1. **apply a relevant syntax rule** (`"let a := 2"` ➤ `Syntax`)  
 
-    During the parsing step, Lean tries to match a string of Lean code to one of the declared **syntax rules** in order to turn that string into the `Syntax` object. **Syntax rules** are basically glorified regular expressions - when you write a Lean string that matches a certain **syntax rule**'s regex, that rule will be used to handle subsequent steps.
+    During the parsing step, Lean tries to match a string of Lean code to one of the declared **syntax rules** in order to turn that string into a `Syntax` object. **Syntax rules** are basically glorified regular expressions - when you write a Lean string that matches a certain **syntax rule**'s regex, that rule will be used to handle subsequent steps.
 
 2. **apply all macros in a loop** (`Syntax` ➤ `Syntax`)  
 
-    During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed in a similar way (steps 1 and 2), until there are no more **macros** to apply.
+    During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed similarly (repeating steps 1 and 2), until there are no more **macros** to apply.
 
 3. **apply a single elab** (`Syntax` ➤ `Expr`)  
 
-    Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `:name` argument (**syntax rules**, **macros** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
+    Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `name` argument (**syntax rules**, **macros** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
     This completes the elaboration step.
 
-Expression (`Expr`) is then converted to the executable code during the evaluation step - we don't have to specify that in any way, Lean compiler will handle that for us.
+The expression (`Expr`) is then converted into executable code during the evaluation step - we don't have to specify that in any way, the Lean compiler will handle doing so for us.
 
 ## Elaboration and delaboration
 
-Elaboration is a overloaded term in Lean, for example you can meet the following usage of the word "elaboration", which defines elaboration as *"taking a partially-specified expression and inferring what is left implicit"*:
+Elaboration is an overloaded term in Lean. For example, you might encounter the following usage of the word "elaboration", wherein the intention is *"taking a partially-specified expression and inferring what is left implicit"*:
 
 
 > When you enter an expression like `λ x y z, f (x + y) z` for Lean to process, you are leaving information implicit. For example, the types of `x`, `y`, and `z` have to be inferred from the context, the notation `+` may be overloaded, and there may be implicit arguments to `f` that need to be filled in as well.
@@ -55,9 +55,9 @@ We, on the other hand, just defined elaboration as the process of turning `Synta
 
 These definitions are not mutually exclusive - elaboration is, indeed, the transformation of `Syntax` into `Expr`s - it's just so that for this transformation to happen we need a lot of trickery - we need to infer implicit arguments, instantiate metavariables, perform unification, resolve identifiers, etc. etc. - and these actions can be referred to as "elaboration" on their own; similarly to how "checking if you turned off the lights in your apartment" (metavariable instantiation) can be referred to as "going to school" (elaboration).
 
-There also exists a process opposite to elaboration in Lean - it's called, appropriately enough, delaboration. During delaboration, `Expr` is turned into the `Syntax` object; and then the formatter turns it into a `Format` object, which can be displayed in Lean's infoview. Every time you log something to the screen, or see some output upon hovering over `#check`, it's the work of the delaborator.
+There also exists a process opposite to elaboration in Lean - it's called, appropriately enough, delaboration. During delaboration, an `Expr` is turned into a `Syntax` object; and then the formatter turns it into a `Format` object, which can be displayed in Lean's infoview. Every time you log something to the screen, or see some output upon hovering over `#check`, it's the work of the delaborator.
 
-Throughout this book you will see references to the elaborator; and in the "Extra: Pretty Printing" chapter you can read on delaborators.
+Throughout this book you will see references to the elaborator; and in the "Extra: Pretty Printing" chapter you can read about delaborators.
 
 ## 3 essential commands and their syntax sugars
 
@@ -67,7 +67,7 @@ Now, when you're reading Lean source code, you will see 11(+?) commands specifyi
 <img width="500px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/9b83f06c-49c4-4d93-9d42-72e0499ae6c8"/>
 </p>
 
-In the image above, you see `notation`, `prefix`, `infix`, and `postfix` - all of these are combinations of `syntax` and `@[macro xxx] def ourMacro`, just like `macro`. These commands differ from `macro` in that you can only define syntax of particular form with them.
+In the image above, you see `notation`, `prefix`, `infix`, and `postfix` - all of these are combinations of `syntax` and `@[macro xxx] def ourMacro`, just like `macro`. These commands differ from `macro` in that you can only define syntax of a particular form with them.
 
 All of these commands are used in Lean and Mathlib source code extensively, so it's well worth memorizing them. Most of them are syntax sugars, however, and you can understand their behaviour by studying the behaviour of the following 3 low-level commands: `syntax` (a **syntax rule**), `@[macro xxx] def ourMacro` (a **macro**), and `@[command_elab xxx] def ourElab` (an **elab**).
 
@@ -82,7 +82,7 @@ This image is not supposed to be read row by row - it's perfectly fine to use `m
 If we write `#h "#explode"`, Lean will travel the `syntax (name := shortcut_h)` ➤ `@[macro shortcut_h] def helpMacro` ➤ `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.  
 If we write `#help "#explode"`, Lean will travel the `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.
 
-Note how the matching between **syntax rules**, **macros**, and **elabs** is done via the `name` attribute. If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` attributes on its own.
+Note how the matching between **syntax rules**, **macros**, and **elabs** is done via the `name` argument. If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` arguments on its own.
 
 If we were defining something other than a command, instead of `: command` we could write `: term`, or `: tactic`, or any other syntax category.  
 The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`:  
@@ -182,9 +182,9 @@ example : True := by -- `example` is underlined in blue, outputting:
 Since the objects defined in the meta-level are not the ones we're most
 interested in proving theorems about, it can sometimes be overly tedious to
 prove that they are type correct. For example, we don't care about proving that
-a recursive function to traverse an expression is well founded. Thus, we can
+a recursive function to traverse an expression is well-founded. Thus, we can
 use the `partial` keyword if we're convinced that our function terminates. In
-the worst case scenario, our function gets stuck in a loop, Lean server crashes
-in VSCode, but the soundness of the underlying type theory implemented in kernel
+the worst-case scenario, our function gets stuck in a loop, causing the Lean server to crash
+in VSCode, but the soundness of the underlying type theory implemented in the kernel
 isn't affected.
 -/
