@@ -11,6 +11,9 @@ lean_lib «lean4-metaprogramming-book» {
   globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
 }
 
+require mathlib from git
+  "https://github.com/leanprover-community/mathlib4"
+
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
   let out ← IO.Process.output {
     cmd := cmd

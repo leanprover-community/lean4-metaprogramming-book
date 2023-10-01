@@ -6,12 +6,22 @@ Macros in Lean are `Syntax → MacroM Syntax` functions. `MacroM` is the macro
 monad which allows macros to have some static guarantees we will discuss in the
 next section, you can mostly ignore it for now.
 
+Leanのマクロは、`Syntax → MacroM Syntax` 関数です。
+`MacroM`は、マクロにいくつかの静的な保証を持たせることを可能にするマクロモナドです。
+次のセクションで詳しく説明しますが、現時点ではほとんど無視しても問題ありません。
+
 Macros are registered as handlers for a specific syntax declaration using the
 `macro` attribute. The compiler will take care of applying these function
 to the syntax for us before performing actual analysis of the input. This
 means that the only thing we have to do is declare our syntax with a specific
 name and bind a function of type `Lean.Macro` to it. Let's try to reproduce
 the `LXOR` notation from the `Syntax` chapter:
+
+マクロは、`macro`属性を使って特定の構文宣言のハンドラとして登録されます。
+コンパイラは、入力の実際の解析を行う前に、これらの関数を構文に適用することを担当します。
+つまり、私たちがしなければならないことは、特定の名前で構文を宣言し、
+その構文に`Lean.Macro`型の関数をバインドすることだけです。
+`Syntax`章から`LXOR`構文を再現してみましょう。
 -/
 
 import Lean
@@ -34,11 +44,22 @@ That was quite easy! The `Macro.throwUnsupported` function can be used by a macr
 to indicate that "it doesn't feel responsible for this syntax". In this case
 it's merely used to fill a wildcard pattern that should never be reached anyways.
 
+非常に簡単でしたね！`Macro.throwUnsupported`関数は、
+マクロが「この構文に対して責任を感じない」と示すために使用できます。
+この場合、それはどちらにせよ到達すべきではないワイルドカードパターンを埋めるために
+単に使用されています。
+
 However we can in fact register multiple macros for the same syntax this way
 if we desire, they will be tried one after another (the later registered ones have 
 higher priority)  -- is "higher" correct?
 until one throws either a real error using `Macro.throwError` or succeeds, that
 is it does not `Macro.throwUnsupported`. Let's see this in action:
+
+しかし、実際には、同じ構文に対して複数のマクロを登録することができます。
+それらは、1つずつ試されます（後で登録されたものほど優先度が高い）。
+`Macro.throwError`を使用して本当のエラーをスローするか、成功するまで、
+つまり`Macro.throwUnsupported`をスローしないまで。
+動かしながら見てみましょう。
 -/
 
 @[macro lxor] def lxorImpl2 : Macro
@@ -55,6 +76,11 @@ This capability is obviously *very* powerful! It should not be used
 lightly and without careful thinking since it can introduce weird
 behaviour while writing code later on. The following example illustrates
 this weird behaviour:
+
+この機能は明らかに*非常に*強力です！
+後でコードを書くときに奇妙な振る舞いを引き起こす可能性があるため、
+軽率に使用してはいけません。
+次の例は、この奇妙な振る舞いを説明しています。
 -/
 
 #eval true LXOR true -- true, handled by new macro
@@ -72,13 +98,29 @@ macro above, it should most likely not be a macro but an elaborator
 use macros for simple syntax to syntax translations, that a human could
 easily write out themselves as well but is too lazy to.
 
+このマクロが具体的にどのように実装されているかを正確に把握しないと、
+この動作はデバッグ中の問題に基づいて問題を追跡しようとしている人にとって非常に混乱することでしょう。
+マクロとエラボレーションのような他のメカニズムをいつ使用すべきかの基本的な原則は、
+2番目のマクロのように実際のロジックを構築し始めると、
+おそらくそれはマクロではなくエラボレータ（エラボレーションの章で説明されています）
+であるべきであることです。
+したがって、理想的には、マクロはシンプルな構文から構文への変換に使用することを意味し、
+それは人間が自分で書くことができるが、怠けてしまうようなものです。
+
 ## Simplifying macro declaration
 Now that we know the basics of what a macro is and how to register it
 we can take a look at slightly more automated ways to do this (in fact
 all of the ways about to be presented are implemented as macros themselves).
 
+マクロの基本的な内容とその登録方法を理解したので、これをもう少し自動化した方法を見てみることができます
+（実際、以下で紹介される方法はすべて、それ自体がマクロとして実装されています）。
+
 First things first there is `macro_rules` which basically desugars to
 functions like the ones we wrote above, for example:
+
+まず第一に、`macro_rules`があります。
+これは、上記で書いたような関数にデシュガーされるものです。
+例えば：
 -/
 
 syntax:10 term:10 " RXOR " term:11 : term
@@ -92,12 +134,22 @@ As you can see, it figures out lot's of things on its own for us:
 - the `macro` attribute registration
 - the `throwUnsupported` wildcard
 
+上記でわかるように、これは私たちのために多くのことを自動的に解決してくれます。
+- 構文宣言の名前
+- `macro`属性の登録
+- `throwUnsupported`ワイルドカード
+
 apart from this it just works like a function that is using pattern
 matching syntax, we can in theory encode arbitrarily complex macro
 functions on the right hand side.
 
+これ以外にも、パターンマッチング構文を使用している関数のように機能します。
+理論的には、右辺に任意に複雑なマクロ関数をエンコードすることができます。
+
 If this is still not short enough for you, there is a next step using the
 `macro` macro:
+
+これでもまだ短くないと思う場合は、`macro`マクロを使用することができます。
 -/
 
 macro l:term:10 " ⊕ " r:term:11 : term => `((!$l && $r) || ($l && !$r))
@@ -112,15 +164,29 @@ As you can see, `macro` is quite close to `notation` already:
 - it performed syntax declaration for us
 - it automatically wrote a `macro_rules` style function to match on it
 
+上記のように、`macro`は`notation`に非常に近いです。
+- 構文宣言を自動的に行ってくれる
+- `macro_rules`スタイルの関数を自動的にマッチングする
+
 The are of course differences as well:
 - `notation` is limited to the `term` syntax category
 - `notation` cannot have arbitrary macro code on the right hand side
+
+もちろん、違いもあります。
+- `notation`は`term`構文カテゴリに限定されています。
+- `notation`は右辺に任意のマクロコードを持つことはできません。
 
 ## `Syntax` Quotations
 ### The basics
 So far we've handwaved the `` `(foo $bar) `` syntax to both create and
 match on `Syntax` objects but it's time for a full explanation since
 it will be essential to all non trivial things that are syntax related.
+
+これまで、`Syntax`オブジェクトを作成し、マッチングするために
+`` `(foo $bar) ``構文を手で振り回してきましたが、
+これはすべての非自明な構文関連のものに不可欠なので、
+完全な説明が必要です。
+
 
 First things first we call the `` `() `` syntax a `Syntax` quotation.
 When we plug variables into a syntax quotation like this: `` `($x) ``
@@ -129,6 +195,14 @@ it is required that `x` is of type `TSyntax x` where `x` is some `Name`
 of a syntax category. The Lean compiler is actually smart enough to figure
 the syntax categories that are allowed in this place out. Hence you might
 sometimes see errors of the form:
+
+まず第一に、`` `() ``構文を`Syntax`引用と呼びます。
+`` `($x) ``のように変数を構文引用に挿入するとき、
+`$x`部分をアンチクォーテーションと呼びます。
+このように`x`を挿入すると、`x`が`TSyntax x`型である必要があります。
+ここで`x`は構文カテゴリの`Name`です。
+Leanコンパイラは、この場所で許可されている構文カテゴリを推測するのに十分に賢いです。
+したがって、次のようなエラーが発生することがあります。
 ```
 application type mismatch
   x.raw
@@ -141,6 +215,10 @@ but is expected to have type
 ```
 If you are sure that your thing from the `a` syntax category can be
 used as a `b` here you can declare a coercion of the form:
+
+`a`構文カテゴリのものがここで`b`として使用できることを確信している場合は、
+次のようなコアーションを宣言できます。
+TODO コアーションとは何か
 -/
 
 instance : Coe (TSyntax `a) (TSyntax `b) where
@@ -153,6 +231,12 @@ you just discovered a bug in your `Syntax` function. Similar to the Lean
 compiler, you could also declare functions that are specific to certain
 `TSyntax` variants. For example as we have seen in the syntax chapter
 there exists the function:
+
+これにより、Leanは型キャストを自動的に実行できるようになります。
+ここで、`a`を`b`の代わりに使用できないことに気付いたら、
+`Syntax`関数のバグを発見したことになります。
+Leanコンパイラと同様に、特定の`TSyntax`バリアントに固有の関数を宣言することもできます。
+たとえば、構文章で見たように、次の関数が存在します。
 -/
 #check TSyntax.getNat -- TSyntax.getNat : TSyntax numLitKind → Nat
 /-!
@@ -160,24 +244,46 @@ Which is guaranteed to not panic because we know that the `Syntax` that
 the function is receiving is a numeric literal and can thus naturally
 be converted to a `Nat`.
 
+この関数はパニックしないことが保証されています。
+なぜなら、関数が受け取る `Syntax` が数値リテラルであることを知っており、
+それを自然に `Nat` に変換できるからです。
+
 If we use the antiquotation syntax in pattern matching it will, as discussed
 in the syntax chapter, give us a a variable `x` of type `` TSyntax y `` where
 `y` is the `Name` of the syntax category that fits in the spot where we pattern matched.
 If we wish to insert a literal `$x` into the `Syntax` for some reason,
 for example macro creating macros, we can escape the anti quotation using: `` `($$x) ``.
 
+パターンマッチングでアンチクォーテーション構文を使用すると、
+構文章で説明したように、パターンマッチングする場所に合う構文カテゴリの`Name`である
+`` TSyntax y ``型の変数`x`が得られます。
+何らかの理由でリテラル`$x`を`Syntax`に挿入したい場合、
+たとえばマクロを作成するマクロの場合、以下を用いてアンチクォーテーションをエスケープすることができます。
+`` `($$x) ``。
+
 If we want to specify the syntax kind we wish `x` to be interpreted as
 we can make this explicit using: `` `($x:term) `` where `term` can be
 replaced with any other valid syntax category (e.g. `command`) or parser
 (e.g. `ident`). 
 
+`x`をどのように解釈するかを指定したい場合は、
+`` `($x:term) ``を使用してこれを明示的に行うことができます。
+ここで、`term`は、他の有効な構文カテゴリ（たとえば`command`）
+やパーサー（たとえば`ident`）に置き換えることができます。
+
 So far this is only a more formal explanation of the intuitive things
 we've already seen in the syntax chapter and up to now in this chapter,
 next we'll discuss some more advanced anti-quotations.
 
+これまで、これは構文章で既に見てきた直感的なもののより形式的な説明にすぎません。
+次に、より高度なアンチクォーテーションについて説明します。
+
 ### Advanced anti-quotations
 For convenience we can also use anti-quotations in a way similar to
 format strings: `` `($(mkIdent `c)) `` is the same as: `` let x := mkIdent `c; `($x) ``.
+
+便宜上、フォーマット文字列と同様の方法でアンチクォーテーションを使用することもできます。
+`` `($(mkIdent `c)) ``は、`` let x := mkIdent `c; `($x) ``と同じです。
 
 Furthermore there are sometimes situations in which we are not working
 with basic `Syntax` but `Syntax` wrapped in more complex datastructures,
@@ -188,13 +294,29 @@ For example if we match using: `$xs,*`, `xs` will have type `TSepArray c ","`,.
 With the special case of matching on no specific separator (i.e. whitespace):
 `$xs*` in which we will receive an `Array (TSyntax c)`.
 
+さらに、基本的な`Syntax`ではなく、より複雑なデータ構造でラップされた`Syntax`を扱う場合があります。
+特に、`Array (TSyntax c)`や`TSepArray c s`です。
+`TSepArray c s`は、`Syntax`の特定の型です。
+これは、カテゴリ`c`のものを区切り文字`s`で区切っている`Syntax`をパターンマッチングした場合に得られるものです。
+たとえば、`$xs,*`を使用してマッチングすると、`xs`の型は`TSepArray c ","`になります。
+区切り文字を指定しない場合（つまり、空白）の特別な場合は、`$xs*`で、
+`Array (TSyntax c)`を受け取ります。
+
 If we are dealing with `xs : Array (TSyntax c)` and want to insert it into
 a quotation we have two main ways to achieve this:
 1. Insert it using a separator, most commonly `,`: `` `($xs,*) ``.
   This is also the way to insert a `TSepArray c ",""`
 2. Insert it point blank without a separator (TODO): `` `() ``
 
+`xs : Array (TSyntax c)`を扱い、それを引用に挿入したい場合、
+主に2つの方法があります。
+1. 区切り文字（通常は`,`）を使用して挿入する：`` `($xs,*) ``。
+  これは、`TSepArray c ",""`を挿入する方法でもあります。
+2. 区切り文字なしでそのまま挿入する（TODO）：`` `() ``
+
 For example:
+
+たとえば：
 -/
 
 -- syntactically cut away the first element of a tuple if possible
@@ -214,6 +336,14 @@ There are two kinds of anti quotation splices, first the so called optional
 ones. For example we might declare a syntax with an optional argument,
 say our own `let` (in real projects this would most likely be a `let`
 in some functional language we are writing a theory about):
+
+このセクションの最後は、いわゆる「アンチクォーテーションスプライス」です。
+アンチクォーテーションスプライスには2種類あります。
+まず、オプションのものです。
+たとえば、オプション引数を持つ構文を宣言することができます。
+たとえば、私たち自身の`let`（実際のプロジェクトでは、おそらく私たちが理論を書いている
+関数型言語の`let`であるでしょう）：
+
 -/
 
 syntax "mylet " ident (" : " term)? " := " term " in " term : term
@@ -226,6 +356,11 @@ with, one for the case without the optional argument. However the rest
 of the syntactic translation works exactly the same with and without
 the optional argument so what we can do using a splice here is to essentially
 define both cases at once: 
+
+ここでは、ユーザーがその左側の項の型を定義できるオプションの`(" : " term)?`引数があります。
+これまでに知っている方法では、オプション引数の有無の場合に`macro_rules`を2つ書く必要があります。
+しかし、オプション引数の有無に関係なく、構文変換の残りの部分はまったく同じように機能するので、
+ここでスプライスを使用して、本質的に両方のケースを一度に定義できます。
 -/
 
 macro_rules
@@ -236,6 +371,11 @@ The `$[...]?` part is the splice here, it basically says "if this part of
 the syntax isn't there, just ignore the parts on the right hand side that
 involve anti quotation variables involved here". So now we can run
 this syntax both with and without type ascription:
+
+ここでの`$[...]?`部分はスプライスです。
+これは、基本的に「この構文のこの部分がない場合は、
+ここで関係するアンチクォーテーション変数を含む右側の部分を無視してください」という意味です。
+したがって、型指定子を付けて、型指定子を付けずに、この構文を実行できます。
 -/
 
 #eval mylet x := 5 in x - 10 -- 0, due to subtraction behaviour of `Nat`
@@ -245,6 +385,9 @@ this syntax both with and without type ascription:
 The second and last splice might remind readers of list comprehension
 as seen for example in Python. We will demonstrate it using an implementation
 of `map` as a macro:
+
+2番目で最後のスプライスは、Pythonなどで見られるリスト内包表記を読者に思い出させるかもしれません。
+マクロとしての`map`の実装を使用して、それを示します。
 -/
 
 -- run the function given at the end for each element of the list
@@ -252,6 +395,7 @@ syntax "foreach " "[" term,* "]" term : term
 
 macro_rules
   | `(foreach [ $[$x:term],* ] $func:term) => `(let f := $func; [ $[f $x],* ])
+  -- | `(foreach [ $[$x:term],* ] $func:term) => `([ $[$func $x],* ]) -- this would be wrong
 
 #eval foreach [1,2,3,4] (Nat.add 2) -- [3, 4, 5, 6]
 
@@ -263,6 +407,13 @@ give us an `Array` or `SepArray`, instead it allows us to write another
 splice on the right hand side that gets evaluated for each time the
 pattern we specified matched, with the specific values from the match
 per iteration.
+
+この場合、`$[...],*`部分がスプライスです。
+マッチ側では、それが定義したパターンを繰り返し（指定した区切り文字で）マッチさせようとします。
+しかし、通常の区切り文字のマッチングとは異なり、
+`Array`や`SepArray`を返すのではなく、
+指定したパターンがマッチした回数ごとに右側の別のスプライスを書くことができます。
+この場合、マッチごとに評価されます。
 -/
 
 /-!
