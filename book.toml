@@ -1,0 +1,6 @@
+[book]
+authors = ["Arthur Paulino, Damiano Testa, Edward Ayers, Evgenia Karunus, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat"]
+language = "en"
+multilingual = false
+src = "md"
+title = "Metaprogramming in Lean 4"
