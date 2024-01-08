@@ -1,5 +1,14 @@
 {"version": 7,
  "packagesDir": ".lake/packages",
- "packages": [],
+ "packages":
+ [{"url": "https://github.com/Seasawher/mdgen",
+   "type": "git",
+   "subDir": null,
+   "rev": "f976f6fcac1a50d0f97eb5d5e3877a624da1bacb",
+   "name": "mdgen",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "main",
+   "inherited": false,
+   "configFile": "lakefile.lean"}],
  "name": "«lean4-metaprogramming-book»",
  "lakeDir": ".lake"}
