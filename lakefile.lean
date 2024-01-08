@@ -20,23 +20,3 @@ def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
   if hasError then
     IO.eprint out.stderr
   return hasError
-
-script build do
-  let _ ← runCmd "rm" #["-rf", "md"]
-
-  if ← runCmd "python3" #["-m", "lean2md", "lean", "md"] then return 1
-  if ← runCmd "python3" #["-m", "lean2md", "lean/main", "md/main"] then return 1
-  if ← runCmd "python3" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
-  if ← runCmd "python3" #["-m", "lean2md", "lean/solutions", "md/solutions"] then return 1
-
-  return 0
-
-script viper_build do
-  let _ ← runCmd "rm" #["-rf", "md"]
-
-  if ← runCmd "viper" #["-m", "lean2md", "lean", "md"] then return 1
-  if ← runCmd "viper" #["-m", "lean2md", "lean/main", "md/main"] then return 1
-  if ← runCmd "viper" #["-m", "lean2md", "lean/extra", "md/extra"] then return 1
-  if ← runCmd "viper" #["-m", "lean2md", "lean/solutions", "md/solutions"] then return 1
-
-  return 0
