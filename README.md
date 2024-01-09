@@ -34,16 +34,13 @@ Sources to extract material from:
 
 ## Contributing
 
-The markdown files are generated automatically via [lean2md](https://github.com/arthurpaulino/lean2md).
+The markdown files are generated automatically via [mdgen](https://github.com/Seasawher/mdgen).
 Thus, if you're going to write or fix content for the book, please do so in the original Lean files inside the [lean](lean) directory.
 
-**Important**: since `lean2md` is so simple, please avoid using comment sections
+**Important**: since `mdgen` is so simple, please avoid using comment sections
 in Lean code blocks with `/- ... -/`. If you want to insert commentaries, do so
 with double dashes `--`.
 
 ### Building the markdown files
 
-This is not required, but if you want to build the markdown files, you can do so by running `lake run build`.
-It requires having Python installed, as well as the `lean2md` package.
-
-Or, if you have [viper](https://github.com/arthurpaulino/viper) installed and a linked environment that has `lean2md`, you can call `lake run viper_build`.
+This is not required, but if you want to build the markdown files, you can do so by running `lake exe mdgen lean md`.
