@@ -9,7 +9,7 @@ lean_lib «lean4-metaprogramming-book» where
   globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
 
 require mdgen from git
-  "https://github.com/Seasawher/mdgen" @ "fdb5627700a414db65d6905973b06dac64932865"
+  "https://github.com/Seasawher/mdgen" @ "c501f6b8fa2502362bf94678d404857e46e2b65d"
 
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
   let out ← IO.Process.output {
