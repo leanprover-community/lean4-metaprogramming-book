@@ -43,4 +43,4 @@ with double dashes `--`.
 
 ### Building the markdown files
 
-This is not required, but if you want to build the markdown files, you can do so by running `lake exe mdgen lean md`.
+This is not required, but if you want to build the markdown files, you can do so by running `lake run build`.
