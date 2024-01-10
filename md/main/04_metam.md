@@ -48,12 +48,12 @@ n m : Nat
 These goals are internally represented by metavariables. Accordingly, each
 metavariable has a *local context* containing hypotheses (here `[n : Nat, m :
 Nat]`) and a *target type* (here `n + m = m + n`). Metavariables also have a
-unique name, say `m`, and we usually render them as `?m`.
+unique name, say `k`, and we usually render them as `?k`.
 
 To close a goal, we must give an expression `e` of the target type. The
 expression may contain fvars from the metavariable's local context, but no
 others. Internally, closing a goal in this way corresponds to *assigning* the
-metavariable; we write `?m := e` for this assignment.
+metavariable; we write `?k := e` for this assignment.
 
 The second, complementary view of metavariables is that they represent holes
 in an expression. For instance, an application of `Eq.trans` may generate two
