@@ -127,7 +127,7 @@ assigns `?b := f a`. Assigned metavariables are not considered open goals, so
 the only goal that remains is `?m3`.
 
 Now the third `apply` comes in. Since `?b` has been assigned, the target of
-`?m3` is now `f (f a) = a`. Again, the application of `h` succeeds and the
+`?m3` is now `f a = a`. Again, the application of `h` succeeds and the
 tactic assigns `?m3 := h a`.
 
 At this point, all metavariables are assigned as follows:
