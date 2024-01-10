@@ -4,3 +4,9 @@ language = "en"
 multilingual = false
 src = "md"
 title = "Metaprogramming in Lean 4"
+
+[output.html]
+
+[output.typst.output]
+format = "typst"
+name = "book.typ"

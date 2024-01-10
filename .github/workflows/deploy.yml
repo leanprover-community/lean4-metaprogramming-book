@@ -19,32 +19,57 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build_md:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: checkout
         uses: actions/checkout@v4
 
-      - name: Setup mdBook
+      - name: install elan
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain $(cat lean-toolchain)
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: build markdown files by mdgen
+        run: lake run build
+
+  mdbook_build:
+    runs-on: ubuntu-latest
+    needs: build_md
+    steps:
+      - name: setup mdBook
         uses: peaceiris/actions-mdbook@v1
         with:
           mdbook-version: '0.4.32'
 
-      - name: Build book
+      - name: install typst cli
+        run: cargo install --git https://github.com/typst/typst typst-cli
+
+      - name: install mdbook-typst
+        run: cargo install mdbook-typst
+
+      - name: build typst file and html from markdown files
         run: mdbook build
 
-      - name: Upload artifact
+      - name: build pdf from typst file
+        run: typst compile --format pdf book/typst/book.typ
+
+      - name: upload artifact (html)
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./book
+          path: ./book/html
 
-  # Deployment job
+      - name: upload artifact (pdf)
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ./book/typst/book.pdf
+
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: mdbook_build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
