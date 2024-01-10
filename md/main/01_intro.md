@@ -6,8 +6,8 @@ This book aims to build up enough knowledge about metaprogramming in Lean 4 so
 you can be comfortable enough to:
 
 * Start building your own meta helpers (defining new Lean notation such as `∑`,
-building new Lean commands such as `#check`, writing your own tactics such as `use`, etc.)
-* Read and discuss metaprogramming API's like the ones in Lean 4 core and
+building new Lean commands such as `#check`, writing tactics such as `use`, etc.)
+* Read and discuss metaprogramming APIs like the ones in Lean 4 core and
 Mathlib4
 
 We by no means intend to provide an exhaustive exploration/explanation of the
@@ -30,11 +30,11 @@ dependency structure is as follows:
 * "Elaboration" builds on top of "`Syntax`" and "`MetaM`"
 * "`MetaM`" builds on top of "Expressions"
 
-After the chapter on tactics, you find a cheat-sheet containing a wrap-up of key
+After the chapter on tactics, you find a cheat sheet containing a wrap-up of key
 concepts and functions. And after that, there are some chapters with extra
-content, showing other applications of metaprogramming in Lean 4. Most chapters contain exercises in the end of the chapter - and in the end of the book you will have full solutions to those exercises.  
+content, showing other applications of metaprogramming in Lean 4. Most chapters contain exercises at the end of the chapter - and at the end of the book you will have full solutions to those exercises.
 
-The rest of this chapter is a gentle introduction for what metaprogramming is,
+The rest of this chapter is a gentle introduction to what metaprogramming is,
 offering some small examples to serve as appetizers for what the book shall
 cover.
 
@@ -60,21 +60,21 @@ and Scala. In Coq, it's OCaml. In Agda, it's Haskell. In Lean 4, the meta code i
 mostly written in Lean itself, with a few components written in C++.
 
 One cool thing about Lean, though, is that it allows us to define custom syntax
-nodes and to implement our own meta-level routines to elaborate those in the
+nodes and implement meta-level routines to elaborate them in the
 very same development environment that we use to perform object-level
-activities. So for example, one can write their own notation to instantiate a
+activities. So for example, one can write notation to instantiate a
 term of a certain type and use it right away, in the same file! This concept is
 generally called
 [__reflection__](https://en.wikipedia.org/wiki/Reflective_programming). We can
 say that, in Lean, the meta-level is _reflected_ to the object-level.
 
 If you have done some metaprogramming in languages such as Ruby, Python or Javascript,
-it probably took a form of making use of predefined metaprogramming methods in order to define
+it probably took the form of making use of predefined metaprogramming methods to define
 something on the fly. For example, in Ruby you can use `Class.new` and `define_method`
 to define a new class and its new method (with new code inside!) on the fly, as your program is executing.
 
 We don't usually need to define new commands or tactics "on the fly" in Lean, but spiritually
-similar feats are possible with Lean metaprogramming, and are equally straightforward, e.g. you can define
+similar feats are possible with Lean metaprogramming and are equally straightforward, e.g. you can define
 a new Lean command using a simple one-liner `elab "#help" : command => do ...normal Lean code...`.
 
 In Lean, however, we will frequently want to directly manipulate
@@ -85,15 +85,15 @@ a large chunk of this book is contributed to studying these types and how we can
 
 ## Metaprogramming examples
 
-Next, we introduce a number of examples of Lean metaprogramming, so that you start getting a taste for
+Next, we introduce several examples of Lean metaprogramming, so that you start getting a taste for
 what metaprogramming in Lean is, and what it will enable you to achieve. These examples are meant as
-mere illustration - do not worry if you don't understand the details for now.
+mere illustrations - do not worry if you don't understand the details for now.
 
 ### Introducing notation (defining new syntax)
 
 Often one wants to introduce new notation, for example one more suitable for (a branch of) mathematics. For instance, in mathematics one would write the function adding `2` to a natural number as `x : Nat ↦ x + 2` or simply `x ↦ x + 2` if the domain can be inferred to be the natural numbers. The corresponding lean definitions `fun x : Nat => x + 2` and `fun x => x + 2` use `=>` which in mathematics means _implication_, so may be confusing to some.
 
-We can introduce notation using a `macro` which transforms our syntax to lean's own syntax (or syntax we previously defined). Here we introduce the `↦` notation for functions.
+We can introduce notation using a `macro` which transforms our syntax to Lean's syntax (or syntax we previously defined). Here we introduce the `↦` notation for functions.
 
 ```lean
 import Lean
@@ -133,21 +133,21 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 #assertType [] : Nat -- failure
 ```
 
-We started by using `elab` to define a `command` syntax, which, when parsed
-by the compiler, will trigger the incoming computation.
+We started by using `elab` to define a `command` syntax. When parsed
+by the compiler, it will trigger the incoming computation.
 
 At this point, the code should be running in the `CommandElabM` monad. We then
 use `liftTermElabM` to access the `TermElabM` monad, which allows us to use
-`elabType` and `elabTermEnsuringType` in order to build expressions out of the
+`elabType` and `elabTermEnsuringType` to build expressions out of the
 syntax nodes `typeStx` and `termStx`.
 
-First we elaborate the expected type `tp : Expr` and then we use it to elaborate
-the term expression, which should have the type `tp` otherwise an error will be
-thrown. The term expression itself doesn't matter to us here, as we're calling
+First, we elaborate the expected type `tp : Expr`, then we use it to elaborate
+the term expression. The term should have the type `tp` otherwise an error will be
+thrown. We then discard the resulting term expression, since it doesn't matter to us here - we're calling
 `elabTermEnsuringType` as a sanity check.
 
 We also add `synthesizeSyntheticMVarsNoPostponing`, which forces Lean to
-elaborate metavariables right away. Without that line, `#assertType 5  : ?_`
+elaborate metavariables right away. Without that line, `#assertType [] : ?_`
 would result in `success`.
 
 If no error is thrown until now then the elaboration succeeded and we can use
