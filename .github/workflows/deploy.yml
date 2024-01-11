@@ -1,10 +1,6 @@
 name: Deploy to github pages
 
-on:
-  push:
-    branches:
-      - master
-  workflow_dispatch:
+on: [push, pull_request]
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -48,6 +44,7 @@ jobs:
           path: ./book
 
   deploy:
+    if: github.ref == 'refs/heads/master'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
