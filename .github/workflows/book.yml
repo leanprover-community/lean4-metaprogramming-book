@@ -1,6 +1,6 @@
 name: Book
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   book:
