@@ -1,6 +1,11 @@
 name: Deploy to github pages
 
-on: [push, pull_request]
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
