@@ -2,7 +2,7 @@
 
 Authors: Arthur Paulino, Damiano Testa, Edward Ayers, Evgenia Karunus, Henrik Böving, Jannis Limperg, Siddhartha Gadgil, Siddharth Bhat
 
-* Tha textbook in html format is [here](https://leanprover-community.github.io/lean4-metaprogramming-book/).
+* The textbook in html format is [here](https://leanprover-community.github.io/lean4-metaprogramming-book/).
 
 * A PDF is [available here for download](../../releases/download/latest/Metaprogramming.in.Lean.4.pdf) (and is rebuilt on each change).
 
