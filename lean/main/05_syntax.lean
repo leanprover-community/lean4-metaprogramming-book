@@ -154,7 +154,7 @@ We can now write `MyTerm` in place of things like `1 + 1` and it will be
 it just means that the Lean parser can understand it:
 -/
 
-def Playground1.test := MyTerm
+#check_failure MyTerm
 -- elaboration function for 'termMyTerm' has not been implemented
 --   MyTerm
 
@@ -182,7 +182,7 @@ scoped syntax "⊥" : term -- ⊥ for false
 scoped syntax "⊤" : term -- ⊤ for true
 scoped syntax:40 term " OR " term : term
 scoped syntax:50 term " AND " term : term
-#check ⊥ OR (⊤ AND ⊥) -- elaboration function hasn't been implemented but parsing passes
+#check_failure ⊥ OR (⊤ AND ⊥) -- elaboration function hasn't been implemented but parsing passes
 
 end Playground2
 
@@ -214,7 +214,7 @@ will re-embed it into the `term` category:
 -/
 
 syntax "[Bool|" boolean_expr "]" : term
-#check [Bool| ⊥ AND ⊤] -- elaboration function hasn't been implemented but parsing passes
+#check_failure [Bool| ⊥ AND ⊤] -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 ### Syntax combinators
@@ -275,12 +275,12 @@ add this to the `term` category:
 -/
 
 syntax "bin(" binNumber ")" : term
-#check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check_failure bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 #check bin() -- fails to parse because `binNumber` is "one or many": expected 'O' or 'Z'
 
 syntax binNumber' := binDigit,* -- note the *
 syntax "emptyBin(" binNumber' ")" : term
-#check emptyBin() -- elaboration function hasn't been implemented but parsing passes
+#check_failure emptyBin() -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 Note that nothing is limiting us to only using one syntax combinator per parser,
@@ -288,7 +288,7 @@ we could also have written all of this inline:
 -/
 
 syntax "binCompact(" ("Z" <|> "O"),+ ")" : term
-#check binCompact(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check_failure binCompact(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 As a final feature, let's add an optional string comment that explains the binary
@@ -297,8 +297,8 @@ literal being declared:
 
 -- The (...)? syntax means that the part in parentheses is optional
 syntax "binDoc(" (str ";")? binNumber ")" : term
-#check binDoc(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
-#check binDoc("mycomment"; Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check_failure binDoc(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#check_failure binDoc("mycomment"; Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
 
 /-!
 ## Operating on Syntax
@@ -559,9 +559,9 @@ the bound variables, we refer the reader to the macro chapter.
 
 1. Create an "urgent minus 💀" notation such that `5 * 8 💀 4` returns `20`, and `8 💀 6 💀 1` returns `3`.
 
-    **a)** Using `notation` command.  
-    **b)** Using `infix` command.  
-    **c)** Using `syntax` command.  
+    **a)** Using `notation` command.
+    **b)** Using `infix` command.
+    **c)** Using `syntax` command.
 
     Hint: multiplication in Lean 4 is defined as `infixl:70 " * " => HMul.hMul`.
 
