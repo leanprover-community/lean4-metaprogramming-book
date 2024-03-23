@@ -22,5 +22,5 @@ def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
   return hasError
 
 script build do
-  if ← runCmd "lake exe mdgen" #["lean", "md"] then return 1
+  if ← runCmd "lake" #["exe", "mdgen", "lean", "md"] then return 1
   return 0
