@@ -328,7 +328,7 @@ def myanonImpl : TermElab := fun stx typ? => do
   elabTerm stx typ -- call term elaboration recursively
 
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
-#check ⟨⟨1, sorry⟩⟩ -- expected type must be known
+#check_failure ⟨⟨1, sorry⟩⟩ -- expected type must be known
 #check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
 #check (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
 
