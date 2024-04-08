@@ -31,7 +31,7 @@ jobs:
 
     - name: Build Some LaTeX
       run: |
-        pandoc --to latex md/cover.md $(grep -o '\(md/.*\.md\)' SUMMARY.md | tr -d '(' | tr -d ')') --toc --template ./eisvogel.latex --top-level-division=chapter -V documentclass=book -V classoption=oneside --no-highlight |
+        pandoc --to latex md/cover.md $(grep -o '\(md/.*\.md\)' md/SUMMARY.md | tr -d '(' | tr -d ')') --toc --template ./eisvogel.latex --top-level-division=chapter -V documentclass=book -V classoption=oneside --no-highlight |
           sed -e 's/\\begin{verbatim}/\\begin{minted}{Lean}/' -e 's/{verbatim}/{minted}/' -e's/% Listings/\\usepackage{minted}\n\\newmintinline[lean]{pygments\/lean4.py:Lean4Lexer -x}{bgcolor=white}\n\\newminted[leancode]{pygments\/lean4.py:Lean4Lexer -x}{fontsize=\\footnotesize}\n\\setminted{fontsize=\\footnotesize, breaklines}\n/' >out.tex
 
     - name: Build a PDF
