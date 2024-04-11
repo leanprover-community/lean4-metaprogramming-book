@@ -16,17 +16,17 @@
 # Extra
 
 - [Options](./extra/01_options.md)
-- [Attributes]()
+<!-- - [Attributes]() -->
 - [Pretty Printing](./extra/03_pretty-printing.md)
 
 # Solutions
 
-- [Introduction]()
-- [Overview]()
+<!-- - [Introduction]() -->
+<!-- - [Overview]() -->
 - [Expressions](./solutions/03_expressions.md)
 - [`MetaM`](./solutions/04_metam.md)
 - [`Syntax`](./solutions/05_syntax.md)
-- [Macros]()
+<!-- - [Macros]() -->
 - [Elaboration](./solutions/07_elaboration.md)
-- [DSLs]()
+<!-- - [DSLs]() -->
 - [Tactics](./solutions/09_tactics.md)
