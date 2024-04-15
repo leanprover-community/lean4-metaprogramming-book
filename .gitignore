@@ -1,4 +1,4 @@
-/build
 .lake/
-book
-md/
+/book
+/md/*
+!/md/SUMMARY.md

@@ -18,9 +18,8 @@ jobs:
         curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain $(cat lean-toolchain)
         echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-    # note: `lake run build` raise an error in GitHub Action
     - name: build markdown files by mdgen
-      run: lake exe mdgen lean md
+      run: lake run build
 
     - name: Install Dependencies
       run: sudo apt update && sudo apt install -y pandoc texlive-latex-base texlive-latex-extra texlive-latex-recommended texlive-luatex fonts-dejavu python3-pygments
@@ -31,7 +30,7 @@ jobs:
 
     - name: Build Some LaTeX
       run: |
-        pandoc --to latex md/cover.md $(grep -o '\(md/.*\.md\)' SUMMARY.md | tr -d '(' | tr -d ')') --toc --template ./eisvogel.latex --top-level-division=chapter -V documentclass=book -V classoption=oneside --no-highlight |
+        pandoc --to latex md/cover.md $(grep -o '\(\/.*\.md\)' md/SUMMARY.md | sed 's/^/md/') --toc --template ./eisvogel.latex --top-level-division=chapter -V documentclass=book -V classoption=oneside --no-highlight |
           sed -e 's/\\begin{verbatim}/\\begin{minted}{Lean}/' -e 's/{verbatim}/{minted}/' -e's/% Listings/\\usepackage{minted}\n\\newmintinline[lean]{pygments\/lean4.py:Lean4Lexer -x}{bgcolor=white}\n\\newminted[leancode]{pygments\/lean4.py:Lean4Lexer -x}{fontsize=\\footnotesize}\n\\setminted{fontsize=\\footnotesize, breaklines}\n/' >out.tex
 
     - name: Build a PDF

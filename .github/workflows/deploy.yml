@@ -31,9 +31,8 @@ jobs:
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain $(cat lean-toolchain)
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      # note: `lake run build` raise an error in GitHub Action
       - name: build markdown files by mdgen
-        run: lake exe mdgen lean md
+        run: lake run build
 
       - name: setup mdBook
         uses: peaceiris/actions-mdbook@v1
