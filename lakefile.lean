@@ -4,6 +4,7 @@ open Lake DSL
 package «lean4-metaprogramming-book» where
   srcDir := "lean"
 
+@[default_target]
 lean_lib «lean4-metaprogramming-book» where
   roots := #[`cover, `extra, `main, `solutions]
   globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
