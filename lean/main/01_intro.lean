@@ -128,8 +128,13 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
       logInfo "success"
     catch | _ => throwError "failure"
 
-#assertType 5  : Nat -- success
-#assertType [] : Nat -- failure
+/-- info: success -/
+#guard_msgs in --#
+#assertType 5  : Nat
+
+/-- error: failure -/
+#guard_msgs in --#
+#assertType [] : Nat
 
 /-! We started by using `elab` to define a `command` syntax. When parsed
 by the compiler, it will trigger the incoming computation.

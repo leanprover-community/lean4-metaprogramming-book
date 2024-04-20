@@ -39,9 +39,10 @@ We start by simply declaring the tactic with no implementation:
 
 syntax "custom_tactic" : tactic
 
+/-- error: tactic 'tacticCustom_tactic' has not been implemented -/
+#guard_msgs in --#
 example : 42 = 42 := by
   custom_tactic
--- tactic 'tacticCustom_tactic' has not been implemented
   sorry
 
 /-
@@ -60,11 +61,13 @@ example : 42 = 42 := by
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-example : 43 = 43 ∧ 42 = 42:= by
-  custom_tactic
--- tactic 'rfl' failed, equality expected
---   43 = 43 ∧ 42 = 42
--- ⊢ 43 = 43 ∧ 42 = 42
+#check_failure (by custom_tactic : 42 = 43 ∧ 42 = 42)
+-- type mismatch
+--   Iff.rfl
+-- has type
+--   ?m.1437 ↔ ?m.1437 : Prop
+-- but is expected to have type
+--   42 = 43 ∧ 42 = 42 : Prop
 
 /-
 We extend the `custom_tactic` tactic with a tactic that tries to break `And`
@@ -142,6 +145,7 @@ elab "custom_sorry_0" : tactic => do
 example : 1 = 2 := by
   custom_sorry_0
 -- unsolved goals: ⊢ 1 = 2
+  sorry
 
 /-
 This defines a syntax extension to Lean, where we are naming the piece of syntax
@@ -172,6 +176,7 @@ example : 1 = 2 := by
   custom_sorry_1
 -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
 -- unsolved goals: ⊢ 1 = 2
+  sorry
 
 /-
 To `sorry` the goal, we can use the helper `Lean.Elab.admitGoal`:
@@ -242,6 +247,7 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
 -- H1 : 1 = 1
 -- H2 : 2 = 2
 -- ⊢ 2 = 2
+  sorry
 
 example (H1 : 1 = 1): 2 = 2 := by
   custom_assump_0
@@ -249,6 +255,7 @@ example (H1 : 1 = 1): 2 = 2 := by
 -- unsolved goals
 -- H1 : 1 = 1
 -- ⊢ 2 = 2
+  sorry
 
 /-
 Next, we access the list of hypotheses, which are stored in a data structure
@@ -387,8 +394,7 @@ elab "custom_assump_2" : tactic =>
 example (H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
   custom_assump_2
 
-example (H1 : 1 = 1): 2 = 2 := by
-  custom_assump_2
+#check_failure (by custom_assump_2 : (H1 : 1 = 1) → 2 = 2)
 -- tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
 -- H1 : 1 = 1
 -- ⊢ 2 = 2
@@ -466,6 +472,7 @@ theorem test_reverse_goals : (1 = 2 ∧ 3 = 4) ∧ 5 = 6 := by
 -- ⊢ 3 = 4
 -- case left.left
 -- ⊢ 1 = 2
+  all_goals sorry
 
 /-
 ## FAQ
@@ -571,16 +578,11 @@ elab "faq_throw_error" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     Lean.Meta.throwTacticEx `faq_throw_error goal "throwing an error at the current goal"
 
-example (b : Bool): b = true := by
-  cases b;
-  faq_throw_error
-  -- case true
-  -- ⊢ true = true
-  -- tactic 'faq_throw_error' failed, throwing an error at the current goal
-  -- case false
-  -- ⊢ false = true
+#check_failure (by faq_throw_error : (b : Bool) → b = true)
+-- tactic 'faq_throw_error' failed, throwing an error at the current goal
+-- ⊢ ∀ (b : Bool), b = true
 
-/-
+/-!
 **Q: What is the difference between `Lean.Elab.Tactic.*` and `Lean.Meta.Tactic.*`?**
 
 A: `Lean.Meta.Tactic.*` contains low level code that uses the `Meta` monad to

@@ -260,7 +260,7 @@ this information to complete elaboration.
 We can also easily provoke cases where this does not work out. For example:
 -/
 
-#check set_option trace.Elab.postpone true in List.foldr .add
+#check_failure set_option trace.Elab.postpone true in List.foldr .add
 -- [Elab.postpone] .add : ?m.5808 → ?m.5809 → ?m.5809
 -- invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
   -- ?m.5808 → ?m.5809 → ?m.5809
@@ -328,9 +328,9 @@ def myanonImpl : TermElab := fun stx typ? => do
   elabTerm stx typ -- call term elaboration recursively
 
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
-#check ⟨⟨1, sorry⟩⟩ -- expected type must be known
-#check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
-#check (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
+#check_failure ⟨⟨1, sorry⟩⟩ -- expected type must be known
+#check_failure (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
+#check_failure (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
 
 /-!
 As a final note, we can shorten the postponing act by using an additional

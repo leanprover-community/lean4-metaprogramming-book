@@ -410,8 +410,8 @@ macro_rules
   -- in this case `error_position`, giving it the name `tk`
   | `(error_position%$tk first) => withRef tk (Macro.throwError "Ahhh")
 
-#eval error_position all -- the error is indicated at `error_position all`
-#eval error_position first -- the error is only indicated at `error_position`
+#check_failure error_position all -- the error is indicated at `error_position all`
+#check_failure error_position first -- the error is only indicated at `error_position`
 
 /-
 Obviously controlling the positions of errors in this way is quite important
