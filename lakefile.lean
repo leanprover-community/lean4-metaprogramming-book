@@ -11,6 +11,8 @@ lean_lib «lean4-metaprogramming-book» where
 require mdgen from git
   "https://github.com/Seasawher/mdgen" @ "v1.3.0"
 
+require std from git "https://github.com/leanprover/std4" @ "v4.7.0"
+
 def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
   let out ← IO.Process.output {
     cmd := cmd

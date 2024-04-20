@@ -1,5 +1,6 @@
 import Lean
 import Lean.Parser.Syntax
+import Std.Util.ExtendedBinder
 
 open Lean Elab Command Term
 
