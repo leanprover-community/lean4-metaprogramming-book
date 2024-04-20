@@ -127,7 +127,7 @@ assigns `?b := f a`. Assigned metavariables are not considered open goals, so
 the only goal that remains is `?m3`.
 
 Now the third `apply` comes in. Since `?b` has been assigned, the target of
-`?m3` is now `f (f a) = a`. Again, the application of `h` succeeds and the
+`?m3` is now `f a = a`. Again, the application of `h` succeeds and the
 tactic assigns `?m3 := h a`.
 
 At this point, all metavariables are assigned as follows:
@@ -1235,9 +1235,9 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
       ...
     ```
-4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.  
-  **a)** What would be the `type` and `userName` of metavariable `mvarId`?  
-  **b)** What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?  
+4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.
+  **a)** What would be the `type` and `userName` of metavariable `mvarId`?
+  **b)** What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?
   Print them all out.
 
     ```lean
@@ -1256,17 +1256,17 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       sorry
     ```
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
-6. [**Computation**] What is the normal form of the following expressions:  
-  **a)** `fun x => x` of type `Bool → Bool`  
-  **b)** `(fun x => x) ((true && false) || true)` of type `Bool`  
+6. [**Computation**] What is the normal form of the following expressions:
+  **a)** `fun x => x` of type `Bool → Bool`
+  **b)** `(fun x => x) ((true && false) || true)` of type `Bool`
   **c)** `800 + 2` of type `Nat`
 7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`.
-8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.  
-  **a)** `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`  
-  **b)** `2 + 1 =?= 1 + 2`  
-  **c)** `?a =?= 2`, where `?a` has a type `String`  
-  **d)** `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type  
-  **e)** `2 + ?a =?= 3`  
+8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.
+  **a)** `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
+  **b)** `2 + 1 =?= 1 + 2`
+  **c)** `?a =?= 2`, where `?a` has a type `String`
+  **d)** `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
+  **e)** `2 + ?a =?= 3`
   **f)** `2 + ?a =?= 2 + 1`
 9. [**Computation**] Write down what you expect the following code to output.
 
@@ -1300,14 +1300,14 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       let reducedExpr ← Meta.reduce constantExpr
       dbg_trace (← ppExpr reducedExpr) -- ...
     ```
-10. [**Constructing Expressions**] Create expression `fun x, 1 + x` in two ways:  
-  **a)** not idiomatically, with loose bound variables  
-  **b)** idiomatically.  
+10. [**Constructing Expressions**] Create expression `fun x, 1 + x` in two ways:
+  **a)** not idiomatically, with loose bound variables
+  **b)** idiomatically.
   In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
 11. [**Constructing Expressions**] Create expression `∀ (yellow: Nat), yellow`.
-12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:  
-  **a)** not idiomatically, with loose bound variables  
-  **b)** idiomatically.  
+12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:
+  **a)** not idiomatically, with loose bound variables
+  **b)** idiomatically.
   In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
 13. [**Constructing Expressions**] Create expression `fun (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?
