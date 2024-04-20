@@ -593,9 +593,9 @@ tactic infrastructure and the parsing front-end.
 ## Exercises
 
 1. Consider the theorem `p ∧ q ↔ q ∧ p`. We could either write its proof as a proof term, or construct it using the tactics.
-    When we are writing the proof of this theorem *as a proof term*, we're gradually filling up `_`s with certain expressions, step by step. Each such step corresponds to a tactic.  
+    When we are writing the proof of this theorem *as a proof term*, we're gradually filling up `_`s with certain expressions, step by step. Each such step corresponds to a tactic.
 
-    There are many combinations of steps in which we could write this proof term - but consider the sequence of steps we wrote below. Please write each step as a tactic.  
+    There are many combinations of steps in which we could write this proof term - but consider the sequence of steps we wrote below. Please write each step as a tactic.
     The tactic `step_1` is filled in, please do the same for the remaining tactics (for the sake of the exercise, try to use lower-level apis, such as `mkFreshExprMVar`, `mvarId.assign` and `modify fun _ => { goals := ~)`.
 
     ```lean
@@ -653,7 +653,7 @@ tactic infrastructure and the parsing front-end.
 
       -- 1. Create new `_`s with appropriate types.
       let mvarId1 ← mkFreshExprMVar (Expr.forallE `xxx a b .default) (userName := "red")
-      let mvarId2 ← mkFreshExprMVar (Expr.forallE `yyy b a .default) (userName := "blue") 
+      let mvarId2 ← mkFreshExprMVar (Expr.forallE `yyy b a .default) (userName := "blue")
 
       -- 2. Assign the main goal to the expression `Iff.intro _ _`.
       mvarId.assign (mkAppN (Expr.const `Iff.intro []) #[a, b, mvarId1, mvarId2])
@@ -670,13 +670,13 @@ tactic infrastructure and the parsing front-end.
       step_4
     ```
 
-2. In the first exercise, we used lower-level `modify` api to update our goals.  
-    `liftMetaTactic`, `setGoals`, `appendGoals`, `replaceMainGoal`, `closeMainGoal`, etc. are all syntax sugars on top of `modify fun s : State => { s with goals := myMvarIds }`.  
-    Please rewrite the `forker` tactic with:  
+2. In the first exercise, we used lower-level `modify` api to update our goals.
+    `liftMetaTactic`, `setGoals`, `appendGoals`, `replaceMainGoal`, `closeMainGoal`, etc. are all syntax sugars on top of `modify fun s : State => { s with goals := myMvarIds }`.
+    Please rewrite the `forker` tactic with:
 
-    **a)** `liftMetaTactic`  
-    **b)** `setGoals`  
-    **c)** `replaceMainGoal`  
+    **a)** `liftMetaTactic`
+    **b)** `setGoals`
+    **c)** `replaceMainGoal`
 
     ```lean
     elab "forker" : tactic => do
@@ -709,9 +709,9 @@ tactic infrastructure and the parsing front-end.
 
     For each of the points below, create a tactic `introductor` (one per each point), that turns the goal `(ab: a = b) → (bc: b = c) → (a = c)`:
 
-    **a)** into the goal `(a = c)` with hypotheses `(ab✝: a = b)` and `(bc✝: b = c)`.  
-    **b)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(ab: a = b)`.  
-    **c)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(hello: a = b)`.  
+    **a)** into the goal `(a = c)` with hypotheses `(ab✝: a = b)` and `(bc✝: b = c)`.
+    **b)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(ab: a = b)`.
+    **c)** into the goal `(bc: b = c) → (a = c)` with hypothesis `(hello: a = b)`.
 
     ```lean
     example (a b c : Nat) : (ab: a = b) → (bc: b = c) → (a = c) := by
