@@ -158,6 +158,8 @@ it just means that the Lean parser can understand it:
 -- elaboration function for 'termMyTerm' has not been implemented
 --   MyTerm
 
+/-! Note: `#check_failure` command allows incorrectly typed terms to be indicated without error. -/
+
 /-!
 Implementing this so-called "elaboration function", which will actually
 give meaning to this syntax in terms of Lean's fundamental `Expr` type,
