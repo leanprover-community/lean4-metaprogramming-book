@@ -35,7 +35,7 @@ to indicate that "it doesn't feel responsible for this syntax". In this case
 it's merely used to fill a wildcard pattern that should never be reached anyways.
 
 However we can in fact register multiple macros for the same syntax this way
-if we desire, they will be tried one after another (the later registered ones have 
+if we desire, they will be tried one after another (the later registered ones have
 higher priority)  -- is "higher" correct?
 until one throws either a real error using `Macro.throwError` or succeeds, that
 is it does not `Macro.throwUnsupported`. Let's see this in action:
@@ -169,7 +169,7 @@ for example macro creating macros, we can escape the anti quotation using: `` `(
 If we want to specify the syntax kind we wish `x` to be interpreted as
 we can make this explicit using: `` `($x:term) `` where `term` can be
 replaced with any other valid syntax category (e.g. `command`) or parser
-(e.g. `ident`). 
+(e.g. `ident`).
 
 So far this is only a more formal explanation of the intuitive things
 we've already seen in the syntax chapter and up to now in this chapter,
@@ -198,11 +198,11 @@ For example:
 -/
 
 -- syntactically cut away the first element of a tuple if possible
-syntax "cut_tuple " "(" term ", " term,+ ")" : term 
+syntax "cut_tuple " "(" term ", " term,+ ")" : term
 
 macro_rules
   -- cutting away one element of a pair isn't possible, it would not result in a tuple
-  | `(cut_tuple ($x, $y)) => `(($x, $y)) 
+  | `(cut_tuple ($x, $y)) => `(($x, $y))
   | `(cut_tuple ($x, $y, $xs,*)) => `(($y, $xs,*))
 
 #check cut_tuple (1, 2) -- (1, 2) : Nat × Nat
@@ -225,7 +225,7 @@ we know so far we'd have to write two `macro_rules` now, one for the case
 with, one for the case without the optional argument. However the rest
 of the syntactic translation works exactly the same with and without
 the optional argument so what we can do using a splice here is to essentially
-define both cases at once: 
+define both cases at once:
 -/
 
 macro_rules
@@ -410,8 +410,8 @@ macro_rules
   -- in this case `error_position`, giving it the name `tk`
   | `(error_position%$tk first) => withRef tk (Macro.throwError "Ahhh")
 
-#eval error_position all -- the error is indicated at `error_position all`
-#eval error_position first -- the error is only indicated at `error_position`
+#check_failure error_position all -- the error is indicated at `error_position all`
+#check_failure error_position first -- the error is only indicated at `error_position`
 
 /-
 Obviously controlling the positions of errors in this way is quite important

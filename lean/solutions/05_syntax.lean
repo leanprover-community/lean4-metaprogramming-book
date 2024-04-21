@@ -1,5 +1,6 @@
 import Lean
 import Lean.Parser.Syntax
+import Std.Util.ExtendedBinder
 
 open Lean Elab Command Term
 
@@ -33,16 +34,18 @@ syntax "yellow" : tactic
 
 -- Note: the following are highlighted in red, however that's just because we haven't implemented the semantics ("elaboration function") yet - the syntax parsing stage works.
 
-#eval good morning -- works
--- good morning -- error: `expected command`
+#check_failure good morning -- the syntax parsing stage works
 
-hello -- works
--- #eval hello -- error: `expected term`
+/-- error: elaboration function for 'commandHello' has not been implemented -/
+#guard_msgs in --#
+hello -- the syntax parsing stage works
 
+/-- error: tactic 'tacticYellow' has not been implemented -/
+#guard_msgs in --#
 example : 2 + 2 = 4 := by
-  yellow -- works
--- yellow -- error: `expected command`
--- #eval yellow -- error: `unknown identifier 'yellow'`
+  yellow -- the syntax parsing stage works
+
+#check_failure yellow -- error: `unknown identifier 'yellow'`
 
 /- ### 3. -/
 

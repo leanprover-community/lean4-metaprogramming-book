@@ -173,7 +173,7 @@ elab "#findCElab " c:command : command => do
 /-!
 TODO: Maybe we should also add a mini project that demonstrates a
 non # style command aka a declaration, although nothing comes to mind right now.
-TODO:  Define a `conjecture` declaration, similar to `lemma/theorem`, except that 
+TODO:  Define a `conjecture` declaration, similar to `lemma/theorem`, except that
 it is automatically sorried.  The `sorry` could be a custom one, to reflect that
 the "conjecture" might be expected to be true.
 -/
@@ -260,7 +260,7 @@ this information to complete elaboration.
 We can also easily provoke cases where this does not work out. For example:
 -/
 
-#check set_option trace.Elab.postpone true in List.foldr .add
+#check_failure set_option trace.Elab.postpone true in List.foldr .add
 -- [Elab.postpone] .add : ?m.5808 → ?m.5809 → ?m.5809
 -- invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
   -- ?m.5808 → ?m.5809 → ?m.5809
@@ -316,7 +316,7 @@ def myanonImpl : TermElab := fun stx typ? => do
   -- Term elaborators can only postpone execution once, so the elaborator
   -- doesn't end up in an infinite loop. Hence, we only try to postpone it,
   -- otherwise we may cause an error.
-  tryPostponeIfNoneOrMVar typ? 
+  tryPostponeIfNoneOrMVar typ?
   -- If we haven't found the type after postponing just error
   let some typ := typ? | throwError "expected type must be known"
   if typ.isMVar then
@@ -328,9 +328,9 @@ def myanonImpl : TermElab := fun stx typ? => do
   elabTerm stx typ -- call term elaboration recursively
 
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
-#check ⟨⟨1, sorry⟩⟩ -- expected type must be known
-#check (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
-#check (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
+#check_failure ⟨⟨1, sorry⟩⟩ -- expected type must be known
+#check_failure (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
+#check_failure (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
 
 /-!
 As a final note, we can shorten the postponing act by using an additional
@@ -338,7 +338,7 @@ syntax sugar of the `elab` syntax instead:
 -/
 
 -- This `t` syntax will effectively perform the first two lines of `myanonImpl`
-elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do 
+elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
   sorry
 
 
@@ -377,8 +377,8 @@ elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
 
     Please add these semantics:
 
-    **a)** using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`.  
-    **b)** using `syntax` + `elab_rules`.  
+    **a)** using `syntax` + `@[command_elab alias] def elabOurAlias : CommandElab`.
+    **b)** using `syntax` + `elab_rules`.
     **c)** using `elab`.
 
 3. Here is some syntax taken from a real mathlib tactic `nth_rewrite`.
@@ -392,8 +392,8 @@ elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
 
     Please add these semantics:
 
-    **a)** using `syntax` + `@[tactic nthRewrite] def elabNthRewrite : Lean.Elab.Tactic.Tactic`.  
-    **b)** using `syntax` + `elab_rules`.  
+    **a)** using `syntax` + `@[tactic nthRewrite] def elabNthRewrite : Lean.Elab.Tactic.Tactic`.
+    **b)** using `syntax` + `elab_rules`.
     **c)** using `elab`.
 
 -/
