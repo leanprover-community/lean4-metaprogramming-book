@@ -7,6 +7,8 @@ title = "Metaprogramming in Lean 4"
 
 [output.html]
 git-repository-url = "https://github.com/leanprover-community/lean4-metaprogramming-book"
+edit-url-template = "https://raw.githubusercontent.com/leanprover-community/lean4-metaprogramming-book/master/{path}"
 additional-js = [
   "assets/blockPlay.js", # Add "Run on Lean4 Playground" button to each code block
+  "assets/filePlay.js", # Add "Run on Lean4 Playground" button to each page
 ]
