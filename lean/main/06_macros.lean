@@ -159,7 +159,7 @@ there exists the function:
 Which is guaranteed to not panic because we know that the `Syntax` that
 the function is receiving is a numeric literal and can thus naturally
 be converted to a `Nat`.
-`
+
 If we use the antiquotation syntax in pattern matching it will, as discussed
 in the syntax chapter, give us a a variable `x` of type `` TSyntax y `` where
 `y` is the `Name` of the syntax category that fits in the spot where we pattern matched.
