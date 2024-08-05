@@ -161,7 +161,7 @@ the function is receiving is a numeric literal and can thus naturally
 be converted to a `Nat`.
 
 If we use the antiquotation syntax in pattern matching it will, as discussed
-in the syntax chapter, give us a a variable `x` of type `` TSyntax y `` where
+in the syntax chapter, give us a variable `x` of type `` TSyntax y `` where
 `y` is the `Name` of the syntax category that fits in the spot where we pattern matched.
 If we wish to insert a literal `$x` into the `Syntax` for some reason,
 for example macro creating macros, we can escape the anti quotation using: `` `($$x) ``.
