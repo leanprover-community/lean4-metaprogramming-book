@@ -61,13 +61,13 @@ example : 42 = 42 := by
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-#check_failure (by custom_tactic : 42 = 43 ∧ 42 = 42)
+#check_failure (by custom_tactic : 43 = 43 ∧ 42 = 42)
 -- type mismatch
 --   Iff.rfl
 -- has type
 --   ?m.1437 ↔ ?m.1437 : Prop
 -- but is expected to have type
---   42 = 43 ∧ 42 = 42 : Prop
+--   43 = 43 ∧ 42 = 42 : Prop
 
 /-
 We extend the `custom_tactic` tactic with a tactic that tries to break `And`
