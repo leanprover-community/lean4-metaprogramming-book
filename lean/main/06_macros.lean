@@ -125,7 +125,7 @@ it will be essential to all non trivial things that are syntax related.
 First things first we call the `` `() `` syntax a `Syntax` quotation.
 When we plug variables into a syntax quotation like this: `` `($x) ``
 we call the `$x` part an anti-quotation. When we insert `x` like this
-it is required that `x` is of type `TSyntax x` where `x` is some `Name`
+it is required that `x` is of type `TSyntax y` where `y` is some `Name`
 of a syntax category. The Lean compiler is actually smart enough to figure
 the syntax categories that are allowed in this place out. Hence you might
 sometimes see errors of the form:
@@ -161,7 +161,7 @@ the function is receiving is a numeric literal and can thus naturally
 be converted to a `Nat`.
 
 If we use the antiquotation syntax in pattern matching it will, as discussed
-in the syntax chapter, give us a a variable `x` of type `` TSyntax y `` where
+in the syntax chapter, give us a variable `x` of type `` TSyntax y `` where
 `y` is the `Name` of the syntax category that fits in the spot where we pattern matched.
 If we wish to insert a literal `$x` into the `Syntax` for some reason,
 for example macro creating macros, we can escape the anti quotation using: `` `($$x) ``.
