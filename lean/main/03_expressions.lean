@@ -191,6 +191,8 @@ we must be careful to apply each universe-polymorphic constant to the right univ
 
 ## Constructing Expressions
 
+### Constants
+
 The simplest expressions we can construct are constants.
 We use the `const` constructor and give it a name and a list of universe levels.
 Most of our examples only involve non-universe-polymorphic constants,
@@ -228,6 +230,8 @@ def z₂ := Expr.const ``zero []
 #eval z₂ -- Lean.Expr.const `Nat.zero []
 
 /-
+### Function Applications
+
 The next class of expressions we consider are function applications.
 These can be built using the `app` constructor,
 with the first argument being an expression for the function
@@ -242,7 +246,7 @@ def one := Expr.app (.const ``Nat.succ []) z
 #eval one
 -- Lean.Expr.app (Lean.Expr.const `Nat.succ []) (Lean.Expr.const `Nat.zero [])
 
-def natExpr: Nat → Expr 
+def natExpr: Nat → Expr
 | 0     => z
 | n + 1 => .app (.const ``Nat.succ []) (natExpr n)
 
@@ -250,7 +254,7 @@ def natExpr: Nat → Expr
 Next we use the variant `mkAppN` which allows application with multiple arguments.
 -/
 
-def sumExpr : Nat → Nat → Expr 
+def sumExpr : Nat → Nat → Expr
 | n, m => mkAppN (.const ``Nat.add []) #[natExpr n, natExpr m]
 
 /-
@@ -258,13 +262,15 @@ As you may have noticed, we didn't show `#eval` outputs for the two last functio
 That's because the resulting expressions can grow so large
 that it's hard to make sense of them.
 
+### Lambda Abstractions
+
 We next use the constructor `lam`
 to construct a simple function which takes any natural number `x` and returns `Nat.zero`.
 The argument `BinderInfo.default` says that `x` is an explicit argument
 (rather than an implicit or typeclass argument).
 -/
 
-def constZero : Expr := 
+def constZero : Expr :=
   .lam `x (.const ``Nat []) (.const ``Nat.zero []) BinderInfo.default
 
 #eval constZero
