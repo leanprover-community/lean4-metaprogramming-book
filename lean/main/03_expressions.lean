@@ -301,7 +301,7 @@ elab "mapAddOneNil" : term => return mapAddOneNil
 set_option pp.universes true in
 set_option pp.explicit true in
 #check mapAddOneNil
--- @List.map.{1, 1} Nat Nat (fun x => Nat.add x 1) (@List.nil.{1} Nat) : List.{1} Nat
+-- @List.map.{0, 0} Nat Nat (fun x => x.add 1) (@List.nil.{0} Nat) : List.{0} Nat
 
 #reduce mapAddOneNil
 -- []
