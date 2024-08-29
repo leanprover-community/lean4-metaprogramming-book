@@ -291,8 +291,8 @@ def addOne : Expr :=
     BinderInfo.default
 
 def mapAddOneNil : Expr :=
-  mkAppN (.const ``List.map [levelOne, levelOne])
-    #[nat, nat, addOne, .app (.const ``List.nil [levelOne]) nat]
+  mkAppN (.const ``List.map [levelZero, levelZero])
+    #[nat, nat, addOne, .app (.const ``List.nil [levelZero]) nat]
 
 /-!
 With a little trick (more about which in the Elaboration chapter),
@@ -307,7 +307,7 @@ elab "mapAddOneNil" : term => return mapAddOneNil
 set_option pp.universes true in
 set_option pp.explicit true in
 #check mapAddOneNil
--- @List.map.{1, 1} Nat Nat (fun x => Nat.add x 1) (@List.nil.{1} Nat) : List.{1} Nat
+-- @List.map.{0, 0} Nat Nat (fun x => x.add 1) (@List.nil.{0} Nat) : List.{0} Nat
 
 #reduce mapAddOneNil
 -- []
