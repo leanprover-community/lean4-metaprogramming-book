@@ -566,7 +566,7 @@ we can see that the `+` notation amounts to an application of the `hAdd`
 function, which is a member of the `HAdd` typeclass:
 -/
 
-set_option pp.explicit true
+set_option pp.explicit true in
 #eval traceConstWithTransparency .reducible ``reducibleDef
 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef 1
 
