@@ -639,6 +639,7 @@ Now, here are some examples of expressions in WHNF.
 Constructor applications are in WHNF (with some exceptions for numeric types):
 -/
 
+set_option pp.explicit false
 #eval whnf' `(List.cons 1 [])
 -- [1]
 
