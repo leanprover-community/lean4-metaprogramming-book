@@ -113,22 +113,34 @@ and a curse
 
 ## De Bruijn Indexes
 
-Consider the following lambda expression `(λ f x => f x x) (λ x y => x + y) 5`,
-we have to be very careful when we reduce this,
-because we get a clash in the variable `x`.
+Consider the lambda expression `(λ x : ℕ => λ y : ℕ => x + y) y`.
+When we evaluate it naively, by replacing `x` with `y` in the body of the outer lambda, we obtain `λ y : ℕ => y + y`.
+But this is incorrect: the lambda is a function with two arguments that adds one argument to the other, yet the evaluated version adds its argument to itself.
+The root of the issue is that the name `y` is used for both the variable outside the lambdas and the variable bound by the inner lambda.
+Having different variables use the same name means that when we evaluate, or β-reduce, an application, we must be careful not to confuse the different variables.
 
-To avoid variable name-clash carnage,
-`Expr`s use a nifty trick called __de Bruijn indexes__.
+To address this issue, Lean does not, in fact, refer to bound variables by name.
+Instead, it uses __de Bruijn indexes__.
 In de Bruijn indexing,
 each variable bound by a `lam` or a `forallE` is converted into a number `#n`.
-The number says how many binders up the `Expr` tree we should look
-to find the binder which binds this variable.
+The number says how many binders up the `Expr` tree we should skip
+to find the binder that binds this variable.
 So our above example would become
-(putting wildcards `_` in the type arguments for now for brevity):
-``app (app (lam `f _ (lam `x _ (app (app #1 #0) #0))) (lam `x _ (lam `y _ (app (app plus #1) #0)))) five``
-Now we don't need to rename variables when we perform β-reduction.
-We also really easily check if two `Expr`s containing bound expressions are equal.
-This is why the signature of the `bvar` case is `Nat → Expr` and not `Name → Expr`.
+(replacing inessential parts of the expression with `_` for brevity):
+```
+app (lam `x _ (lam `y _ (app (app `plus #1) #0) _) _) (fvar _)
+```
+The `fvar` represents `y` and the lambdas' variables are now represented by `#0` and `#1`.
+When we evaluate this application, we replace the bound variable belonging to ``lam `x`` (here `#1`) with the argument `fvar _`, obtaining
+```
+(lam `y _ (app (app `plus (fvar _)) #0) _)
+```
+This is pretty-printed as
+```
+λ y_1 => y + y_1
+```
+Note that Lean has automatically chosen a name `y_1` for the remaining bound variable that does not clash with the name of the `fvar` `y`.
+The chosen name is based on the name suggestion `y` contained in the `lam`.
 
 If a de Bruijn index is too large for the number of binders preceding it,
 we say it is a __loose `bvar`__;
@@ -141,6 +153,7 @@ outside of some very low-level functions,
 Lean expects that expressions do not contain any loose `bvar`s.
 Instead, whenever we would be tempted to introduce a loose `bvar`,
 we immediately convert it into an `fvar` ("free variable").
+(Hence, Lean's binder representation is "locally nameless".)
 Precisely how that works is discussed in the next chapter.
 
 If there are no loose `bvar`s in an expression, we say that the expression is __closed__.
