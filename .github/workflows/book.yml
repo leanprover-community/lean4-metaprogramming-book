@@ -43,7 +43,7 @@ jobs:
 
     - name: Upload PDF to artifact storage
       if: github.ref != 'refs/heads/master'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "Metaprogramming in Lean 4"
         path: "Metaprogramming in Lean 4.pdf"
