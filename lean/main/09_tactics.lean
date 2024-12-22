@@ -386,7 +386,7 @@ elab "custom_assump_2" : tactic =>
         then return Option.some declExpr
         else return Option.none
     match option_matching_expr with
-    | some e => Lean.Elab.Tactic.closeMainGoal e
+    | some e => Lean.Elab.Tactic.closeMainGoal `custom_assump_2 e
     | none =>
       Lean.Meta.throwTacticEx `custom_assump_2 goal
         (m!"unable to find matching hypothesis of type ({goalType})")

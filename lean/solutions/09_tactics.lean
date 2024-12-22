@@ -10,8 +10,8 @@ elab "step_1" : tactic => do
   let Expr.app (Expr.app (Expr.const `Iff _) a) b := goalType | throwError "Goal type is not of the form `a ↔ b`"
 
   -- 1. Create new `_`s with appropriate types.
-  let mvarId1 ← mkFreshExprMVar (Expr.forallE `xxx a b .default) (userName := "red")
-  let mvarId2 ← mkFreshExprMVar (Expr.forallE `yyy b a .default) (userName := "blue") 
+  let mvarId1 ← mkFreshExprMVar (Expr.forallE `xxx a b .default) (userName := `red)
+  let mvarId2 ← mkFreshExprMVar (Expr.forallE `yyy b a .default) (userName := `blue)
 
   -- 2. Assign the main goal to the expression `Iff.intro _ _`.
   mvarId.assign (mkAppN (Expr.const `Iff.intro []) #[a, b, mvarId1, mvarId2])
@@ -60,8 +60,8 @@ elab "step_3" : tactic => do
   let Expr.app (Expr.app (Expr.const `And _) q) p := goalType | throwError "Goal type is not of the form `And q p`"
 
   -- 1. Create new `_`s with appropriate types.
-  let mvarId1 ← mkFreshExprMVarAt mainDecl.lctx mainDecl.localInstances q (userName := "red1")
-  let mvarId2 ← mkFreshExprMVarAt mainDecl.lctx mainDecl.localInstances p (userName := "red2")
+  let mvarId1 ← mkFreshExprMVarAt mainDecl.lctx mainDecl.localInstances q (userName := `red1)
+  let mvarId2 ← mkFreshExprMVarAt mainDecl.lctx mainDecl.localInstances p (userName := `red2)
 
   -- 2. Assign the main goal to the expression `And.intro _ _`.
   mvarId.assign (← mkAppM `And.intro #[mvarId1, mvarId2])
@@ -109,8 +109,8 @@ elab "forker_a" : tactic => do
   liftMetaTactic fun mvarId => do
     let (Expr.app (Expr.app (Expr.const `And _) p) q) ← mvarId.getType | Lean.Meta.throwTacticEx `forker mvarId ("Goal is not of the form P ∧ Q")
 
-    let mvarIdP ← mkFreshExprMVar p (userName := "red")
-    let mvarIdQ ← mkFreshExprMVar q (userName := "blue")
+    let mvarIdP ← mkFreshExprMVar p (userName := `red)
+    let mvarIdQ ← mkFreshExprMVar q (userName := `blue)
 
     let proofTerm := mkAppN (Expr.const `And.intro []) #[p, q, mvarIdP, mvarIdQ]
     mvarId.assign proofTerm
@@ -124,8 +124,8 @@ elab "forker_b" : tactic => do
   let (Expr.app (Expr.app (Expr.const `And _) p) q) := goalType | Lean.Meta.throwTacticEx `forker mvarId ("Goal is not of the form P ∧ Q")
 
   mvarId.withContext do
-    let mvarIdP ← mkFreshExprMVar p (userName := "red")
-    let mvarIdQ ← mkFreshExprMVar q (userName := "blue")
+    let mvarIdP ← mkFreshExprMVar p (userName := `red)
+    let mvarIdQ ← mkFreshExprMVar q (userName := `blue)
 
     let proofTerm := mkAppN (Expr.const `And.intro []) #[p, q, mvarIdP, mvarIdQ]
     mvarId.assign proofTerm
@@ -139,8 +139,8 @@ elab "forker_c" : tactic => do
   let (Expr.app (Expr.app (Expr.const `And _) p) q) := goalType | Lean.Meta.throwTacticEx `forker mvarId ("Goal is not of the form P ∧ Q")
 
   mvarId.withContext do
-    let mvarIdP ← mkFreshExprMVar p (userName := "red")
-    let mvarIdQ ← mkFreshExprMVar q (userName := "blue")
+    let mvarIdP ← mkFreshExprMVar p (userName := `red)
+    let mvarIdQ ← mkFreshExprMVar q (userName := `blue)
 
     let proofTerm := mkAppN (Expr.const `And.intro []) #[p, q, mvarIdP, mvarIdQ]
     mvarId.assign proofTerm

@@ -454,7 +454,7 @@ As promised in the syntax chapter here is Binders 2.0. We'll start by
 reintroducing our theory of sets:
 -/
 def Set (α : Type u) := α → Prop
-def Set.mem (x : α) (X : Set α) : Prop := X x
+def Set.mem (X : Set α) (x : α) : Prop := X x
 
 -- Integrate into the already existing typeclass for membership notation
 instance : Membership α (Set α) where
