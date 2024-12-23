@@ -1,6 +1,6 @@
 import Lean
 import Lean.Parser.Syntax
-import Std.Util.ExtendedBinder
+import Batteries.Util.ExtendedBinder
 
 open Lean Elab Command Term
 
@@ -28,7 +28,7 @@ open a
 
 /- ### 2. -/
 
-syntax "good morning" : term
+syntax "good" "morning" : term
 syntax "hello" : command
 syntax "yellow" : tactic
 
@@ -70,8 +70,8 @@ def elabHelp : CommandElab := fun stx => Lean.logInfo "success!"
 
 /- ### 5. -/
 
--- Note: std4 has to be in dependencies of your project for this to work.
-syntax (name := bigsumin) "∑ " Std.ExtendedBinder.extBinder "in " term "," term : term
+-- Note: Batteries has to be in dependencies of your project for this to work.
+syntax (name := bigsumin) "∑ " Batteries.ExtendedBinder.extBinder "in " term "," term : term
 
 @[term_elab bigsumin]
 def elabSum : TermElab := fun stx tp =>

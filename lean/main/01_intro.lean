@@ -130,10 +130,17 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 
 /-- info: success -/
 #guard_msgs in --#
-#assertType 5  : Nat
+#assertType 5 : Nat
 
-/-- error: failure -/
-#guard_msgs in --#
+/--
+error: type mismatch
+  []
+has type
+  List ?m.3211 : Type ?u.3210
+but is expected to have type
+  Nat : Type
+-/
+#guard_msgs (error) in --#
 #assertType [] : Nat
 
 /-! We started by using `elab` to define a `command` syntax. When parsed

@@ -508,7 +508,7 @@ Let's define a simple theory of sets to test it:
 -- -> a simple predicate on the type of its elements
 def Set (α : Type u) := α → Prop
 
-def Set.mem (x : α) (X : Set α) : Prop := X x
+def Set.mem (X : Set α) (x : α) : Prop := X x
 
 -- Integrate into the already existing typeclass for membership notation
 instance : Membership α (Set α) where
@@ -619,14 +619,14 @@ the bound variables, we refer the reader to the macro chapter.
     Use the following template:
 
     ```lean
-    import Std.Classes.SetNotation
-    import Std.Util.ExtendedBinder
+    import Batteries.Classes.SetNotation
+    import Batteries.Util.ExtendedBinder
     syntax (name := bigsumin) ...
     -- our "elaboration function" that infuses syntax with semantics
     @[term_elab bigsumin] def elabSum : TermElab := λ stx tp => return mkNatLit 666
     ```
 
-    Hint: use the `Std.ExtendedBinder.extBinder` parser.
-    Hint: you need Std4 installed in your Lean project for these imports to work.
+    Hint: use the `Batteries.ExtendedBinder.extBinder` parser.
+    Hint: you need Batteries installed in your Lean project for these imports to work.
 
 -/

@@ -274,21 +274,21 @@ Adding new term elaborators works basically the same way as adding new
 command elaborators so we'll only take a very brief look:
 -/
 
-syntax (name := myterm1) "myterm 1" : term
+syntax (name := myterm1) "myterm_1" : term
 
 def mytermValues := [1, 2]
 
 @[term_elab myterm1]
-def myTerm1Impl : TermElab := fun stx type? =>
+def myTerm1Impl : TermElab := fun stx type? => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
-#eval myterm 1 -- 1
+#eval myterm_1 -- 1
 
 -- Also works with `elab`
-elab "myterm 2" : term => do
+elab "myterm_2" : term => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
-#eval myterm 2 -- 2
+#eval myterm_2 -- 2
 
 /-!
 ### Mini project
