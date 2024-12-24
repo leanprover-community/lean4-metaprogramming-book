@@ -55,7 +55,7 @@ def foo : Nat → Nat := fun x => 42
 def delabFoo : Delab := do
   `(1)
 
-#check foo -- 1 : Nat → Nat
+#check (foo) -- 1 : Nat → Nat
 #check foo 13 -- 1 : Nat, full applications are also pretty printed this way
 
 /-!
@@ -68,7 +68,7 @@ attributes we can also overload delaborators:
 def delabfoo2 : Delab := do
   `(2)
 
-#check foo -- 2 : Nat → Nat
+#check (foo) -- 2 : Nat → Nat
 
 /-!
 The mechanism for figuring out which one to use is the same as well. The
@@ -82,7 +82,7 @@ def delabfoo3 : Delab := do
   failure
   `(3)
 
-#check foo -- 2 : Nat → Nat, still 2 since 3 failed
+#check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
 
 /-!
 In order to write a proper delaborator for `foo`, we will have to use some
@@ -98,7 +98,7 @@ def delabfooFinal : Delab := do
   `($fn $arg)
 
 #check foo 42 -- fooSpecial 42 : Nat
-#check foo -- 2 : Nat → Nat, still 2 since 3 failed
+#check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
 
 /-!
 Can you extend `delabFooFinal` to also account for non full applications?
@@ -130,12 +130,11 @@ def myid {α : Type} (x : α) := x
 @[app_unexpander myid]
 def unexpMyId : Unexpander
   -- hygiene disabled so we can actually return `id` without macro scopes etc.
-  | `(myid $arg) => set_option hygiene false in `(id $arg)
-  | `(myid) => pure $ mkIdent `id
-  | _ => throw ()
+  | `($_myid $arg) => set_option hygiene false in `(id $arg)
+  | `($_myid) => pure $ mkIdent `id
 
 #check myid 12 -- id 12 : Nat
-#check myid -- id : ?m.3870 → ?m.3870
+#check (myid) -- id : ?m.3870 → ?m.3870
 
 /-!
 For a few nice examples of unexpanders you can take a look at
@@ -186,12 +185,12 @@ We can do better with an unexpander:
 
 @[app_unexpander LangExpr.numConst]
 def unexpandNumConst : Unexpander
-  | `(LangExpr.numConst $x:num) => `([Lang| $x])
+  | `($_numConst $x:num) => `([Lang| $x])
   | _ => throw ()
 
 @[app_unexpander LangExpr.ident]
 def unexpandIdent : Unexpander
-  | `(LangExpr.ident $x:str) =>
+  | `($_ident $x:str) =>
     let str := x.getString
     let name := mkIdent $ Name.mkSimple str
     `([Lang| $name])
@@ -199,7 +198,7 @@ def unexpandIdent : Unexpander
 
 @[app_unexpander LangExpr.letE]
 def unexpandLet : Unexpander
-  | `(LangExpr.letE $x:str [Lang| $v:lang] [Lang| $b:lang]) =>
+  | `($_letE $x:str [Lang| $v:lang] [Lang| $b:lang]) =>
     let str := x.getString
     let name := mkIdent $ Name.mkSimple str
     `([Lang| let $name := $v in $b])
