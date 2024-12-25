@@ -1300,7 +1300,7 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       let reducedExpr ← Meta.reduce constantExpr
       dbg_trace (← ppExpr reducedExpr) -- ...
     ```
-10. [**Constructing Expressions**] Create expression `fun x, 1 + x` in two ways:
+10. [**Constructing Expressions**] Create expression `fun x => 1 + x` in two ways:
   **a)** not idiomatically, with loose bound variables
   **b)** idiomatically.
   In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
