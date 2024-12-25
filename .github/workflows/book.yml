@@ -11,11 +11,12 @@ jobs:
   book:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: checkout
+      uses: actions/checkout@v4
 
     - name: install elan
       run: |
-        curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain $(cat lean-toolchain)
+        curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
         echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
     - name: build markdown files by mdgen
