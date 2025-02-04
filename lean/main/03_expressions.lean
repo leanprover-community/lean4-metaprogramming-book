@@ -186,6 +186,11 @@ as the `pp.universes` pretty-printing option shows:
 -/
 
 set_option pp.universes true in
+
+/-⋆-//--
+info: @List.map.{u_1, u_2} : {α : Type u_1} → {β : Type u_2} → (α → β) → List.{u_1} α → List.{u_2} β
+-/
+#guard_msgs in --#
 #check @List.map
 
 /-!
@@ -219,10 +224,14 @@ which is useful to avoid typos.
 open Lean
 
 def z' := Expr.const `Nat.zero []
-#eval z' -- Lean.Expr.const `Nat.zero []
+/-⋆-//-- info: Lean.Expr.const `Nat.zero [] -/
+#guard_msgs in --#
+#eval z'
 
 def z := Expr.const ``Nat.zero []
-#eval z -- Lean.Expr.const `Nat.zero []
+/-⋆-//-- info: Lean.Expr.const `Nat.zero [] -/
+#guard_msgs in --#
+#eval z
 
 /-
 The double-backtick variant also resolves the given name, making it fully-qualified.
@@ -237,10 +246,14 @@ contains the fully-qualified name `Nat.zero` and does not have this problem.
 open Nat
 
 def z₁ := Expr.const `zero []
-#eval z₁ -- Lean.Expr.const `zero []
+/-⋆-//-- info: Lean.Expr.const `zero [] -/
+#guard_msgs in --#
+#eval z₁
 
 def z₂ := Expr.const ``zero []
-#eval z₂ -- Lean.Expr.const `Nat.zero []
+/-⋆-//-- info: Lean.Expr.const `Nat.zero [] -/
+#guard_msgs in --#
+#eval z₂
 
 /-
 ### Function Applications
@@ -256,8 +269,9 @@ The second is a recursive definition giving an expression as a function of a nat
 -/
 
 def one := Expr.app (.const ``Nat.succ []) z
+/-⋆-//-- info: Lean.Expr.app (Lean.Expr.const `Nat.succ []) (Lean.Expr.const `Nat.zero []) -/
+#guard_msgs in --#
 #eval one
--- Lean.Expr.app (Lean.Expr.const `Nat.succ []) (Lean.Expr.const `Nat.zero [])
 
 def natExpr: Nat → Expr
 | 0     => z
@@ -286,13 +300,15 @@ The argument `BinderInfo.default` says that `x` is an explicit argument
 def constZero : Expr :=
   .lam `x (.const ``Nat []) (.const ``Nat.zero []) BinderInfo.default
 
+/-⋆-//--
+info: Lean.Expr.lam `x (Lean.Expr.const `Nat []) (Lean.Expr.const `Nat.zero []) (Lean.BinderInfo.default)
+-/
+#guard_msgs in --#
 #eval constZero
--- Lean.Expr.lam `x (Lean.Expr.const `Nat []) (Lean.Expr.const `Nat.zero [])
---   (Lean.BinderInfo.default)
 
 /-!
 As a more elaborate example which also involves universe levels,
-here is the `Expr` that represents `List.map (λ x => Nat.add x 1) []`
+here is the `Expr` that represents `List.map (fun x => Nat.add x 1) []`
 (broken up into several definitions to make it somewhat readable):
 -/
 
@@ -311,20 +327,27 @@ def mapAddOneNil : Expr :=
 With a little trick (more about which in the Elaboration chapter),
 we can turn our `Expr` into a Lean term, which allows us to inspect it more easily.
 -/
+section --#
+
+set_option pp.fieldNotation.generalized false
 
 elab "mapAddOneNil" : term => return mapAddOneNil
 
+/-⋆-//-- info: List.map (fun x => Nat.add x 1) [] : List Nat -/
+#guard_msgs in --#
 #check mapAddOneNil
--- List.map (fun x => Nat.add x 1) [] : List Nat
 
 set_option pp.universes true in
-set_option pp.explicit true in
+
+/-⋆-//-- info: List.map.{0, 0} (fun x => Nat.add x 1) List.nil.{0} : List.{0} Nat -/
+#guard_msgs in --#
 #check mapAddOneNil
--- @List.map.{0, 0} Nat Nat (fun x => x.add 1) (@List.nil.{0} Nat) : List.{0} Nat
 
+/-⋆-//-- info: [] -/
+#guard_msgs in --#
 #reduce mapAddOneNil
--- []
 
+end --#
 /-
 In the next chapter we explore the `MetaM` monad,
 which, among many other things,

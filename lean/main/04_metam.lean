@@ -490,11 +490,13 @@ We can use it like this:
 
 def someNumber : Nat := (· + 2) $ 3
 
+/-⋆-//-- info: Lean.Expr.const `someNumber [] -/
+#guard_msgs in --#
 #eval Expr.const ``someNumber []
--- Lean.Expr.const `someNumber []
 
+/-⋆-//-- info: Lean.Expr.lit (Lean.Literal.natVal 5) -/
+#guard_msgs in --#
 #eval reduce (Expr.const ``someNumber [])
--- Lean.Expr.lit (Lean.Literal.natVal 5)
 
 /-!
 Incidentally, this shows that the normal form of a term of type `Nat` is not
@@ -511,8 +513,9 @@ expression that the user is not going to see anyway.
 The `#reduce` command is essentially an application of `reduce`:
 -/
 
+/-⋆-//-- info: 5 -/
+#guard_msgs in --#
 #reduce someNumber
--- 5
 
 /-!
 ### Transparency
@@ -557,8 +560,9 @@ abbrev             reducibleDef   : Nat      := defaultDef + 1
 We start with `reducible` transparency, which only unfolds `reducibleDef`:
 -/
 
+/-⋆-//-- info: defaultDef + 1 -/
+#guard_msgs in --#
 #eval traceConstWithTransparency .reducible ``reducibleDef
--- defaultDef + 1
 
 /-!
 If we repeat the above command but let Lean print implicit arguments as well,
@@ -567,30 +571,41 @@ function, which is a member of the `HAdd` typeclass:
 -/
 
 set_option pp.explicit true in
+
+/-⋆-//--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .reducible ``reducibleDef
--- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef 1
 
 /-!
 When we reduce with `instances` transparency, this applications is unfolded and
 replaced by `Nat.add`:
 -/
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: Nat.add defaultDef 1 -/
+#guard_msgs in --#
 #eval traceConstWithTransparency .instances ``reducibleDef
--- Nat.add defaultDef 1
 
 /-!
 With `default` transparency, `Nat.add` is unfolded as well:
 -/
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: Nat.succ (Nat.succ irreducibleDef) -/
+#guard_msgs in --#
 #eval traceConstWithTransparency .default ``reducibleDef
--- Nat.succ (Nat.succ irreducibleDef)
 
 /-!
 And with `TransparencyMode.all`, we're finally able to unfold `irreducibleDef`:
 -/
 
+/-⋆-//-- info: 3 -/
+#guard_msgs in --#
 #eval traceConstWithTransparency .all ``reducibleDef
--- 3
 
 /-!
 The `#eval` commands illustrate that the same term, `reducibleDef`, can have a
@@ -639,51 +654,60 @@ Now, here are some examples of expressions in WHNF.
 Constructor applications are in WHNF (with some exceptions for numeric types):
 -/
 
+/-⋆-//-- info: [1] -/
+#guard_msgs in --#
 #eval whnf' `(List.cons 1 [])
--- [1]
 
 /-!
 The *arguments* of an application in WHNF may or may not be in WHNF themselves:
 -/
 
+/-⋆-//-- info: [1 + 1] -/
+#guard_msgs in --#
 #eval whnf' `(List.cons (1 + 1) [])
--- [1 + 1]
 
 /-!
 Applications of constants are in WHNF if the current transparency does not
 allow us to unfold the constants:
 -/
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: List.append [1] [2] -/
+#guard_msgs in --#
 #eval withTransparency .reducible $ whnf' `(List.append [1] [2])
--- List.append [1] [2]
 
 /-!
 Lambdas are in WHNF:
 -/
 
-#eval whnf' `(λ x : Nat => x)
--- fun x => x
+/-⋆-//-- info: fun x => x -/
+#guard_msgs in --#
+#eval whnf' `(fun x : Nat => x)
 
 /-!
 Foralls are in WHNF:
 -/
 
+/-⋆-//-- info: ∀ (x : Nat), x > 0 -/
+#guard_msgs in --#
 #eval whnf' `(∀ x, x > 0)
--- ∀ (x : Nat), x > 0
 
 /-!
 Sorts are in WHNF:
 -/
 
+/-⋆-//-- info: Type 3 -/
+#guard_msgs in --#
 #eval whnf' `(Type 3)
--- Type 3
 
 /-!
 Literals are in WHNF:
 -/
 
+/-⋆-//-- info: 15 -/
+#guard_msgs in --#
 #eval whnf' `((15 : Nat))
--- 15
 
 /-!
 Here are some more expressions in WHNF which are a bit tricky to test:
@@ -699,22 +723,27 @@ Applications of constants are not in WHNF if the current transparency allows us
 to unfold the constants:
 -/
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: fun x => 1 :: List.append [] x -/
+#guard_msgs in --#
 #eval whnf' `(List.append [1])
--- fun x => 1 :: List.append [] x
 
 /-!
 Applications of lambdas are not in WHNF:
 -/
 
-#eval whnf' `((λ x y : Nat => x + y) 1)
--- `fun y => 1 + y`
+/-⋆-//-- info: fun y => 1 + y -/
+#guard_msgs in --#
+#eval whnf' `((fun x y : Nat => x + y) 1)
 
 /-!
 `let` bindings are not in WHNF:
 -/
 
+/-⋆-//-- info: 1 -/
+#guard_msgs in --#
 #eval whnf' `(let x : Nat := 1; x)
--- 1
 
 /-!
 And again some tricky examples:
@@ -822,9 +851,13 @@ def appendAppend (xs ys : List α) := (xs.append ys).append xs
 
 set_option pp.all true in
 set_option pp.explicit true in
+
+/-⋆-//--
+info: def appendAppend.{u_1} : {α : Type u_1} → List.{u_1} α → List.{u_1} α → List.{u_1} α :=
+fun {α : Type u_1} (xs ys : List.{u_1} α) => @List.append.{u_1} α (@List.append.{u_1} α xs ys) xs
+-/
+#guard_msgs in --#
 #print appendAppend
--- def appendAppend.{u_1} : {α : Type u_1} → List.{u_1} α → List.{u_1} α → List.{u_1} α :=
--- fun {α : Type u_1} (xs ys : List.{u_1} α) => @List.append.{u_1} α (@List.append.{u_1} α xs ys) xs
 
 /-!
 The `.{u_1}` suffixes are universe levels, which must be given for every
@@ -886,10 +919,13 @@ def revOrd : Ord Nat where
 def ordExpr : MetaM Expr := do
   mkAppOptM ``compare #[none, Expr.const ``revOrd [], mkNatLit 0, mkNatLit 1]
 
+/-⋆-//--
+info: Ord.compare.{0} Nat revOrd
+  (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
+  (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+-/
+#guard_msgs (whitespace := lax) in --#
 #eval format <$> ordExpr
--- Ord.compare.{0} Nat revOrd
---   (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
---   (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
 
 /-!
 Like `mkAppM`, `mkAppOptM` has a primed variant `Lean.Meta.mkAppOptM'` which
@@ -909,8 +945,11 @@ def doubleExpr₁ : Expr :=
   .lam `x (.const ``Nat []) (mkAppN (.const ``Nat.add []) #[.bvar 0, .bvar 0])
     BinderInfo.default
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: fun x => Nat.add x x -/
+#guard_msgs in --#
 #eval ppExpr doubleExpr₁
--- fun x => Nat.add x x
 
 /-!
 This works, but the use of `bvar` is highly unidiomatic. Lean uses a so-called
@@ -946,9 +985,12 @@ def doubleExpr₂ : MetaM Expr :=
     let body ← mkAppM ``Nat.add #[x, x]
     mkLambdaFVars #[x] body
 
+set_option pp.fieldNotation.generalized false in
+
+/-⋆-//-- info: fun x => Nat.add x x -/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← doubleExpr₂)
--- fun x => Nat.add x x
 
 /-!
 There are two new functions. First, `Lean.Meta.withLocalDecl` has type
@@ -1006,15 +1048,21 @@ The next line registers `someProp` as a name for the expression we've just
 constructed, allowing us to play with it more easily. The mechanisms behind this
 are discussed in the Elaboration chapter.
 -/
+section --#
+
+set_option pp.fieldNotation.generalized false
 
 elab "someProp" : term => somePropExpr
 
+/-⋆-//-- info: fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop -/
+#guard_msgs in --#
 #check someProp
--- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
-#reduce someProp Nat.succ
--- ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n)
 
+/-⋆-//-- info: ∀ (n : Nat), Nat.succ n = Nat.succ (Nat.succ n) -/
+#guard_msgs in --#
+#reduce (types := true) (someProp Nat.succ)
 
+end --#
 /-!
 ### Deconstructing Expressions
 
