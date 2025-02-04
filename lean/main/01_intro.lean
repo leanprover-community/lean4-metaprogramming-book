@@ -132,11 +132,14 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 #guard_msgs in --#
 #assertType 5 : Nat
 
+-- don't display names of metavariables
+set_option pp.mvars false in
+
 /--
 error: type mismatch
   []
 has type
-  List ?m.3211 : Type ?u.3210
+  List ?_ : Type _
 but is expected to have type
   Nat : Type
 -/
