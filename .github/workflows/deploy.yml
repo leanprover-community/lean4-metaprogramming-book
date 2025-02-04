@@ -32,7 +32,7 @@ jobs:
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
       - name: build markdown files by mdgen
-        run: lake run build
+        run: lake run mdbuild
 
       - name: setup mdBook
         uses: peaceiris/actions-mdbook@v1

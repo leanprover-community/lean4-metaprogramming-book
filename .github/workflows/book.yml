@@ -20,7 +20,7 @@ jobs:
         echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
     - name: build markdown files by mdgen
-      run: lake run build
+      run: lake run mdbuild
 
     - name: Install Dependencies
       run: sudo apt update && sudo apt install -y pandoc texlive-latex-base texlive-latex-extra texlive-latex-recommended texlive-luatex fonts-dejavu python3-pygments
