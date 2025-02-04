@@ -14,16 +14,28 @@ require mdgen from git
 
 require "leanprover-community" / "batteries" @ git "main"
 
-def runCmd (cmd : String) (args : Array String) : ScriptM Bool := do
+def runCmd (input : String) : IO Unit := do
+  let cmdList := input.splitOn " "
+  let cmd := cmdList.head!
+  let args := cmdList.tail |>.toArray
   let out ← IO.Process.output {
     cmd := cmd
     args := args
   }
-  let hasError := out.exitCode != 0
-  if hasError then
-    IO.eprint out.stderr
-  return hasError
+  if out.exitCode != 0 then
+    IO.eprintln out.stderr
+    throw <| IO.userError s!"Failed to execute: {input}"
+  else if !out.stdout.isEmpty then
+    IO.println out.stdout
 
+/-- Get markdown files from Lean files -/
+script mdbuild do
+  runCmd "lake exe mdgen lean md"
+  return 0
+
+/-- Get HTML files from Lean files.
+This script is useful when rewriting a book while previewing it with `mdbook serve`. -/
 script build do
-  if ← runCmd "lake" #["exe", "mdgen", "lean", "md"] then return 1
+  runCmd "lake exe mdgen lean md"
+  runCmd "mdbook build"
   return 0
