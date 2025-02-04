@@ -154,7 +154,9 @@ compiler, you could also declare functions that are specific to certain
 `TSyntax` variants. For example as we have seen in the syntax chapter
 there exists the function:
 -/
-#check TSyntax.getNat -- TSyntax.getNat : TSyntax numLitKind → Nat
+/-⋆-//-- info: Lean.TSyntax.getNat (s : NumLit) : Nat -/
+#guard_msgs in
+#check TSyntax.getNat
 /-!
 Which is guaranteed to not panic because we know that the `Syntax` that
 the function is receiving is a numeric literal and can thus naturally
