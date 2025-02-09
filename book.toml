@@ -7,3 +7,5 @@ title = "Metaprogramming in Lean 4"
 
 [output.html]
 git-repository-url = "https://github.com/leanprover-community/lean4-metaprogramming-book"
+additional-css = ["./assets/pagetoc.css"]
+additional-js = ["assets/pagetoc.js"]
