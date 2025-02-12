@@ -12,3 +12,6 @@ additional-js = [
   "assets/blockPlay.js",
   "assets/pagetoc.js"
 ]
+
+# To ensure that the 404 page functions properly.
+site-url = "https://leanprover-community.github.io/lean4-metaprogramming-book/"
