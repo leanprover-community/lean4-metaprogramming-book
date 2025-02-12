@@ -39,11 +39,10 @@ We start by simply declaring the tactic with no implementation:
 
 syntax "custom_tactic" : tactic
 
-/-- error: tactic 'tacticCustom_tactic' has not been implemented -/
+/-⋆-//-- error: tactic 'tacticCustom_tactic' has not been implemented -/
 #guard_msgs in --#
 example : 42 = 42 := by
   custom_tactic
-  sorry
 
 /-
 We will now add the `rfl` tactic into `custom_tactic`, which will allow us to
@@ -54,20 +53,23 @@ macro_rules
 | `(tactic| custom_tactic) => `(tactic| rfl)
 
 example : 42 = 42 := by
-   custom_tactic
--- Goals accomplished 🎉
+  custom_tactic
+  -- Goals accomplished 🎉
 
 /-
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-#check_failure (by custom_tactic : 43 = 43 ∧ 42 = 42)
--- type mismatch
---   Iff.rfl
--- has type
---   ?m.1437 ↔ ?m.1437 : Prop
--- but is expected to have type
---   43 = 43 ∧ 42 = 42 : Prop
+/-⋆-//--
+error: tactic 'rfl' failed, the left-hand side
+  43 = 43
+is not definitionally equal to the right-hand side
+  42 = 42
+⊢ 43 = 43 ∧ 42 = 42
+-/
+#guard_msgs in --#
+example : 43 = 43 ∧ 42 = 42 := by
+  custom_tactic
 
 /-
 We extend the `custom_tactic` tactic with a tactic that tries to break `And`
@@ -89,7 +91,7 @@ that we dispatch the theorem.
 
 example : 43 = 43 ∧ 42 = 42 := by
   custom_tactic
--- Goals accomplished 🎉
+  -- Goals accomplished 🎉
 
 /-
 In summary, we declared an extensible tactic called `custom_tactic`. It
@@ -120,9 +122,12 @@ macro_rules
 theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
   apply And.intro and_then rfl
 
+/-⋆-//--
+info: theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
+⟨Eq.refl 1, Eq.refl 2⟩
+-/
+#guard_msgs in --#
 #print test_and_then
--- theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
--- { left := Eq.refl 1, right := Eq.refl 2 }
 
 /-
 ## Exploring `TacticM`
@@ -394,10 +399,14 @@ elab "custom_assump_2" : tactic =>
 example (H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
   custom_assump_2
 
-#check_failure (by custom_assump_2 : (H1 : 1 = 1) → 2 = 2)
--- tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
--- H1 : 1 = 1
--- ⊢ 2 = 2
+/-⋆-//--
+error: tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
+H1 : 1 = 1
+⊢ 2 = 2
+-/
+#guard_msgs in --#
+example (H1 : 1 = 1) : 2 = 2 := by
+  custom_assump_2
 
 /-
 ### Tweaking the context
@@ -578,9 +587,13 @@ elab "faq_throw_error" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     Lean.Meta.throwTacticEx `faq_throw_error goal "throwing an error at the current goal"
 
-#check_failure (by faq_throw_error : (b : Bool) → b = true)
--- tactic 'faq_throw_error' failed, throwing an error at the current goal
--- ⊢ ∀ (b : Bool), b = true
+/-⋆-//--
+error: tactic 'faq_throw_error' failed, throwing an error at the current goal
+⊢ ∀ (b : Bool), b = true
+-/
+#guard_msgs in --#
+example : (b : Bool) → b = true := by
+  faq_throw_error
 
 /-!
 **Q: What is the difference between `Lean.Elab.Tactic.*` and `Lean.Meta.Tactic.*`?**

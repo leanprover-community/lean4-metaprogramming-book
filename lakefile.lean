@@ -10,7 +10,7 @@ lean_lib «lean4-metaprogramming-book» where
   globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
 
 require mdgen from git
-  "https://github.com/Seasawher/mdgen" @ "v1.3.0"
+  "https://github.com/Seasawher/mdgen" @ "1.9.0"
 
 require "leanprover-community" / "batteries" @ git "main"
 

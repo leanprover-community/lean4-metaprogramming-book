@@ -18,18 +18,18 @@ import Lean
 -- XOR, denoted \oplus
 infixl:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 
-#eval true ⊕ true -- false
-#eval true ⊕ false -- true
-#eval false ⊕ true -- true
-#eval false ⊕ false -- false
+#guard !(true ⊕ true)
+#guard true ⊕ false
+#guard false ⊕ true
+#guard !(false ⊕ false)
 
 -- with `notation`, "left XOR"
 notation:10 l:10 " LXOR " r:11 => (!l && r)
 
-#eval true LXOR true -- false
-#eval true LXOR false -- false
-#eval false LXOR true -- true
-#eval false LXOR false -- false
+#guard !(true LXOR true)
+#guard !(true LXOR false)
+#guard false LXOR true
+#guard !(false LXOR false)
 
 /- As we can see the `infixl` command allows us to declare a notation for
 a binary operation that is infix, meaning that the operator is in between
@@ -52,9 +52,9 @@ The two unintuitive parts about these two are:
   precedence, meaning how strong they bind to their arguments, let's see this in action:
 -/
 
-#eval true ⊕ false LXOR false -- false
-#eval (true ⊕ false) LXOR false -- false
-#eval true ⊕ (false LXOR false) -- true
+#guard !(true ⊕ false LXOR false)
+#guard !((true ⊕ false) LXOR false)
+#guard true ⊕ (false LXOR false)
 
 /-!
 As we can see, the Lean interpreter analyzed the first term without parentheses
@@ -154,9 +154,12 @@ We can now write `MyTerm` in place of things like `1 + 1` and it will be
 it just means that the Lean parser can understand it:
 -/
 
+/-⋆-//--
+info: elaboration function for 'termMyTerm' has not been implemented
+  MyTerm
+-/
+#guard_msgs in --#
 #check_failure MyTerm
--- elaboration function for 'termMyTerm' has not been implemented
---   MyTerm
 
 /-! Note: `#check_failure` command allows incorrectly typed terms to be indicated without error. -/
 
@@ -276,13 +279,20 @@ syntax binNumber := binDigit,+
 /-!
 Since we can just use named parsers in place of syntax categories, we can now easily
 add this to the `term` category:
-
-```lean
-syntax "bin(" binNumber ")" : term
-#check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
-#check bin() -- fails to parse because `binNumber` is "one or many": expected 'O' or 'Z'
-```
 -/
+
+open Lean Parser in
+/-- function to check if parsing passes -/
+def parse (cat : Name) (s : String) : MetaM Syntax := do
+  ofExcept <| runParserCategory (← getEnv) cat s
+
+syntax "bin(" binNumber ")" : term
+#check_failure bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+
+-- fails to parse `bin()` because `binNumber` is "one or many": expected 'O' or 'Z'
+/-⋆-//-- error: <input>:1:4: expected 'O' or 'Z' -/
+#guard_msgs in --#
+#eval parse `term "bin()"
 
 syntax binNumber' := binDigit,* -- note the *
 syntax "emptyBin(" binNumber' ")" : term
@@ -390,8 +400,8 @@ def isAdd11 : Syntax → Bool
   | `(Nat.add 1 1) => true
   | _ => false
 
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- true
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- false
+#guard isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- true
+#guard ! isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- false
 
 /-!
 The next level with matches is to capture variables from the input instead
@@ -426,8 +436,8 @@ def isLitAdd : TSyntax `term → Option Nat
   | `(Nat.add $x:num $y:num) => some (x.getNat + y.getNat)
   | _ => none
 
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some 2
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
+#guard isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) = some 2
+#guard isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) = none
 
 /-!
 If you want to access the `Syntax` behind a `TSyntax` you can do this using
@@ -448,6 +458,7 @@ chapters.
 declare_syntax_cat arith
 
 syntax num : arith
+
 syntax arith "-" arith : arith
 syntax arith "+" arith : arith
 syntax "(" arith ")" : arith
@@ -466,7 +477,9 @@ def test : Elab.TermElabM Nat := do
   let stx ← `(arith| (12 + 3) - 4)
   pure (denoteArith stx)
 
-#eval test -- 11
+/-⋆-//-- info: 11 -/
+#guard_msgs in --#
+#eval test
 
 /-!
 Feel free to play around with this example and extend it in whatever way
@@ -547,7 +560,9 @@ basic version of our notation:
 -/
 notation "{ " x " | " p " }" => setOf (fun x => p)
 
-#check { (x : Nat) | x ≤ 1 } -- { x | x ≤ 1 } : Set Nat
+/-⋆-//-- info: { x | x ≤ 1 } : Set Nat -/
+#guard_msgs in --#
+#check { (x : Nat) | x ≤ 1 }
 
 example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
 example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
