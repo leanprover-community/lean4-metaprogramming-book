@@ -10,5 +10,12 @@ git-repository-url = "https://github.com/leanprover-community/lean4-metaprogramm
 additional-css = ["./assets/pagetoc.css"]
 additional-js = [
   "assets/blockPlay.js",
-  "assets/pagetoc.js"
+  "assets/filePlay.js",
+  "assets/pagetoc.js",
 ]
+
+# Settings to overwrite the edit button and make it a code execution button.
+edit-url-template = "https://raw.githubusercontent.com/leanprover-community/lean4-metaprogramming-book/master/{path}"
+
+# To ensure that the 404 page functions properly.
+site-url = "https://leanprover-community.github.io/lean4-metaprogramming-book/"
