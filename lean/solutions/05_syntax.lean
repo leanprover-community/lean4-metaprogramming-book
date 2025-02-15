@@ -14,7 +14,7 @@ end a
 
 namespace b
   set_option quotPrecheck false
-  scoped infixl:71 " 💀 " => fun lhs rhs => lhs - rhs
+  scoped infixr:71 " 💀 " => fun lhs rhs => lhs - rhs
 end b
 
 namespace c
