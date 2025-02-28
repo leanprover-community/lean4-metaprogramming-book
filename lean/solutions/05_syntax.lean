@@ -36,11 +36,11 @@ syntax "yellow" : tactic
 
 #check_failure good morning -- the syntax parsing stage works
 
-/-- error: elaboration function for 'commandHello' has not been implemented -/
+/-⋆-//-- error: elaboration function for 'commandHello' has not been implemented -/
 #guard_msgs in --#
 hello -- the syntax parsing stage works
 
-/-- error: tactic 'tacticYellow' has not been implemented -/
+/-⋆-//-- error: tactic 'tacticYellow' has not been implemented -/
 #guard_msgs in --#
 example : 2 + 2 = 4 := by
   yellow -- the syntax parsing stage works

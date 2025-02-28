@@ -128,14 +128,14 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
       logInfo "success"
     catch | _ => throwError "failure"
 
-/-- info: success -/
+/-⋆-//-- info: success -/
 #guard_msgs in --#
 #assertType 5 : Nat
 
 -- don't display names of metavariables
 set_option pp.mvars false in
 
-/--
+/-⋆-//--
 error: type mismatch
   []
 has type
