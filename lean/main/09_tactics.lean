@@ -39,7 +39,7 @@ We start by simply declaring the tactic with no implementation:
 
 syntax "custom_tactic" : tactic
 
-/-- error: tactic 'tacticCustom_tactic' has not been implemented -/
+/-⋆-//-- error: tactic 'tacticCustom_tactic' has not been implemented -/
 #guard_msgs in --#
 example : 42 = 42 := by
   custom_tactic
