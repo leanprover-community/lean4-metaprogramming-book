@@ -416,7 +416,7 @@ syntax category the syntax we are matching might be coming from (in this case `t
 It will then use the typed syntax type `TSyntax` which is parameterized
 by the `Name` of the syntax category it came from. This is not only more
 convenient for the programmer to see what is going on, it also has other
-benefits. For Example if we limit the syntax category to just `num`
+benefits. For example, if we limit the syntax category to just `num`
 in the next example Lean will allow us to call `getNat` on the resulting
 `` TSyntax `num `` directly without pattern matching or the option to panic:
 -/
