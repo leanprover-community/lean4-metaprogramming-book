@@ -19,19 +19,19 @@ The Lean compilation process can be summed up in the following diagram:
 <img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
 </p>
 
-First, we will start with Lean code as a string. Then we'll see it become a `Syntax` object, and then an `Expr` object. Then finally we can execute it.  
+First, we will start with Lean code as a string. Then we'll see it become a `Syntax` object, and then an `Expr` object. Then finally we can execute it.
 
 So, the compiler sees a string of Lean code, say `"let a := 2"`, and the following process unfolds:
 
-1. **apply a relevant syntax rule** (`"let a := 2"` ➤ `Syntax`)  
+1. **apply a relevant syntax rule** (`"let a := 2"` ➤ `Syntax`)
 
     During the parsing step, Lean tries to match a string of Lean code to one of the declared **syntax rules** in order to turn that string into a `Syntax` object. **Syntax rules** are basically glorified regular expressions - when you write a Lean string that matches a certain **syntax rule**'s regex, that rule will be used to handle subsequent steps.
 
-2. **apply all macros in a loop** (`Syntax` ➤ `Syntax`)  
+2. **apply all macros in a loop** (`Syntax` ➤ `Syntax`)
 
     During the elaboration step, each **macro** simply turns the existing `Syntax` object into some new `Syntax` object. Then, the new `Syntax` is processed similarly (repeating steps 1 and 2), until there are no more **macros** to apply.
 
-3. **apply a single elab** (`Syntax` ➤ `Expr`)  
+3. **apply a single elab** (`Syntax` ➤ `Expr`)
 
     Finally, it's time to infuse your syntax with meaning - Lean finds an **elab** that's matched to the appropriate **syntax rule** by the `name` argument (**syntax rules**, **macros** and **elabs** all have this argument, and they must match). The newfound **elab** returns a particular `Expr` object.
     This completes the elaboration step.
@@ -47,7 +47,7 @@ Elaboration is an overloaded term in Lean. For example, you might encounter the 
 >
 > The process of *taking a partially-specified expression and inferring what is left implicit* is known as **elaboration**. Lean's **elaboration** algorithm is powerful, but at the same time, subtle and complex. Working in a system of dependent type theory requires knowing what sorts of information the **elaborator** can reliably infer, as well as knowing how to respond to error messages that are raised when the elaborator fails. To that end, it is helpful to have a general idea of how Lean's **elaborator** works.
 >
-> When Lean is parsing an expression, it first enters a preprocessing phase. First, Lean inserts "holes" for implicit arguments. If term t has type `Π {x : A}, P x`, then t is replaced by `@t _` everywhere. Then, the holes — either the ones inserted in the previous step or the ones explicitly written by the user — in a term are instantiated by metavariables `?M1`, `?M2`, `?M3`, .... Each overloaded notation is associated with a list of choices, that is, the possible interpretations. Similarly, Lean tries to detect the points where a coercion may need to be inserted in an application `s t`, to make the inferred type of t match the argument type of `s`. These become choice points too. If one possible outcome of the elaboration procedure is that no coercion is needed, then one of the choices on the list is the identity.  
+> When Lean is parsing an expression, it first enters a preprocessing phase. First, Lean inserts "holes" for implicit arguments. If term t has type `Π {x : A}, P x`, then t is replaced by `@t _` everywhere. Then, the holes — either the ones inserted in the previous step or the ones explicitly written by the user — in a term are instantiated by metavariables `?M1`, `?M2`, `?M3`, .... Each overloaded notation is associated with a list of choices, that is, the possible interpretations. Similarly, Lean tries to detect the points where a coercion may need to be inserted in an application `s t`, to make the inferred type of t match the argument type of `s`. These become choice points too. If one possible outcome of the elaboration procedure is that no coercion is needed, then one of the choices on the list is the identity.
 >
 > ([Theorem Proving in Lean 2](http://leanprover.github.io/tutorial/08_Building_Theories_and_Proofs.html))
 
@@ -79,17 +79,17 @@ To give a more concrete example, imagine we're implementing a `#help` command, t
 
 This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 low-level commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command - *"Displays proof in a Fitch table"*.
 
-If we write `#h "#explode"`, Lean will travel the `syntax (name := shortcut_h)` ➤ `@[macro shortcut_h] def helpMacro` ➤ `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.  
+If we write `#h "#explode"`, Lean will travel the `syntax (name := shortcut_h)` ➤ `@[macro shortcut_h] def helpMacro` ➤ `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.
 If we write `#help "#explode"`, Lean will travel the `syntax (name := default_h)` ➤ `@[command_elab default_h] def helpElab` route.
 
 Note how the matching between **syntax rules**, **macros**, and **elabs** is done via the `name` argument. If we used `macro_rules` or other syntax sugars, Lean would figure out the appropriate `name` arguments on its own.
 
-If we were defining something other than a command, instead of `: command` we could write `: term`, or `: tactic`, or any other syntax category.  
-The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`:  
+If we were defining something other than a command, instead of `: command` we could write `: term`, or `: tactic`, or any other syntax category.
+The elab function can also be of different types - the `CommandElab` we used to implement `#help` - but also `TermElab` and `Tactic`:
 
-- `TermElab` stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.  
-- `CommandElab` stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.  
-- `Tactic` stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.  
+- `TermElab` stands for **Syntax → Option Expr → TermElabM Expr**, so the elab function is expected to return the **Expr** object.
+- `CommandElab` stands for **Syntax → CommandElabM Unit**, so it shouldn't return anything.
+- `Tactic` stands for **Syntax → TacticM Unit**, so it shouldn't return anything either.
 
 This corresponds to our intuitive understanding of terms, commands and tactics in Lean - terms return a particular value upon execution, commands modify the environment or print something out, and tactics modify the proof state.
 
@@ -107,31 +107,33 @@ syntax (name := xxx) "red" : command
 syntax (name := yyy) "green" : command
 syntax (name := zzz) "blue" : command
 
-@[macro xxx] def redMacro : Macro := λ stx =>
+@[macro xxx] def redMacro : Macro := fun stx =>
   match stx with
   | _ => `(green)
 
-@[macro yyy] def greenMacro : Macro := λ stx =>
+@[macro yyy] def greenMacro : Macro := fun stx =>
   match stx with
   | _ => `(blue)
 
-@[command_elab zzz] def blueElab : CommandElab := λ stx =>
+@[command_elab zzz] def blueElab : CommandElab := fun _stx =>
   Lean.logInfo "finally, blue!"
 
-red -- finally, blue!
+/-⋆-//-- info: finally, blue! -/
+#guard_msgs in --#
+red
 
 /-
 
 The process is as follows:
 
-- match appropriate `syntax` rule (happens to have `name := xxx`) ➤  
+- match appropriate `syntax` rule (happens to have `name := xxx`) ➤
     apply `@[macro xxx]` ➤
 
-- match appropriate `syntax` rule (happens to have `name := yyy`) ➤  
+- match appropriate `syntax` rule (happens to have `name := yyy`) ➤
     apply `@[macro yyy]` ➤
 
-- match appropriate `syntax` rule (happens to have `name := zzz`) ➤  
-    can't find any macros with name `zzz` to apply,  
+- match appropriate `syntax` rule (happens to have `name := zzz`) ➤
+    can't find any macros with name `zzz` to apply,
     so apply `@[command_elab zzz]`.  🎉.
 
 The behaviour of syntax sugars (`elab`, `macro`, etc.) can be understood from these first principles.
@@ -148,7 +150,7 @@ Note how all functions that let us turn `Syntax` into `Expr` start with "elab", 
 
 ## Assigning meaning: macro VS elaboration?
 
-In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" ([Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290)).  
+In principle, you can do with a `macro` (almost?) anything you can do with the `elab` function. Just write what you would have in the body of your `elab` as a syntax within `macro`. However, the rule of thumb here is to only use `macro`s when the conversion is simple and truly feels elementary to the point of aliasing. As Henrik Böving puts it: "as soon as types or control flow is involved a macro is probably not reasonable anymore" ([Zulip thread](https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/The.20line.20between.20term.20elaboration.20and.20macro/near/280951290)).
 
 So - use `macro`s for creating syntax sugars, notations, and shortcuts, and prefer `elab`s for writing out code with some programming logic, even if it's potentially implementable in a `macro`.
 

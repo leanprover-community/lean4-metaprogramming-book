@@ -101,12 +101,12 @@ import Lean
 macro x:ident ":" t:term " ↦ " y:term : term => do
   `(fun $x : $t => $y)
 
-#eval (x : Nat ↦ x + 2) 2 -- 4
+#guard (x : Nat ↦ x + 2) 2 = 4
 
 macro x:ident " ↦ " y:term : term => do
-  `(fun $x  => $y)
+  `(fun $x => $y)
 
-#eval (x ↦  x + 2) 2 -- 4
+#guard (x ↦ x + 2) 2 = 4
 /-!
 
 ### Building a command
@@ -128,14 +128,14 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
       logInfo "success"
     catch | _ => throwError "failure"
 
-/-- info: success -/
+/-⋆-//-- info: success -/
 #guard_msgs in --#
 #assertType 5 : Nat
 
 -- don't display names of metavariables
 set_option pp.mvars false in
 
-/--
+/-⋆-//--
 error: type mismatch
   []
 has type
@@ -207,23 +207,36 @@ macro_rules
   | `(⟪ $x:arith * $y:arith ⟫) => `(Arith.mul ⟪ $x ⟫ ⟪ $y ⟫)
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
 
+section
+
+-- Avoid using field notation in the output of the `#check` command.
+set_option pp.fieldNotation.generalized false
+
+/-⋆-//-- info: Arith.mul (Arith.var "x") (Arith.var "y") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" * "y" ⟫
--- Arith.mul (Arith.var "x") (Arith.var "y") : Arith
 
+/-⋆-//-- info: Arith.add (Arith.var "x") (Arith.var "y") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + "y" ⟫
--- Arith.add (Arith.var "x") (Arith.var "y") : Arith
 
+/-⋆-//-- info: Arith.add (Arith.var "x") (Arith.nat 20) : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + 20 ⟫
--- Arith.add (Arith.var "x") (Arith.nat 20) : Arith
 
+/-⋆-//-- info: Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + "y" * "z" ⟫ -- precedence
--- Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith
 
+/-⋆-//-- info: Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" * "y" + "z" ⟫ -- precedence
--- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
+/-⋆-//-- info: Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith -/
+#guard_msgs in --#
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
--- Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z")
+
+end
 
 /-!
 ### Writing our own tactic
