@@ -183,7 +183,7 @@ Furthermore there are sometimes situations in which we are not working
 with basic `Syntax` but `Syntax` wrapped in more complex datastructures,
 most notably `Array (TSyntax c)` or `TSepArray c s`. Where `TSepArray c s`, is a
 `Syntax` specific type, it is what we get if we pattern match on some
-`Syntax` that users a separator `s` to separate things from the category `c`.
+`Syntax` that uses a separator `s` to separate things from the category `c`.
 For example if we match using: `$xs,*`, `xs` will have type `TSepArray c ","`,.
 With the special case of matching on no specific separator (i.e. whitespace):
 `$xs*` in which we will receive an `Array (TSyntax c)`.
