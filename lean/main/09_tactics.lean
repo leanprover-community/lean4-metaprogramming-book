@@ -582,7 +582,7 @@ elab "faq_throw_error" : tactic =>
 -- tactic 'faq_throw_error' failed, throwing an error at the current goal
 -- ⊢ ∀ (b : Bool), b = true
 
-/-!
+/-
 **Q: What is the difference between `Lean.Elab.Tactic.*` and `Lean.Meta.Tactic.*`?**
 
 A: `Lean.Meta.Tactic.*` contains low level code that uses the `Meta` monad to
@@ -590,6 +590,28 @@ implement basic features such as rewriting. `Lean.Elab.Tactic.*` contains
 high-level code that connects the low level development in `Lean.Meta` to the
 tactic infrastructure and the parsing front-end.
 
+**Q: How do I create a fresh unique name?**
+
+A: Use `Lean.Core.mkFreshUserName <name-basis>`.
+
+This creates a new (unused) inaccessible name based on name-basis. -/
+
+elab " faq_fresh_hyp_name " : tactic =>
+  Lean.Elab.Tactic.withMainContext do
+    -- create fresh name based on name `h`
+    let h := Lean.mkIdent (← Lean.Core.mkFreshUserName `h)
+    -- create new hypothesis with this fresh name
+    Lean.Elab.Tactic.evalTactic (← `(tactic| have $h : 1 + 1 = 2 := by simp))
+    -- use hypothesis
+    Lean.Elab.Tactic.evalTactic (← `(tactic| rewrite [$h:ident]))
+    -- remove hypothesis
+    Lean.Elab.Tactic.evalTactic (← `(tactic| clear $h))
+
+example : 1 + 1 = 2 := by
+  faq_fresh_hyp_name
+  rfl
+
+/-!
 ## Exercises
 
 1. Consider the theorem `p ∧ q ↔ q ∧ p`. We could either write its proof as a proof term, or construct it using the tactics.
