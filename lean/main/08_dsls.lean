@@ -85,7 +85,7 @@ elab "test_elabIMPLit " l:imp_lit : term => elabIMPLit l
 
 #reduce test_elabIMPLit 4     -- IMPLit.nat 4
 #reduce test_elabIMPLit true  -- IMPLit.bool true
-#reduce test_elabIMPLit false -- IMPLit.bool true
+#reduce test_elabIMPLit false -- IMPLit.bool false
 
 /-
 ## Elaborating expressions
