@@ -112,7 +112,7 @@ As you can see, `macro` is quite close to `notation` already:
 - it performed syntax declaration for us
 - it automatically wrote a `macro_rules` style function to match on it
 
-The are of course differences as well:
+There are of course differences as well:
 - `notation` is limited to the `term` syntax category
 - `notation` cannot have arbitrary macro code on the right hand side
 
