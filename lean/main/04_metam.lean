@@ -721,9 +721,9 @@ And again some tricky examples:
 
 ```lean
 ?x 0 1 -- Assuming `?x` is assigned (e.g. to `Nat.add`), its application is not
-          in WHNF.
+       -- in WHNF.
 h 0 1  -- Assuming `h` is a local definition (e.g. with value `Nat.add`), its
-          application is not in WHNF.
+       -- application is not in WHNF.
 ```
 
 Returning to the tactic that motivated this section, let us write a function
