@@ -595,7 +595,7 @@ the bound variables, we refer the reader to the macro chapter.
     @[command_elab colors] def elabColors : CommandElab := λ stx => Lean.logInfo "success!"
     ```
 
-4. Mathlib has a `#help option` command that displays all options available in the current environment, and their descriptions. `#help option pp.r` will display all options starting with a "pp.r" substring.
+4. Batteries has a `#help option` command that displays all options available in the current environment, and their descriptions. `#help option pp.r` will display all options starting with a "pp.r" substring.
 
     Create a `syntax` rule that would accept the following commands:
 
