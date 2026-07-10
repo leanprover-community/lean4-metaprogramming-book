@@ -8,7 +8,7 @@ this low-level machinery.
 More precisely, we shall enable Lean to understand the syntax of
 [IMP](http://concrete-semantics.org/concrete-semantics.pdf),
 which is a simple imperative language, often used for teaching operational and
-denotational semantics. 
+denotational semantics.
 
 We are not going to define everything with the same encoding that the book does.
 For instance, the book defines arithmetic expressions and boolean expressions.
@@ -30,6 +30,7 @@ open Lean Elab Meta
 inductive IMPLit
   | nat  : Nat  → IMPLit
   | bool : Bool → IMPLit
+deriving DecidableEq
 
 /- This is our only unary operator -/
 inductive IMPUnOp
@@ -83,9 +84,9 @@ def elabIMPLit : Syntax → MetaM Expr
 
 elab "test_elabIMPLit " l:imp_lit : term => elabIMPLit l
 
-#reduce test_elabIMPLit 4     -- IMPLit.nat 4
-#reduce test_elabIMPLit true  -- IMPLit.bool true
-#reduce test_elabIMPLit false -- IMPLit.bool true
+#guard test_elabIMPLit 4 = IMPLit.nat 4
+#guard test_elabIMPLit true = IMPLit.bool Bool.true
+#guard test_elabIMPLit false = IMPLit.bool Bool.false
 
 /-
 ## Elaborating expressions
