@@ -563,7 +563,7 @@ the bound variables, we refer the reader to the macro chapter.
 
 ## Exercises
 
-1. Create an "urgent minus 💀" notation such that `5 * 8 💀 4` returns `20`, and `8 💀 6 💀 1` returns `3`.
+1. Create an "urgent minus 💀" notation such that `5 * 8 💀 4` returns `20`, and `8 💀 6 💀 1` returns `1`.
 
     **a)** Using `notation` command.
     **b)** Using `infix` command.
