@@ -140,6 +140,39 @@ def unexpMyId : Unexpander
 For a few nice examples of unexpanders you can take a look at
 [NotationExtra](https://github.com/leanprover/lean4/blob/master/src/Init/NotationExtra.lean)
 
+### Handling nested parentheses
+
+Since the delaborator runs before the parenthesizer, the expression given to the unexpander lacks
+parentheses. This means that any pattern that has them will fail to match. For example, this
+unexpander fails:
+-/
+
+def removeId {α} (x : α) := x
+
+@[app_unexpander removeId]
+def unexpRemoveId : Unexpander
+  | `($_removeId (id $arg)) => pure arg
+  | _ => throw ()
+
+#check removeId (id 42) -- removeId (id 42) : Nat
+
+/-!
+We can work around this issue with a nested `match`:
+-/
+
+def removeId' {α} (x : α) := x
+
+@[app_unexpander removeId']
+def unexpRemoveId' : Unexpander
+  | `($_removeId' $arg) =>
+    match arg with
+      | `(id $arg) => pure arg
+      | _ => throw ()
+  | _ => throw ()
+
+#check removeId' (id 42) -- 42 : Nat
+
+/-!
 ### Mini project
 As per usual, we will tackle a little mini project at the end of the chapter.
 This time we build our own unexpander for a mini programming language.
