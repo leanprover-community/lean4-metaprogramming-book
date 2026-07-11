@@ -123,33 +123,6 @@
         <!-- Track and set sidebar scroll position -->
         <script>
             var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
-            function isLocalRelativeHref(href) {
-                return href &&
-                    href.charAt(0) !== '#' &&
-                    href.charAt(0) !== '/' &&
-                    !href.startsWith('//') &&
-                    !/^[a-z][a-z0-9+.-]*:/i.test(href);
-            }
-            function sidebarLinkRoot() {
-                if (path_to_root) {
-                    return path_to_root;
-                }
-
-                var base = document.querySelector('base[href]');
-                var isLocalhost = /^(localhost|127\.0\.0\.1|\[?::1\]?)$/.test(location.hostname);
-                if (base && isLocalhost) {
-                    return location.origin + '/';
-                }
-
-                return '';
-            }
-            var linkRoot = sidebarLinkRoot();
-            Array.from(sidebarScrollbox.querySelectorAll('a')).forEach(function (link) {
-                var href = link.getAttribute('href');
-                if (isLocalRelativeHref(href)) {
-                    link.setAttribute('href', linkRoot + href);
-                }
-            });
             sidebarScrollbox.addEventListener('click', function (e) {
                 if (e.target.tagName === 'A') {
                     sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
