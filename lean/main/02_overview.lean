@@ -15,9 +15,7 @@ Metaprogramming in Lean is deeply connected to the compilation steps - parsing, 
 
 The Lean compilation process can be summed up in the following diagram:
 
-<p align="center">
-<img width="700px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/78867009-2624-46a3-a1f4-f488fd25d494"/>
-</p>
+![](../../images/compilation-process.png)
 
 First, we will start with Lean code as a string. Then we'll see it become a `Syntax` object, and then an `Expr` object. Then finally we can execute it.  
 
@@ -63,9 +61,7 @@ Throughout this book you will see references to the elaborator; and in the "Extr
 
 Now, when you're reading Lean source code, you will see 11(+?) commands specifying the **parsing**/**elaboration**/**evaluation** process:
 
-<p align="center">
-<img width="500px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/9b83f06c-49c4-4d93-9d42-72e0499ae6c8"/>
-</p>
+![](../../images/syntax-macro-elab.png)
 
 In the image above, you see `notation`, `prefix`, `infix`, and `postfix` - all of these are combinations of `syntax` and `@[macro xxx] def ourMacro`, just like `macro`. These commands differ from `macro` in that you can only define syntax of a particular form with them.
 
@@ -73,9 +69,7 @@ All of these commands are used in Lean and Mathlib source code extensively, so i
 
 To give a more concrete example, imagine we're implementing a `#help` command, that can also be written as `#h`. Then we can write our **syntax rule**, **macro**, and **elab** as follows:
 
-<p align="center">
-<img width="900px" src="https://github.com/lakesare/lean4-metaprogramming-book/assets/7578559/adc1284f-3c0a-441d-91b8-7d87b6035688"/>
-</p>
+![](../../images/help-syntax-macro-elab.png)
 
 This image is not supposed to be read row by row - it's perfectly fine to use `macro_rules` together with `elab`. Suppose, however, that we used the 3 low-level commands to specify our `#help` command (the first row). After we've done this, we can write `#help "#explode"` or `#h "#explode"`, both of which will output a rather parsimonious documentation for the `#explode` command - *"Displays proof in a Fitch table"*.
 
@@ -140,9 +134,7 @@ The behaviour of syntax sugars (`elab`, `macro`, etc.) can be understood from th
 
 Lean will execute the aforementioned **parsing**/**elaboration**/**evaluation** steps for you automatically if you use `syntax`, `macro` and `elab` commands, however, when you're writing your tactics, you will also frequently need to perform these transitions manually. You can use the following functions for that:
 
-<p align="center">
-<img width="650px" src="https://github.com/arthurpaulino/lean4-metaprogramming-book/assets/7578559/b403e650-dab4-4843-be8c-8fb812695a3a"/>
-</p>
+![](../../images/syntax-expr-code.png)
 
 Note how all functions that let us turn `Syntax` into `Expr` start with "elab", short for "elaboration"; and all functions that let us turn `Expr` (or `Syntax`) into `actual code` start with "eval", short for "evaluation".
 
