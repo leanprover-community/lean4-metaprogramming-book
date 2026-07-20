@@ -18,18 +18,18 @@ import Lean
 -- XOR, denoted \oplus
 infixl:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 
-#eval true ⊕ true -- false
-#eval true ⊕ false -- true
-#eval false ⊕ true -- true
-#eval false ⊕ false -- false
+#guard (true ⊕ true) = false
+#guard (true ⊕ false) = true
+#guard (false ⊕ true) = true
+#guard (false ⊕ false) = false
 
 -- with `notation`, "left XOR"
 notation:10 l:10 " LXOR " r:11 => (!l && r)
 
-#eval true LXOR true -- false
-#eval true LXOR false -- false
-#eval false LXOR true -- true
-#eval false LXOR false -- false
+#guard (true LXOR true) = false
+#guard (true LXOR false) = false
+#guard (false LXOR true) = true
+#guard (false LXOR false) = false
 
 /- As we can see the `infixl` command allows us to declare a notation for
 a binary operation that is infix, meaning that the operator is in between
@@ -52,9 +52,9 @@ The two unintuitive parts about these two are:
   precedence, meaning how strong they bind to their arguments, let's see this in action:
 -/
 
-#eval true ⊕ false LXOR false -- false
-#eval (true ⊕ false) LXOR false -- false
-#eval true ⊕ (false LXOR false) -- true
+#guard (true ⊕ false LXOR false) = false
+#guard ((true ⊕ false) LXOR false) = false
+#guard (true ⊕ (false LXOR false)) = true
 
 /-!
 As we can see, the Lean interpreter analyzed the first term without parentheses
@@ -108,7 +108,8 @@ Lean attempts to find the longest parse possible. As a general rule of thumb:
 If precedence is ambiguous Lean will default to right associativity.
 -/
 
-#eval 5 ~ 3 ~ 3 -- 5 because this is parsed as 5 - (3 - 3)
+-- 5 because this is parsed as 5 - (3 - 3)
+#guard 5 ~ 3 ~ 3 = 5
 
 /-!
 Lastly, if we define overlapping notation such as:
@@ -123,7 +124,9 @@ then erroring because it doesn't know what to do with `mod` and the
 relation argument:
 -/
 
-#check 0 ~ 0 mod Eq -- 0 = 0 : Prop
+/-- info: 0 = 0 : Prop -/
+#guard_msgs in --#
+#check 0 ~ 0 mod Eq
 
 /-!
 This is again because it is looking for the longest possible parser which
@@ -154,9 +157,12 @@ We can now write `MyTerm` in place of things like `1 + 1` and it will be
 it just means that the Lean parser can understand it:
 -/
 
+/--
+info: elaboration function for 'termMyTerm' has not been implemented
+  MyTerm
+-/
+#guard_msgs in --#
 #check_failure MyTerm
--- elaboration function for 'termMyTerm' has not been implemented
---   MyTerm
 
 /-! Note: `#check_failure` command allows incorrectly typed terms to be indicated without error. -/
 
@@ -367,10 +373,27 @@ Let's see a few examples:
 -/
 
 -- Name literals are written with this little ` in front of the name
-#eval Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax of `Nat.add 1 1`
-#eval mkNode `«term_+_» #[Syntax.mkNumLit "1", mkAtom "+", Syntax.mkNumLit "1"] -- is the syntax for `1 + 1`
 
--- note that the `«term_+_» is the auto-generated SyntaxNodeKind for the + syntax
+/-- info: Nat.add 1 1 -/
+#guard_msgs in --#
+#eval show CoreM Unit from do
+  -- This is the syntax of `Nat.add 1 1`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]
+
+  -- pretty print the syntax
+  let fmt ← PrettyPrinter.ppTerm stx
+  logInfo <| MessageData.ofFormat fmt
+
+/-- info: 1 + 1 -/
+#guard_msgs in --#
+#eval show CoreM Unit from do
+  -- This is the syntax of `1 + 1`
+  -- Note that the `«term_+_» is the auto-generated SyntaxNodeKind for the + syntax
+  let stx := mkNode `«term_+_» #[Syntax.mkNumLit "1", mkAtom "+", Syntax.mkNumLit "1"]
+
+  -- pretty print the syntax
+  let fmt ← PrettyPrinter.ppTerm ⟨stx.raw⟩
+  logInfo <| MessageData.ofFormat fmt
 
 /-
 If you don't like this way of creating `Syntax` at all you are not alone.
@@ -390,8 +413,15 @@ def isAdd11 : Syntax → Bool
   | `(Nat.add 1 1) => true
   | _ => false
 
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- true
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- false
+#guard
+  -- This is the syntax of `Nat.add 1 1`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]
+  isAdd11 stx = true
+
+#guard
+  -- This is the syntax of `Nat.add foo 1`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]
+  isAdd11 stx = false
 
 /-!
 The next level with matches is to capture variables from the input instead
