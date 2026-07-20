@@ -432,9 +432,32 @@ def isAdd : Syntax → Option (Syntax × Syntax)
   | `(Nat.add $x $y) => some (x, y)
   | _ => none
 
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some ...
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- some ...
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]) -- none
+/-- info: x: 1, y: 1 -/
+#guard_msgs in --#
+#eval show CoreM Unit from do
+  -- This is the syntax of `Nat.add 1 1`
+  let some (x, y) := isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])
+    | return
+
+  let fmtx ← PrettyPrinter.ppTerm ⟨x⟩
+  let fmty ← PrettyPrinter.ppTerm ⟨y⟩
+  logInfo <| MessageData.ofFormat f!"x: {fmtx}, y: {fmty}"
+
+/-- info: x: foo, y: 1 -/
+#guard_msgs in --#
+#eval show CoreM Unit from do
+  -- This is the syntax of `Nat.add foo 1`
+  let some (x, y) := isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"])
+    | return
+
+  let fmtx ← PrettyPrinter.ppTerm ⟨x⟩
+  let fmty ← PrettyPrinter.ppTerm ⟨y⟩
+  logInfo <| MessageData.ofFormat f!"x: {fmtx}, y: {fmty}"
+
+#guard
+  -- This is the syntax of `Nat.add foo`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]
+  isAdd stx == none
 
 /-!
 ### Typed Syntax
@@ -456,8 +479,15 @@ def isLitAdd : TSyntax `term → Option Nat
   | `(Nat.add $x:num $y:num) => some (x.getNat + y.getNat)
   | _ => none
 
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some 2
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
+#guard
+  -- This is the syntax of `Nat.add 1 1`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]
+  isLitAdd stx == some 2
+
+#guard
+  -- This is the syntax of `Nat.add foo 1`
+  let stx := Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]
+  isLitAdd stx == none
 
 /-!
 If you want to access the `Syntax` behind a `TSyntax` you can do this using
@@ -496,7 +526,9 @@ def test : Elab.TermElabM Nat := do
   let stx ← `(arith| (12 + 3) - 4)
   pure (denoteArith stx)
 
-#eval test -- 11
+/-- info: 11 -/
+#guard_msgs in --#
+#eval test
 
 /-!
 Feel free to play around with this example and extend it in whatever way
@@ -544,7 +576,7 @@ def Set.mem (X : Set α) (x : α) : Prop := X x
 instance : Membership α (Set α) where
   mem := Set.mem
 
-def Set.empty : Set α := λ _ => False
+def Set.empty : Set α := fun _ => False
 
 instance : Subset (Set α) where
   subset X Y := ∀ (x : α), x ∈ X → x ∈ Y
@@ -577,10 +609,15 @@ basic version of our notation:
 -/
 notation "{ " x " | " p " }" => setOf (fun x => p)
 
-#check { (x : Nat) | x ≤ 1 } -- { x | x ≤ 1 } : Set Nat
+/-- info: { x | x ≤ 1 } : Set Nat -/
+#guard_msgs in --#
+#check { (x : Nat) | x ≤ 1 }
 
-example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
-example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set.mem, setOf]
+example : 1 ∈ { (y : Nat) | y ≤ 1 } := by
+  simp [Membership.mem, Set.mem, setOf]
+
+example : 2 ∈ { (y : Nat) | y ≤ 3 ∧ 1 ≤ y } := by
+  simp [Membership.mem, Set.mem, setOf]
 
 /-!
 This intuitive notation will indeed deal with what we could throw at

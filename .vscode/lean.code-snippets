@@ -1,0 +1,10 @@
+{
+  "guard": {
+    "scope": "lean,lean4",
+    "prefix": "guard",
+    "body": [
+      "#guard_msgs in --#",
+    ],
+    "description": "hidden #guard_msgs line for message checking"
+  },
+}
