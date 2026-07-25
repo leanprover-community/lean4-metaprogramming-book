@@ -24,10 +24,10 @@ syntax:10 (name := lxor) term:10 " LXOR " term:11 : term
   | `($l:term LXOR $r:term) => `(!$l && $r) -- we can use the quotation mechanism to create `Syntax` in macros
   | _ => Macro.throwUnsupported
 
-#eval true LXOR true -- false
-#eval true LXOR false -- false
-#eval false LXOR true -- true
-#eval false LXOR false -- false
+#guard reprStr (true LXOR true) == "false" -- false
+#guard reprStr (true LXOR false) == "false" -- false
+#guard reprStr (false LXOR true) == "true" -- true
+#guard reprStr (false LXOR false) == "false" -- false
 
 /-
 That was quite easy! The `Macro.throwUnsupported` function can be used by a macro
@@ -47,8 +47,8 @@ is it does not `Macro.throwUnsupported`. Let's see this in action:
   | `(true LXOR true) => `(true)
   | _ => Macro.throwUnsupported
 
-#eval true LXOR true -- true, handled by new macro
-#eval true LXOR false -- false, still handled by the old
+#guard reprStr (true LXOR true) == "true" -- true, handled by new macro
+#guard reprStr (true LXOR false) == "false" -- false, still handled by the old
 
 /-
 This capability is obviously *very* powerful! It should not be used
@@ -57,10 +57,10 @@ behaviour while writing code later on. The following example illustrates
 this weird behaviour:
 -/
 
-#eval true LXOR true -- true, handled by new macro
+#guard reprStr (true LXOR true) == "true" -- true, handled by new macro
 
 def foo := true
-#eval foo LXOR foo -- false, handled by old macro, after all the identifiers have a different name
+#guard reprStr (foo LXOR foo) == "false" -- false, handled by old macro, after all the identifiers have a different name
 
 /-
 Without knowing exactly how this macro is implemented this behaviour
@@ -102,10 +102,10 @@ If this is still not short enough for you, there is a next step using the
 
 macro l:term:10 " ⊕ " r:term:11 : term => `((!$l && $r) || ($l && !$r))
 
-#eval true ⊕ true -- false
-#eval true ⊕ false -- true
-#eval false ⊕ true -- true
-#eval false ⊕ false -- false
+#guard reprStr (true ⊕ true) == "false" -- false
+#guard reprStr (true ⊕ false) == "true" -- true
+#guard reprStr (false ⊕ true) == "true" -- true
+#guard reprStr (false ⊕ false) == "false" -- false
 
 /-
 As you can see, `macro` is quite close to `notation` already:
@@ -154,6 +154,10 @@ compiler, you could also declare functions that are specific to certain
 `TSyntax` variants. For example as we have seen in the syntax chapter
 there exists the function:
 -/
+/--
+info: Lean.TSyntax.getNat (s : NumLit) : Nat
+-/
+#guard_msgs in --#
 #check TSyntax.getNat -- TSyntax.getNat : TSyntax numLitKind → Nat
 /-!
 Which is guaranteed to not panic because we know that the `Syntax` that
@@ -205,7 +209,15 @@ macro_rules
   | `(cut_tuple ($x, $y)) => `(($x, $y))
   | `(cut_tuple ($x, $y, $xs,*)) => `(($y, $xs,*))
 
+/--
+info: (1, 2) : Nat × Nat
+-/
+#guard_msgs in --#
 #check cut_tuple (1, 2) -- (1, 2) : Nat × Nat
+/--
+info: (2, 3) : Nat × Nat
+-/
+#guard_msgs in --#
 #check cut_tuple (1, 2, 3) -- (2, 3) : Nat × Nat
 
 /-!
@@ -238,8 +250,8 @@ involve anti quotation variables involved here". So now we can run
 this syntax both with and without type ascription:
 -/
 
-#eval mylet x := 5 in x - 10 -- 0, due to subtraction behaviour of `Nat`
-#eval mylet x : Int := 5 in x - 10 -- -5, after all it is an `Int` now
+#guard reprStr (mylet x := 5 in x - 10) == "0" -- 0, due to subtraction behaviour of `Nat`
+#guard reprStr (mylet x : Int := 5 in x - 10) == "-5" -- -5, after all it is an `Int` now
 
 /-!
 The second and last splice might remind readers of list comprehension
@@ -253,7 +265,7 @@ syntax "foreach " "[" term,* "]" term : term
 macro_rules
   | `(foreach [ $[$x:term],* ] $func:term) => `(let f := $func; [ $[f $x],* ])
 
-#eval foreach [1,2,3,4] (Nat.add 2) -- [3, 4, 5, 6]
+#guard reprStr (foreach [1,2,3,4] (Nat.add 2)) == "[3, 4, 5, 6]" -- [3, 4, 5, 6]
 
 /-!
 In this case the `$[...],*` part is the splice. On the match side it tries
@@ -280,7 +292,7 @@ macro "const" e:term : term => `(fun x => $e)
 def x : Nat := 42
 
 -- Which `x` should be used by the compiler in place of `$e`?
-#eval (const x) 10 -- 42
+#guard reprStr ((const x) 10) == "42" -- 42
 
 /-
 Given the fact that macros perform only syntactic translations one might
@@ -436,7 +448,7 @@ macro_rules
   | `([Arith| $x:arith - $y:arith]) => `([Arith| $x] - [Arith| $y])
   | `([Arith| ($x:arith)]) => `([Arith| $x])
 
-#eval [Arith| (12 + 3) - 4] -- 11
+#guard reprStr ([Arith| (12 + 3) - 4]) == "11" -- 11
 
 /-! Again feel free to play around with it. If you want to build more complex
 things, like expressions with variables, maybe consider building an inductive type
@@ -494,6 +506,10 @@ macro_rules
   | `({ $var:ident ∈ $s:term | $body:term }) => `(setOf (fun $var => $var ∈ $s ∧ $body))
 
 -- Old examples with better syntax:
+/--
+info: setOf fun x => x ≤ 1 : Set Nat
+-/
+#guard_msgs in --#
 #check { x : Nat | x ≤ 1 } -- setOf fun x => x ≤ 1 : Set Nat
 
 example : 1 ∈ { y : Nat | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]
@@ -501,6 +517,10 @@ example : 2 ∈ { y : Nat | y ≤ 3 ∧ 1 ≤ y } := by simp[Membership.mem, Set
 
 -- New examples:
 def oneSet : Set Nat := λ x => x = 1
+/--
+info: setOf fun x => x ∈ oneSet ∧ 10 ≤ x : Set Nat
+-/
+#guard_msgs in --#
 #check { x ∈ oneSet | 10 ≤ x } -- setOf fun x => x ∈ oneSet ∧ 10 ≤ x : Set Nat
 
 example : ∀ x, ¬(x ∈ { y ∈ oneSet | y ≠ 1 }) := by

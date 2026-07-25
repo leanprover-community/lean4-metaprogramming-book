@@ -18,18 +18,18 @@ import Lean
 -- XOR, denoted \oplus
 infixl:60 " ⊕ " => fun l r => (!l && r) || (l && !r)
 
-#eval true ⊕ true -- false
-#eval true ⊕ false -- true
-#eval false ⊕ true -- true
-#eval false ⊕ false -- false
+#guard reprStr (true ⊕ true) == "false" -- false
+#guard reprStr (true ⊕ false) == "true" -- true
+#guard reprStr (false ⊕ true) == "true" -- true
+#guard reprStr (false ⊕ false) == "false" -- false
 
 -- with `notation`, "left XOR"
 notation:10 l:10 " LXOR " r:11 => (!l && r)
 
-#eval true LXOR true -- false
-#eval true LXOR false -- false
-#eval false LXOR true -- true
-#eval false LXOR false -- false
+#guard reprStr (true LXOR true) == "false" -- false
+#guard reprStr (true LXOR false) == "false" -- false
+#guard reprStr (false LXOR true) == "true" -- true
+#guard reprStr (false LXOR false) == "false" -- false
 
 /- As we can see the `infixl` command allows us to declare a notation for
 a binary operation that is infix, meaning that the operator is in between
@@ -52,9 +52,9 @@ The two unintuitive parts about these two are:
   precedence, meaning how strong they bind to their arguments, let's see this in action:
 -/
 
-#eval true ⊕ false LXOR false -- false
-#eval (true ⊕ false) LXOR false -- false
-#eval true ⊕ (false LXOR false) -- true
+#guard reprStr (true ⊕ false LXOR false) == "false" -- false
+#guard reprStr ((true ⊕ false) LXOR false) == "false" -- false
+#guard reprStr (true ⊕ (false LXOR false)) == "true" -- true
 
 /-!
 As we can see, the Lean interpreter analyzed the first term without parentheses
@@ -108,7 +108,7 @@ Lean attempts to find the longest parse possible. As a general rule of thumb:
 If precedence is ambiguous Lean will default to right associativity.
 -/
 
-#eval 5 ~ 3 ~ 3 -- 5 because this is parsed as 5 - (3 - 3)
+#guard reprStr (5 ~ 3 ~ 3) == "5" -- 5 because this is parsed as 5 - (3 - 3)
 
 /-!
 Lastly, if we define overlapping notation such as:
@@ -123,6 +123,10 @@ then erroring because it doesn't know what to do with `mod` and the
 relation argument:
 -/
 
+/--
+info: 0 = 0 : Prop
+-/
+#guard_msgs in --#
 #check 0 ~ 0 mod Eq -- 0 = 0 : Prop
 
 /-!
@@ -207,6 +211,7 @@ disconnected from the rest of the system. And these cannot be used in place of
 terms anymore:
 
 ```lean
+#guard_msgs in --#
 #check ⊥ AND ⊤ -- expected term
 ```
 -/
@@ -279,7 +284,9 @@ add this to the `term` category:
 
 ```lean
 syntax "bin(" binNumber ")" : term
+#guard_msgs in --#
 #check bin(Z, O, Z, Z, O) -- elaboration function hasn't been implemented but parsing passes
+#guard_msgs in --#
 #check bin() -- fails to parse because `binNumber` is "one or many": expected 'O' or 'Z'
 ```
 -/
@@ -356,6 +363,10 @@ we most definitely want to avoid. Luckily for us there is quite an extensive API
 -/
 
 open Lean
+/--
+info: Lean.Syntax : Type
+-/
+#guard_msgs in --#
 #check Syntax -- Syntax. autocomplete
 
 /-!
@@ -367,8 +378,8 @@ Let's see a few examples:
 -/
 
 -- Name literals are written with this little ` in front of the name
-#eval Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"] -- is the syntax of `Nat.add 1 1`
-#eval mkNode `«term_+_» #[Syntax.mkNumLit "1", mkAtom "+", Syntax.mkNumLit "1"] -- is the syntax for `1 + 1`
+#guard reprStr (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) == "{ raw := Lean.Syntax.node\n           (Lean.SourceInfo.none)\n           `Lean.Parser.Term.app\n           #[Lean.Syntax.ident (Lean.SourceInfo.none) \"Nat.add\".toSubstring `Nat.add [],\n             Lean.Syntax.node\n               (Lean.SourceInfo.none)\n               `null\n               #[Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"],\n                 Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"]]] }" -- is the syntax of `Nat.add 1 1`
+#guard reprStr (mkNode `«term_+_» #[Syntax.mkNumLit "1", mkAtom "+", Syntax.mkNumLit "1"]) == "{ raw := Lean.Syntax.node\n           (Lean.SourceInfo.none)\n           `«term_+_»\n           #[Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"],\n             Lean.Syntax.atom (Lean.SourceInfo.none) \"+\",\n             Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"]] }" -- is the syntax for `1 + 1`
 
 -- note that the `«term_+_» is the auto-generated SyntaxNodeKind for the + syntax
 
@@ -390,8 +401,8 @@ def isAdd11 : Syntax → Bool
   | `(Nat.add 1 1) => true
   | _ => false
 
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- true
-#eval isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- false
+#guard reprStr (isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])) == "true" -- true
+#guard reprStr (isAdd11 (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"])) == "false" -- false
 
 /-!
 The next level with matches is to capture variables from the input instead
@@ -402,9 +413,9 @@ def isAdd : Syntax → Option (Syntax × Syntax)
   | `(Nat.add $x $y) => some (x, y)
   | _ => none
 
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some ...
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- some ...
-#eval isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo]) -- none
+#guard reprStr (isAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])) == "some (Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"],\n Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"])" -- some ...
+#guard reprStr (isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"])) == "some (Lean.Syntax.ident (Lean.SourceInfo.none) \"foo\".toSubstring `foo [],\n Lean.Syntax.node (Lean.SourceInfo.none) `num #[Lean.Syntax.atom (Lean.SourceInfo.none) \"1\"])" -- some ...
+#guard reprStr (isAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo])) == "none" -- none
 
 /-!
 ### Typed Syntax
@@ -426,8 +437,8 @@ def isLitAdd : TSyntax `term → Option Nat
   | `(Nat.add $x:num $y:num) => some (x.getNat + y.getNat)
   | _ => none
 
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"]) -- some 2
-#eval isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"]) -- none
+#guard reprStr (isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[Syntax.mkNumLit "1", Syntax.mkNumLit "1"])) == "some 2" -- some 2
+#guard reprStr (isLitAdd (Syntax.mkApp (mkIdent `Nat.add) #[mkIdent `foo, Syntax.mkNumLit "1"])) == "none" -- none
 
 /-!
 If you want to access the `Syntax` behind a `TSyntax` you can do this using
@@ -466,6 +477,8 @@ def test : Elab.TermElabM Nat := do
   let stx ← `(arith| (12 + 3) - 4)
   pure (denoteArith stx)
 
+/-- info: 11 -/
+#guard_msgs in --#
 #eval test -- 11
 
 /-!
@@ -547,6 +560,10 @@ basic version of our notation:
 -/
 notation "{ " x " | " p " }" => setOf (fun x => p)
 
+/--
+info: { x | x ≤ 1 } : Set Nat
+-/
+#guard_msgs in --#
 #check { (x : Nat) | x ≤ 1 } -- { x | x ≤ 1 } : Set Nat
 
 example : 1 ∈ { (y : Nat) | y ≤ 1 } := by simp[Membership.mem, Set.mem, setOf]

@@ -55,7 +55,15 @@ def foo : Nat → Nat := fun x => 42
 def delabFoo : Delab := do
   `(1)
 
+/--
+info: 1 : Nat → Nat
+-/
+#guard_msgs in --#
 #check (foo) -- 1 : Nat → Nat
+/--
+info: 1 : Nat
+-/
+#guard_msgs in --#
 #check foo 13 -- 1 : Nat, full applications are also pretty printed this way
 
 /-!
@@ -68,6 +76,10 @@ attributes we can also overload delaborators:
 def delabfoo2 : Delab := do
   `(2)
 
+/--
+info: 2 : Nat → Nat
+-/
+#guard_msgs in --#
 #check (foo) -- 2 : Nat → Nat
 
 /-!
@@ -82,6 +94,10 @@ def delabfoo3 : Delab := do
   failure
   `(3)
 
+/--
+info: 2 : Nat → Nat
+-/
+#guard_msgs in --#
 #check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
 
 /-!
@@ -97,7 +113,15 @@ def delabfooFinal : Delab := do
   let arg ← withAppArg delab
   `($fn $arg)
 
+/--
+info: fooSpecial 42 : Nat
+-/
+#guard_msgs in --#
 #check foo 42 -- fooSpecial 42 : Nat
+/--
+info: 2 : Nat → Nat
+-/
+#guard_msgs in --#
 #check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
 
 /-!
@@ -133,7 +157,15 @@ def unexpMyId : Unexpander
   | `($_myid $arg) => set_option hygiene false in `(id $arg)
   | `($_myid) => pure $ mkIdent `id
 
+/--
+info: id 12 : Nat
+-/
+#guard_msgs in --#
 #check myid 12 -- id 12 : Nat
+/--
+info: id : ?m.4215 → ?m.4215
+-/
+#guard_msgs in --#
 #check (myid) -- id : ?m.3870 → ?m.3870
 
 /-!
@@ -154,6 +186,10 @@ def unexpRemoveId : Unexpander
   | `($_removeId (id $arg)) => pure arg
   | _ => throw ()
 
+/--
+info: removeId (id 42) : Nat
+-/
+#guard_msgs in --#
 #check removeId (id 42) -- removeId (id 42) : Nat
 
 /-!
@@ -170,6 +206,10 @@ def unexpRemoveId' : Unexpander
       | _ => throw ()
   | _ => throw ()
 
+/--
+info: 42 : Nat
+-/
+#guard_msgs in --#
 #check removeId' (id 42) -- 42 : Nat
 
 /-!
@@ -205,6 +245,11 @@ instance : Coe Ident (TSyntax `lang) where
 
 -- LangExpr.letE "foo" (LangExpr.numConst 12)
 --   (LangExpr.letE "bar" (LangExpr.ident "foo") (LangExpr.ident "foo")) : LangExpr
+/--
+info: LangExpr.letE "foo" (LangExpr.numConst 12)
+  (LangExpr.letE "bar" (LangExpr.ident "foo") (LangExpr.ident "foo")) : LangExpr
+-/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in
   let bar := foo in
@@ -238,11 +283,19 @@ def unexpandLet : Unexpander
   | _ => throw ()
 
 -- [Lang| let foo := 12 in foo] : LangExpr
+/--
+info: [Lang| let foo := 12 in foo] : LangExpr
+-/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in foo
 ]
 
 -- [Lang| let foo := 12 in let bar := foo in foo] : LangExpr
+/--
+info: [Lang| let foo := 12 in let bar := foo in foo] : LangExpr
+-/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in
   let bar := foo in

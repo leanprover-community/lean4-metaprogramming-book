@@ -9,6 +9,10 @@ def one : Expr :=
   Expr.app (Expr.app (Expr.const `Nat.add []) (mkNatLit 1)) (mkNatLit 2)
 
 elab "one" : term => return one
+/--
+info: Nat.add 1 2 : Nat
+-/
+#guard_msgs in --#
 #check one  -- Nat.add 1 2 : Nat
 #reduce one -- 3
 
@@ -17,6 +21,10 @@ def two : Expr :=
   Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2]
 
 elab "two" : term => return two
+/--
+info: Nat.add 1 2 : Nat
+-/
+#guard_msgs in --#
 #check two  -- Nat.add 1 2 : Nat
 #reduce two -- 3
 
@@ -27,6 +35,10 @@ def three : Expr :=
   BinderInfo.default
 
 elab "three" : term => return three
+/--
+info: fun x => Nat.add 1 x : Nat → Nat
+-/
+#guard_msgs in --#
 #check three    -- fun x => Nat.add 1 x : Nat → Nat
 #reduce three 6 -- 7
 
@@ -52,6 +64,10 @@ def four : Expr :=
   BinderInfo.default
 
 elab "four" : term => return four
+/--
+info: fun a b c => (b.mul a).add c : Nat → Nat → Nat → Nat
+-/
+#guard_msgs in --#
 #check four -- fun a b c => Nat.add (Nat.mul b a) c : Nat → Nat → Nat → Nat
 #reduce four 666 1 2 -- 668
 
@@ -66,6 +82,10 @@ def five :=
   BinderInfo.default
 
 elab "five" : term => return five
+/--
+info: fun x y => x.add y : Nat → Nat → Nat
+-/
+#guard_msgs in --#
 #check five      -- fun x y => Nat.add x y : Nat → Nat → Nat
 #reduce five 4 5 -- 9
 
@@ -76,8 +96,12 @@ def six :=
   BinderInfo.default
 
 elab "six" : term => return six
+/--
+info: fun x => "Hello, ".append x : String → String
+-/
+#guard_msgs in --#
 #check six        -- fun x => String.append "Hello, " x : String → String
-#eval six "world" -- "Hello, world"
+#guard reprStr (six "world") == "\"Hello, world\"" -- "Hello, world"
 
 /- ### 7. -/
 def seven : Expr :=
@@ -86,6 +110,10 @@ def seven : Expr :=
   BinderInfo.default
 
 elab "seven" : term => return seven
+/--
+info: ∀ (x : Prop), x ∧ x : Prop
+-/
+#guard_msgs in --#
 #check seven  -- ∀ (x : Prop), x ∧ x : Prop
 #reduce seven -- ∀ (x : Prop), x ∧ x
 
@@ -96,6 +124,10 @@ def eight : Expr :=
   BinderInfo.default
 
 elab "eight" : term => return eight
+/--
+info: Nat → String : Type
+-/
+#guard_msgs in --#
 #check eight  -- Nat → String : Type
 #reduce eight -- Nat → String
 
@@ -110,6 +142,10 @@ def nine : Expr :=
   BinderInfo.default
 
 elab "nine" : term => return nine
+/--
+info: fun p hP => hP : ∀ (p : Prop), p → p
+-/
+#guard_msgs in --#
 #check nine  -- fun p hP => hP : ∀ (p : Prop), p → p
 #reduce nine -- fun p hP => hP
 
@@ -118,5 +154,9 @@ def ten : Expr :=
   Expr.sort (Nat.toLevel 7)
 
 elab "ten" : term => return ten
+/--
+info: Type 6 : Type 7
+-/
+#guard_msgs in --#
 #check ten  -- Type 6 : Type 7
 #reduce ten -- Type 6

@@ -564,6 +564,10 @@ Lean.Elab.Tactic.evalTactic (← `(tactic| try rfl))
 A: Use `Lean.Meta.isExprDefEq <expr-1> <expr-2>`.
 -/
 
+/--
+info: Lean.Meta.isExprDefEq (t s : Lean.Expr) : Lean.MetaM Bool
+-/
+#guard_msgs in --#
 #check Lean.Meta.isExprDefEq
 -- Lean.Meta.isExprDefEq : Lean.Expr → Lean.Expr → Lean.MetaM Bool
 

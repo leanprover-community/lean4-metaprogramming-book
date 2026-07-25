@@ -15,9 +15,9 @@ elab n:term "♥" a:"♥"? b:"♥"? : term => do
   else
     return Expr.app (Expr.app (Expr.const `Nat.add []) nExpr) (mkNatLit 1)
 
-#eval 7 ♥ -- 8
-#eval 7 ♥♥ -- 9
-#eval 7 ♥♥♥ -- 10
+#guard reprStr (7 ♥) == "8" -- 8
+#guard reprStr (7 ♥♥) == "9" -- 9
+#guard reprStr (7 ♥♥♥) == "10" -- 10
 
 /- ### 2. -/
 

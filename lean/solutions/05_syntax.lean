@@ -82,7 +82,7 @@ syntax (name := bigsumin) "∑ " Batteries.ExtendedBinder.extBinder "in " term "
 def elabSum : TermElab := fun stx tp =>
   return mkNatLit 666
 
-#eval ∑ x in { 1, 2, 3 }, x^2
+#guard reprStr (∑ x in { 1, 2, 3 }, x^2) == "666"
 
 def hi := (∑ x in { "apple", "banana", "cherry" }, x.length) + 1
-#eval hi
+#guard reprStr (hi) == "667"

@@ -101,12 +101,12 @@ import Lean
 macro x:ident ":" t:term " ↦ " y:term : term => do
   `(fun $x : $t => $y)
 
-#eval (x : Nat ↦ x + 2) 2 -- 4
+#guard reprStr ((x : Nat ↦ x + 2) 2) == "4" -- 4
 
 macro x:ident " ↦ " y:term : term => do
   `(fun $x  => $y)
 
-#eval (x ↦  x + 2) 2 -- 4
+#guard reprStr ((x ↦  x + 2) 2) == "4" -- 4
 /-!
 
 ### Building a command
@@ -207,21 +207,45 @@ macro_rules
   | `(⟪ $x:arith * $y:arith ⟫) => `(Arith.mul ⟪ $x ⟫ ⟪ $y ⟫)
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
 
+/--
+info: (Arith.var "x").mul (Arith.var "y") : Arith
+-/
+#guard_msgs in --#
 #check ⟪ "x" * "y" ⟫
 -- Arith.mul (Arith.var "x") (Arith.var "y") : Arith
 
+/--
+info: (Arith.var "x").add (Arith.var "y") : Arith
+-/
+#guard_msgs in --#
 #check ⟪ "x" + "y" ⟫
 -- Arith.add (Arith.var "x") (Arith.var "y") : Arith
 
+/--
+info: (Arith.var "x").add (Arith.nat 20) : Arith
+-/
+#guard_msgs in --#
 #check ⟪ "x" + 20 ⟫
 -- Arith.add (Arith.var "x") (Arith.nat 20) : Arith
 
+/--
+info: (Arith.var "x").add ((Arith.var "y").mul (Arith.var "z")) : Arith
+-/
+#guard_msgs in --#
 #check ⟪ "x" + "y" * "z" ⟫ -- precedence
 -- Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith
 
+/--
+info: ((Arith.var "x").mul (Arith.var "y")).add (Arith.var "z") : Arith
+-/
+#guard_msgs in --#
 #check ⟪ "x" * "y" + "z" ⟫ -- precedence
 -- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
+/--
+info: ((Arith.var "x").add (Arith.var "y")).mul (Arith.var "z") : Arith
+-/
+#guard_msgs in --#
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
 -- Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z")
 

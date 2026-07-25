@@ -5,6 +5,11 @@ open Lean Meta
 
 /- ### 1. -/
 
+/--
+info: value in hi: ?_uniq.958
+value in hi: Nat.succ Nat.zero
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let hi ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
   IO.println s!"value in hi: {← instantiateMVars hi}" -- ?_uniq.1
@@ -15,12 +20,20 @@ open Lean Meta
 /- ### 2. -/
 
 -- It would output the same expression we gave it - there were no metavariables to instantiate.
+/--
+info: fun (x : Nat) => x
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let instantiatedExpr ← instantiateMVars (Expr.lam `x (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default)
   IO.println instantiatedExpr -- fun (x : Nat) => x
 
 /- ### 3. -/
 
+/--
+info: Nat.add (Nat.add (Nat.succ (Nat.succ Nat.zero)) ?_uniq.2346) (Nat.succ Nat.zero)
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
   let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
@@ -86,18 +99,34 @@ theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
 
 def sixA : Bool → Bool := fun x => x
 -- .lam `x (.const `Bool []) (.bvar 0) (Lean.BinderInfo.default)
+/--
+info: Lean.Expr.lam `x (Lean.Expr.const `Bool []) (Lean.Expr.bvar 0) (Lean.BinderInfo.default)
+-/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixA [])
 
 def sixB : Bool := (fun x => x) ((true && false) || true)
 -- .const `Bool.true []
+/--
+info: Lean.Expr.const `Bool.true []
+-/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixB [])
 
 def sixC : Nat := 800 + 2
 -- .lit (Lean.Literal.natVal 802)
+/--
+info: Lean.Expr.lit (Lean.Literal.natVal 802)
+-/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixC [])
 
 /- ### 7. -/
 
+/--
+info: true
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let litExpr := Expr.lit (Lean.Literal.natVal 1)
   let standardExpr := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
@@ -110,6 +139,10 @@ def sixC : Nat := 800 + 2
 -- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
 -- Definitionally equal.
 def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
+/--
+info: true
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let expr1 := Lean.mkNatLit 5
   let expr2 := Expr.const `expr2 []
@@ -118,6 +151,10 @@ def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 
 -- b) `2 + 1 =?= 1 + 2`
 -- Definitionally equal.
+/--
+info: true
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
   let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Lean.mkNatLit 2]
@@ -126,6 +163,10 @@ def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 
 -- c) `?a =?= 2`, where `?a` has a type `String`
 -- Not definitionally equal.
+/--
+info: false
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let expr1 ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `expr1)
   let expr2 := Lean.mkNatLit 2
@@ -135,6 +176,12 @@ def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 -- d) `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
 -- Definitionally equal.
 -- `?a` is assigned to `"hi"`, `?b` is assigned to `Int`.
+/--
+info: true
+a: "hi"
+b: Int
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar Option.none (userName := `a)
   let b ← Lean.Meta.mkFreshExprMVar Option.none (userName := `b)
@@ -148,6 +195,10 @@ def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 
 -- e) `2 + ?a =?= 3`
 -- Not definitionally equal.
+/--
+info: false
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
@@ -158,6 +209,11 @@ def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
 -- f) `2 + ?a =?= 2 + 1`
 -- Definitionally equal.
 -- `?a` is assigned to `1`.
+/--
+info: true
+a: OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
@@ -175,6 +231,14 @@ def defaultDef                    : Nat := 3
 
 @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
+/--
+info: [1, instanceDef, defaultDef, irreducibleDef]
+[1, 2, defaultDef, irreducibleDef]
+[1, 2, 3, irreducibleDef]
+[1, 2, 3, 4]
+[1, 2, 3, irreducibleDef]
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let constantExpr := Expr.const `sum []
 
@@ -213,8 +277,16 @@ def tenB : MetaM Expr := do
     Lean.Meta.mkLambdaFVars #[x] body
   )
 
+/--
+info: fun x => Nat.add 1 x
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← tenA) -- fun x => Nat.add 1 x
+/--
+info: fun x => Nat.add 1 x
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← tenB) -- fun x => Nat.add 1 x
 
@@ -223,6 +295,10 @@ def tenB : MetaM Expr := do
 def eleven : MetaM Expr :=
   return Expr.forallE `yellow (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default
 
+/--
+info: forall (yellow : Nat), yellow
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   dbg_trace (← eleven) -- forall (yellow : Nat), yellow
 
@@ -245,9 +321,17 @@ def twelveB : MetaM Expr := do
     forAll
   )
 
+/--
+info: (n : Nat) → Eq Nat n (n.add 1)
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← twelveA) -- (n : Nat) → Eq Nat n (Nat.add n 1)
 
+/--
+info: ∀ (n : Nat), n = n.add 1
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← twelveB) -- ∀ (n : Nat), n = Nat.add n 1
 
@@ -265,11 +349,21 @@ def thirteen : MetaM Expr := do
     lam
   )
 
+/--
+info: fun f => (n : Nat) → Eq Nat (f n) (f (n.add 1))
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← thirteen) -- fun f => (n : Nat) → Eq Nat (f n) (f (Nat.add n 1))
 
 /- ### 14. -/
 
+/--
+info: And ?_uniq.18260 ?_uniq.18260
+(Or ?_uniq.18264 ?_uniq.18265) -> ?_uniq.18265 -> (And ?_uniq.18264 ?_uniq.18264)
+forall (a._@.solutions.04_metam._hyg.3000 : Prop) (b._@.solutions.04_metam._hyg.3000 : Prop), (Or a._@.solutions.04_metam._hyg.3000 b._@.solutions.04_metam._hyg.3000) -> b._@.solutions.04_metam._hyg.3000 -> (And a._@.solutions.04_metam._hyg.3000 a._@.solutions.04_metam._hyg.3000)
+-/
+#guard_msgs in --#
 #eval show Lean.Elab.Term.TermElabM _ from do
   let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
   let expr ← Elab.Term.elabTermAndSynthesize stx none
@@ -285,6 +379,22 @@ def thirteen : MetaM Expr := do
 
 /- ### 15. -/
 
+/--
+info: value in c: Nat.add ?_uniq.20812 Int
+value in d: Nat.add "hi" ?_uniq.20813
+
+Saved state
+
+true
+value in c: Nat.add "hi" Int
+value in d: Nat.add "hi" Int
+
+Restored state
+
+value in c: Nat.add ?_uniq.20812 Int
+value in d: Nat.add "hi" ?_uniq.20813
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
   let b ← Lean.Meta.mkFreshExprMVar (Expr.sort (Nat.toLevel 1)) (userName := `b)

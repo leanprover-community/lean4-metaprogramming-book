@@ -139,8 +139,20 @@ This is actually extending the original `#check`
   else
     throwUnsupportedSyntax
 
+/--
+info: Got ya!
+-/
+#guard_msgs in --#
 #check mycheck -- Got ya!
+/--
+info: Specially elaborated string literal!: Hello : String
+-/
+#guard_msgs in --#
 #check "Hello" -- Specially elaborated string literal!: Hello : String
+/--
+info: Nat.add : Nat → Nat → Nat
+-/
+#guard_msgs in --#
 #check Nat.add -- Nat.add : Nat → Nat → Nat
 
 /-!
@@ -235,6 +247,12 @@ At some point, execution of postponed metavariables will be resumed by the term 
 in hopes that it can now complete its execution. We can try to see this in
 action with the following example:
 -/
+/--
+info: List.foldr Nat.add 0 [1, 2, 3] : Nat
+---
+info: [Elab.postpone] .add : ?m.2639 → ?m.2640 → ?m.2640
+-/
+#guard_msgs in --#
 #check set_option trace.Elab.postpone true in List.foldr .add 0 [1,2,3] -- [Elab.postpone] .add : ?m.5695 → ?m.5696 → ?m.5696
 
 /-!
@@ -282,13 +300,13 @@ def mytermValues := [1, 2]
 def myTerm1Impl : TermElab := fun stx type? => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
-#eval myterm_1 -- 1
+#guard reprStr (myterm_1) == "1" -- 1
 
 -- Also works with `elab`
 elab "myterm_2" : term => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
-#eval myterm_2 -- 2
+#guard reprStr (myterm_2) == "2" -- 2
 
 /-!
 ### Mini project
@@ -327,6 +345,10 @@ def myanonImpl : TermElab := fun stx typ? => do
   let stx ← `($(mkIdent ctor) $args*) -- syntax quotations
   elabTerm stx typ -- call term elaboration recursively
 
+/--
+info: ⟨1, ⋯⟩ : Fin 12
+-/
+#guard_msgs in --#
 #check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
 #check_failure ⟨⟨1, sorry⟩⟩ -- expected type must be known
 #check_failure (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor

@@ -19,10 +19,19 @@ with your program is quite simple with the `set_option` command:
 import Lean
 open Lean
 
+/--
+info: 1 + 1 : Nat
+-/
+#guard_msgs in --#
 #check 1 + 1 -- 1 + 1 : Nat
 
 set_option pp.explicit true -- No custom syntax in pretty printing
 
+/--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+-/
+#guard_msgs in --#
 #check 1 + 1 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) 1 1 : Nat
 
 set_option pp.explicit false
@@ -32,10 +41,51 @@ You can furthermore limit an option value to just the next command or term:
 -/
 
 set_option pp.explicit true in
+/--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+-/
+#guard_msgs in --#
 #check 1 + 1 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) 1 1 : Nat
 
+/--
+info: 1 + 1 : Nat
+-/
+#guard_msgs in --#
 #check 1 + 1 -- 1 + 1 : Nat
 
+/--
+info: 1 + 1 : Nat
+---
+info: [Meta.synthInstance] 💥️ OfNat ?m.417 1
+  [Meta.synthInstance] new goal OfNat ?m.417 1
+    [Meta.synthInstance.instances] #[@Json.instOfNat, @instOfNatInt16, @UInt64.instOfNat, @JsonNumber.instOfNat, @instOfNatInt8, @instOfNatFloat, @BitVec.instOfNat, @instOfNatInt64, Level.instOfNat, @instOfNat, @Id.instOfNat, @Std.Internal.Rat.instOfNat, @UInt16.instOfNat, instOfNatNat, @UInt32.instOfNat, @JsonRpc.instOfNatRequestID, @UInt8.instOfNat, @Fin.instOfNat, @instOfNatISize, @instOfNatFloat32, @instOfNatInt32, @USize.instOfNat]
+  [Meta.synthInstance] 💥️ apply @USize.instOfNat to OfNat ?m.417 1
+    [Meta.synthInstance.tryResolve] 💥️ OfNat ?m.417 1 ≟ OfNat USize ?m.422
+[Meta.synthInstance] 💥️ OfNat ?m.417 1
+  [Meta.synthInstance] new goal OfNat ?m.417 1
+    [Meta.synthInstance.instances] #[@Json.instOfNat, @instOfNatInt16, @UInt64.instOfNat, @JsonNumber.instOfNat, @instOfNatInt8, @instOfNatFloat, @BitVec.instOfNat, @instOfNatInt64, Level.instOfNat, @instOfNat, @Id.instOfNat, @Std.Internal.Rat.instOfNat, @UInt16.instOfNat, instOfNatNat, @UInt32.instOfNat, @JsonRpc.instOfNatRequestID, @UInt8.instOfNat, @Fin.instOfNat, @instOfNatISize, @instOfNatFloat32, @instOfNatInt32, @USize.instOfNat]
+  [Meta.synthInstance] 💥️ apply @USize.instOfNat to OfNat ?m.417 1
+    [Meta.synthInstance.tryResolve] 💥️ OfNat ?m.417 1 ≟ OfNat USize ?m.436
+---
+info: [Meta.synthInstance] 💥️ HAdd ?m.440 ?m.441 ?m.442
+  [Meta.synthInstance] new goal HAdd ?m.440 ?m.441 _tc.0
+    [Meta.synthInstance.instances] #[@instHAdd, instHAddPosString, instHAddPos, instHAddPosChar]
+  [Meta.synthInstance] 💥️ apply instHAddPosChar to HAdd ?m.440 ?m.441 ?m.444
+    [Meta.synthInstance.tryResolve] 💥️ HAdd ?m.440 ?m.441 ?m.444 ≟ HAdd String.Pos Char String.Pos
+---
+info: [Meta.synthInstance] 💥️ OfNat ?m.426 1
+  [Meta.synthInstance] new goal OfNat ?m.426 1
+    [Meta.synthInstance.instances] #[@Json.instOfNat, @instOfNatInt16, @UInt64.instOfNat, @JsonNumber.instOfNat, @instOfNatInt8, @instOfNatFloat, @BitVec.instOfNat, @instOfNatInt64, Level.instOfNat, @instOfNat, @Id.instOfNat, @Std.Internal.Rat.instOfNat, @UInt16.instOfNat, instOfNatNat, @UInt32.instOfNat, @JsonRpc.instOfNatRequestID, @UInt8.instOfNat, @Fin.instOfNat, @instOfNatISize, @instOfNatFloat32, @instOfNatInt32, @USize.instOfNat]
+  [Meta.synthInstance] 💥️ apply @USize.instOfNat to OfNat ?m.426 1
+    [Meta.synthInstance.tryResolve] 💥️ OfNat ?m.426 1 ≟ OfNat USize ?m.431
+[Meta.synthInstance] 💥️ OfNat ?m.426 1
+  [Meta.synthInstance] new goal OfNat ?m.426 1
+    [Meta.synthInstance.instances] #[@Json.instOfNat, @instOfNatInt16, @UInt64.instOfNat, @JsonNumber.instOfNat, @instOfNatInt8, @instOfNatFloat, @BitVec.instOfNat, @instOfNatInt64, Level.instOfNat, @instOfNat, @Id.instOfNat, @Std.Internal.Rat.instOfNat, @UInt16.instOfNat, instOfNatNat, @UInt32.instOfNat, @JsonRpc.instOfNatRequestID, @UInt8.instOfNat, @Fin.instOfNat, @instOfNatISize, @instOfNatFloat32, @instOfNatInt32, @USize.instOfNat]
+  [Meta.synthInstance] 💥️ apply @USize.instOfNat to OfNat ?m.426 1
+    [Meta.synthInstance.tryResolve] 💥️ OfNat ?m.426 1 ≟ OfNat USize ?m.439
+-/
+#guard_msgs in --#
 #check set_option trace.Meta.synthInstance true in 1 + 1 -- the trace of the type class synthesis for `OfNat` and `HAdd`
 
 /-!

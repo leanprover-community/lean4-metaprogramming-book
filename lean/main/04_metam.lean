@@ -243,6 +243,25 @@ metavariable operations are used. More natural examples appear in the following
 sections.
 -/
 
+/--
+info: Initially, all metavariables are unassigned:
+  meta1: ?_uniq.2172
+  meta2: ?_uniq.2173
+  meta3: ?_uniq.2174
+After assigning mvar1:
+  meta1: ?_uniq.2174 ?_uniq.2173
+  meta2: ?_uniq.2173
+  meta3: ?_uniq.2174
+After assigning mvar2:
+  meta1: ?_uniq.2174 Nat.zero
+  meta2: Nat.zero
+  meta3: ?_uniq.2174
+After assigning mvar3:
+  meta1: Nat.succ Nat.zero
+  meta2: Nat.zero
+  meta3: Nat.succ
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   -- Create two fresh metavariables of type `Nat`.
   let mvar1 ← mkFreshExprMVar (Expr.const ``Nat []) (userName := `mvar1)
@@ -490,9 +509,17 @@ We can use it like this:
 
 def someNumber : Nat := (· + 2) $ 3
 
+/--
+info: Lean.Expr.const `someNumber []
+-/
+#guard_msgs in --#
 #eval Expr.const ``someNumber []
 -- Lean.Expr.const `someNumber []
 
+/--
+info: Lean.Expr.lit (Lean.Literal.natVal 5)
+-/
+#guard_msgs in --#
 #eval reduce (Expr.const ``someNumber [])
 -- Lean.Expr.lit (Lean.Literal.natVal 5)
 
@@ -557,6 +584,10 @@ abbrev             reducibleDef   : Nat      := defaultDef + 1
 We start with `reducible` transparency, which only unfolds `reducibleDef`:
 -/
 
+/--
+info: defaultDef + 1
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .reducible ``reducibleDef
 -- defaultDef + 1
 
@@ -567,6 +598,10 @@ function, which is a member of the `HAdd` typeclass:
 -/
 
 set_option pp.explicit true in
+/--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .reducible ``reducibleDef
 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef 1
 
@@ -575,6 +610,10 @@ When we reduce with `instances` transparency, this applications is unfolded and
 replaced by `Nat.add`:
 -/
 
+/--
+info: defaultDef.add 1
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .instances ``reducibleDef
 -- Nat.add defaultDef 1
 
@@ -582,6 +621,10 @@ replaced by `Nat.add`:
 With `default` transparency, `Nat.add` is unfolded as well:
 -/
 
+/--
+info: irreducibleDef.succ.succ
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .default ``reducibleDef
 -- Nat.succ (Nat.succ irreducibleDef)
 
@@ -589,6 +632,10 @@ With `default` transparency, `Nat.add` is unfolded as well:
 And with `TransparencyMode.all`, we're finally able to unfold `irreducibleDef`:
 -/
 
+/--
+info: 3
+-/
+#guard_msgs in --#
 #eval traceConstWithTransparency .all ``reducibleDef
 -- 3
 
@@ -639,6 +686,10 @@ Now, here are some examples of expressions in WHNF.
 Constructor applications are in WHNF (with some exceptions for numeric types):
 -/
 
+/--
+info: [1]
+-/
+#guard_msgs in --#
 #eval whnf' `(List.cons 1 [])
 -- [1]
 
@@ -646,6 +697,10 @@ Constructor applications are in WHNF (with some exceptions for numeric types):
 The *arguments* of an application in WHNF may or may not be in WHNF themselves:
 -/
 
+/--
+info: [1 + 1]
+-/
+#guard_msgs in --#
 #eval whnf' `(List.cons (1 + 1) [])
 -- [1 + 1]
 
@@ -654,6 +709,10 @@ Applications of constants are in WHNF if the current transparency does not
 allow us to unfold the constants:
 -/
 
+/--
+info: [1].append [2]
+-/
+#guard_msgs in --#
 #eval withTransparency .reducible $ whnf' `(List.append [1] [2])
 -- List.append [1] [2]
 
@@ -661,6 +720,10 @@ allow us to unfold the constants:
 Lambdas are in WHNF:
 -/
 
+/--
+info: fun x => x
+-/
+#guard_msgs in --#
 #eval whnf' `(λ x : Nat => x)
 -- fun x => x
 
@@ -668,6 +731,10 @@ Lambdas are in WHNF:
 Foralls are in WHNF:
 -/
 
+/--
+info: ∀ (x : Nat), x > 0
+-/
+#guard_msgs in --#
 #eval whnf' `(∀ x, x > 0)
 -- ∀ (x : Nat), x > 0
 
@@ -675,6 +742,10 @@ Foralls are in WHNF:
 Sorts are in WHNF:
 -/
 
+/--
+info: Type 3
+-/
+#guard_msgs in --#
 #eval whnf' `(Type 3)
 -- Type 3
 
@@ -682,6 +753,10 @@ Sorts are in WHNF:
 Literals are in WHNF:
 -/
 
+/--
+info: 15
+-/
+#guard_msgs in --#
 #eval whnf' `((15 : Nat))
 -- 15
 
@@ -699,6 +774,10 @@ Applications of constants are not in WHNF if the current transparency allows us
 to unfold the constants:
 -/
 
+/--
+info: fun x => 1 :: [].append x
+-/
+#guard_msgs in --#
 #eval whnf' `(List.append [1])
 -- fun x => 1 :: List.append [] x
 
@@ -706,6 +785,10 @@ to unfold the constants:
 Applications of lambdas are not in WHNF:
 -/
 
+/--
+info: fun y => 1 + y
+-/
+#guard_msgs in --#
 #eval whnf' `((λ x y : Nat => x + y) 1)
 -- `fun y => 1 + y`
 
@@ -713,6 +796,10 @@ Applications of lambdas are not in WHNF:
 `let` bindings are not in WHNF:
 -/
 
+/--
+info: 1
+-/
+#guard_msgs in --#
 #eval whnf' `(let x : Nat := 1; x)
 -- 1
 
@@ -886,6 +973,10 @@ def revOrd : Ord Nat where
 def ordExpr : MetaM Expr := do
   mkAppOptM ``compare #[none, Expr.const ``revOrd [], mkNatLit 0, mkNatLit 1]
 
+/--
+info: Ord.compare.{0} Nat revOrd (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+-/
+#guard_msgs in --#
 #eval format <$> ordExpr
 -- Ord.compare.{0} Nat revOrd
 --   (OfNat.ofNat.{0} Nat 0 (instOfNatNat 0))
@@ -909,6 +1000,10 @@ def doubleExpr₁ : Expr :=
   .lam `x (.const ``Nat []) (mkAppN (.const ``Nat.add []) #[.bvar 0, .bvar 0])
     BinderInfo.default
 
+/--
+info: fun x => x.add x
+-/
+#guard_msgs in --#
 #eval ppExpr doubleExpr₁
 -- fun x => Nat.add x x
 
@@ -946,6 +1041,10 @@ def doubleExpr₂ : MetaM Expr :=
     let body ← mkAppM ``Nat.add #[x, x]
     mkLambdaFVars #[x] body
 
+/--
+info: fun x => x.add x
+-/
+#guard_msgs in --#
 #eval show MetaM _ from do
   ppExpr (← doubleExpr₂)
 -- fun x => Nat.add x x
@@ -1009,6 +1108,10 @@ are discussed in the Elaboration chapter.
 
 elab "someProp" : term => somePropExpr
 
+/--
+info: fun f => ∀ (n : Nat), f n = f n.succ : (Nat → Nat) → Prop
+-/
+#guard_msgs in --#
 #check someProp
 -- fun f => ∀ (n : Nat), f n = f (Nat.succ n) : (Nat → Nat) → Prop
 #reduce someProp Nat.succ
@@ -1215,6 +1318,7 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
 3. [**Metavariables**] Fill in the missing lines in the following code.
 
     ```lean
+    #guard_msgs in --#
     #eval show MetaM Unit from do
       let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
       let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
@@ -1278,6 +1382,7 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
 
     @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
+    #guard_msgs in --#
     #eval show MetaM Unit from do
       let constantExpr := Expr.const `sum []
 
@@ -1313,6 +1418,7 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?
 
     ```lean
+    #guard_msgs in --#
     #eval show Lean.Elab.Term.TermElabM _ from do
       let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
       let expr ← Elab.Term.elabTermAndSynthesize stx none
