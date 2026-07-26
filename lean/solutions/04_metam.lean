@@ -21,13 +21,20 @@ value in hi: 3
 
 /- ### 2. -/
 
--- It would output the same expression we gave it - there were no metavariables to instantiate.
-/-- info: Nat.add 1 2 -/
+-- It would output the same expression we gave it
+-- because there were no metavariables to instantiate.
+/--
+info:
+before: Nat.add 1 2
+after: Nat.add 1 2
+-/
 #guard_msgs in --#
 #eval show MetaM Unit from do
   let expr := Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2]
+  IO.println s!"before: {← ppExpr expr}"
+
   let instantiatedExpr ← instantiateMVars expr
-  IO.println (← ppExpr instantiatedExpr)
+  IO.println s!"after: {← ppExpr instantiatedExpr}"
 
 /- ### 3. -/
 
