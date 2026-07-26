@@ -158,14 +158,17 @@ partial def elabIMPExpr : Syntax → MetaM Expr
 
 elab "test_elabIMPExpr " e:imp_expr : term => elabIMPExpr e
 
+/-- info: IMPExpr.var "a" -/
+#guard_msgs in --#
 #reduce test_elabIMPExpr a
--- IMPExpr.var "a"
 
+/-- info: IMPExpr.bin IMPBinOp.add (IMPExpr.var "a") (IMPExpr.lit (IMPLit.nat 5)) -/
+#guard_msgs in --#
 #reduce test_elabIMPExpr a + 5
--- IMPExpr.bin IMPBinOp.add (IMPExpr.var "a") (IMPExpr.lit (IMPLit.nat 5))
 
+/-- info: IMPExpr.bin IMPBinOp.add (IMPExpr.lit (IMPLit.nat 1)) (IMPExpr.lit (IMPLit.bool «true»)) -/
+#guard_msgs in --#
 #reduce test_elabIMPExpr 1 + true
--- IMPExpr.bin IMPBinOp.add (IMPExpr.lit (IMPLit.nat 1)) (IMPExpr.lit (IMPLit.bool true))
 
 /-
 ## Elaborating programs
@@ -210,6 +213,20 @@ syntax:
 
 elab ">>" p:imp_program "<<" : term => elabIMPProgram p
 
+set_option pp.fieldNotation false in
+
+/--
+info: IMPProgram.Seq (IMPProgram.Assign "a" (IMPExpr.lit (IMPLit.nat 5)))
+  (IMPProgram.Seq
+    (IMPProgram.If
+      (IMPExpr.un IMPUnOp.not
+        (IMPExpr.bin IMPBinOp.and (IMPExpr.var "a")
+          (IMPExpr.bin IMPBinOp.less (IMPExpr.lit (IMPLit.nat 3)) (IMPExpr.lit (IMPLit.nat 4)))))
+      (IMPProgram.Assign "c" (IMPExpr.lit (IMPLit.nat 5)))
+      (IMPProgram.Assign "a" (IMPExpr.bin IMPBinOp.add (IMPExpr.var "a") (IMPExpr.lit (IMPLit.nat 1)))))
+    (IMPProgram.Assign "b" (IMPExpr.lit (IMPLit.nat 10))))
+-/
+#guard_msgs in --#
 #reduce >>
 a := 5;;
 if not a and 3 < 4 then
@@ -219,12 +236,3 @@ else
 fi;;
 b := 10
 <<
--- IMPProgram.Seq (IMPProgram.Assign "a" (IMPExpr.lit (IMPLit.nat 5)))
---   (IMPProgram.Seq
---     (IMPProgram.If
---       (IMPExpr.un IMPUnOp.not
---         (IMPExpr.bin IMPBinOp.and (IMPExpr.var "a")
---           (IMPExpr.bin IMPBinOp.less (IMPExpr.lit (IMPLit.nat 3)) (IMPExpr.lit (IMPLit.nat 4)))))
---       (IMPProgram.Assign "c" (IMPExpr.lit (IMPLit.nat 5)))
---       (IMPProgram.Assign "a" (IMPExpr.bin IMPBinOp.add (IMPExpr.var "a") (IMPExpr.lit (IMPLit.nat 1)))))
---     (IMPProgram.Assign "b" (IMPExpr.lit (IMPLit.nat 10))))
