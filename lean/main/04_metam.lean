@@ -1264,7 +1264,10 @@ Lean parser.
   That's why, as was mentioned, we must ensure the following.
    * (a) `val` must have the target type of `mvarId`
    * (b) `val` must only contain `fvars` from the local context of `mvarId`.
-2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
+2. [**Metavariables**] What would the following expression output?
+   ```lean
+   instantiateMVars (Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2])
+   ```
 3. [**Metavariables**] Fill in the missing lines in the following code.
 
     ```lean

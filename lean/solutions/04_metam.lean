@@ -22,9 +22,12 @@ value in hi: 3
 /- ### 2. -/
 
 -- It would output the same expression we gave it - there were no metavariables to instantiate.
+/-- info: Nat.add 1 2 -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let instantiatedExpr ← instantiateMVars (Expr.lam `x (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default)
-  IO.println instantiatedExpr -- fun (x : Nat) => x
+  let expr := Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2]
+  let instantiatedExpr ← instantiateMVars expr
+  IO.println (← ppExpr instantiatedExpr)
 
 /- ### 3. -/
 
