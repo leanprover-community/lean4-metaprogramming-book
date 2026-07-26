@@ -5,12 +5,19 @@ open Lean Meta
 
 /- ### 1. -/
 
+/--
+info: value in hi: ?hi
+value in hi: 3
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let hi ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
-  IO.println s!"value in hi: {← instantiateMVars hi}" -- ?_uniq.1
+  let hi ← mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
+  let value ← instantiateMVars hi
+  IO.println s!"value in hi: {← ppExpr value}"
 
-  hi.mvarId!.assign (Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero []))
-  IO.println s!"value in hi: {← instantiateMVars hi}" -- Nat.succ Nat.zero
+  hi.mvarId!.assign (Expr.lit (.natVal 3))
+  let valueAssigned ← instantiateMVars hi
+  IO.println s!"value in hi: {← ppExpr valueAssigned}"
 
 /- ### 2. -/
 

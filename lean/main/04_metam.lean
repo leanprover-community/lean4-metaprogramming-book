@@ -1260,7 +1260,10 @@ Lean parser.
 ## Exercises
 
 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
-Notice that changing the type of the metavariable from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.
+  Notice that changing the type of the metavariable from `Nat` to, for example, `String`, doesn't raise any errors.
+  That's why, as was mentioned, we must ensure the following.
+   * (a) `val` must have the target type of `mvarId`
+   * (b) `val` must only contain `fvars` from the local context of `mvarId`.
 2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
 3. [**Metavariables**] Fill in the missing lines in the following code.
 
