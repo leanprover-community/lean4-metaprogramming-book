@@ -54,20 +54,22 @@ macro_rules
 | `(tactic| custom_tactic) => `(tactic| rfl)
 
 example : 42 = 42 := by
-   custom_tactic
--- Goals accomplished 🎉
+  custom_tactic
 
 /-
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-#check_failure (by custom_tactic : 43 = 43 ∧ 42 = 42)
--- type mismatch
---   Iff.rfl
--- has type
---   ?m.1437 ↔ ?m.1437 : Prop
--- but is expected to have type
---   43 = 43 ∧ 42 = 42 : Prop
+/--
+error: tactic 'rfl' failed, the left-hand side
+  43 = 43
+is not definitionally equal to the right-hand side
+  42 = 42
+⊢ 43 = 43 ∧ 42 = 42
+-/
+#guard_msgs in --#
+example : 43 = 43 ∧ 42 = 42 := by
+  custom_tactic
 
 /-
 We extend the `custom_tactic` tactic with a tactic that tries to break `And`
@@ -89,7 +91,6 @@ that we dispatch the theorem.
 
 example : 43 = 43 ∧ 42 = 42 := by
   custom_tactic
--- Goals accomplished 🎉
 
 /-
 In summary, we declared an extensible tactic called `custom_tactic`. It
@@ -120,9 +121,12 @@ macro_rules
 theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
   apply And.intro and_then rfl
 
+/--
+info: theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
+⟨Eq.refl 1, Eq.refl 2⟩
+-/
+#guard_msgs in --#
 #print test_and_then
--- theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
--- { left := Eq.refl 1, right := Eq.refl 2 }
 
 /-
 ## Exploring `TacticM`
@@ -144,7 +148,8 @@ elab "custom_sorry_0" : tactic => do
 
 example : 1 = 2 := by
   custom_sorry_0
--- unsolved goals: ⊢ 1 = 2
+  -- unsolved goals: ⊢ 1 = 2
+  guard_target =ₛ 1 = 2
   sorry
 
 /-
@@ -170,12 +175,15 @@ elab "custom_sorry_1" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     let goalDecl ← goal.getDecl
     let goalType := goalDecl.type
-    dbg_trace f!"goal type: {goalType}"
+    Lean.logInfo f!"goal type: {goalType}"
 
 example : 1 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_sorry_1
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals: ⊢ 1 = 2
+
+  -- unsolved goals: ⊢ 1 = 2
+  guard_target =ₛ 1 = 2
+
   sorry
 
 /-
@@ -187,12 +195,17 @@ elab "custom_sorry_2" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     Lean.Elab.admitGoal goal
 
+/-- warning: declaration uses 'sorry' -/
+#guard_msgs in --#
 theorem test_custom_sorry : 1 = 2 := by
   custom_sorry_2
 
+/--
+info: theorem test_custom_sorry : 1 = 2 :=
+sorry
+-/
+#guard_msgs in --#
 #print test_custom_sorry
--- theorem test_custom_sorry : 1 = 2 :=
--- sorryAx (1 = 2) true
 
 /-
 And we no longer have the error `unsolved goals: ⊢ 1 = 2`.
@@ -238,23 +251,32 @@ error messages.
 elab "custom_assump_0" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goalType ← Lean.Elab.Tactic.getMainTarget
-    dbg_trace f!"goal type: {goalType}"
+    Lean.logInfo f!"goal type: {goalType}"
 
 example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals
--- H1 : 1 = 1
--- H2 : 2 = 2
--- ⊢ 2 = 2
+
+  -- unsolved goals
+  -- H1 : 1 = 1
+  -- H2 : 2 = 2
+  -- ⊢ 2 = 2
+  guard_hyp H1 :ₛ 1 = 1
+  guard_hyp H2 :ₛ 2 = 2
+  guard_target =ₛ 2 = 2
+
   sorry
 
 example (H1 : 1 = 1): 2 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals
--- H1 : 1 = 1
--- ⊢ 2 = 2
+
+  -- unsolved goals
+  -- H1 : 1 = 1
+  -- ⊢ 2 = 2
+  guard_hyp H1 :ₛ 1 = 1
+  guard_target =ₛ 2 = 2
+
   sorry
 
 /-
