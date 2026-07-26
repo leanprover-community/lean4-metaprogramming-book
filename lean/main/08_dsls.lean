@@ -12,7 +12,7 @@ denotational semantics.
 
 We are not going to define everything with the same encoding that the book does.
 For instance, the book defines arithmetic expressions and boolean expressions.
-We, will take a different path and just define generic expressions that take
+We will take a different path and just define generic expressions that take
 unary or binary operators.
 
 This means that we will allow weirdnesses like `1 + true`! But it will simplify
