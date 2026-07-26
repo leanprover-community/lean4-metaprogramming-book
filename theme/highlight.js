@@ -1114,31 +1114,35 @@ var hljs=function(){"use strict";function e(n){Object.freeze(n)
         'universe variable ' +
         'import open export prelude renaming hiding ' +
         'calc match with do by let extends ' +
-        'for in unless try catch finally mutual mut return continue break where rec ' +
-        'syntax macro_rules macro deriving ' +
-        'fun ' +
+        'for while in unless try catch finally mutual mut return continue break where rec ' +
+        'syntax macro_rules macro deriving opaque ' +
+        'fun elab ' +
         '#check #check_failure #eval #reduce #print ' +
-        'section namespace end infix infixl infixr postfix prefix notation ',
+        '#guard #guard_msgs #synth ' +
+        'section namespace end infix infixl infixr postfix prefix notation abbrev ' +
+        'declare_syntax_cat grind_pattern ',
       built_in:
         'Type Prop|10 Sort rw|10 rewrite rwa erw subst substs ' +
-        'simp dsimp simpa simp_intros finish using generalizing ' +
-        'unfold unfold1 dunfold unfold_projs unfold_coes ' +
-        'delta cc ac_rfl ' +
-        'existsi|10 cases rcases intro intros introv by_cases ' +
-        'refl rfl funext case focus propext exact exacts ' +
+        'simp dsimp simpa finish using generalizing ' +
+        'unfold unfold_projs unfold_coes ' +
+        'delta cc ac_rfl simp_arith simp_all ' +
+        'existsi|10 cases rcases intro intros by_cases ' +
+        'refl rfl funext case focus propext exact ' +
         'refine apply eapply fapply apply_with apply_instance ' +
         'induction rename assumption revert generalize specialize clear ' +
         'contradiction by_contradiction by_contra trivial exfalso ' +
-        'symmetry transitivity destruct constructor econstructor ' +
-        'left right split injection injections ' +
-        'repeat skip swap solve1 abstract all_goals any_goals done ' +
+        'symm trans constructor ' +
+        'left right split injection ' +
+        'repeat skip swap all_goals any_goals done ' +
         'fail_if_success success_if_fail guard_target guard_hyp ' +
         'have replace at suffices show from ' +
-        'congr congr_n congr_arg norm_num ring ',
+        'congr congr_n congr_arg norm_num ring omega ' +
+        'exists ext fail native_decide decide change obtain ' +
+        'fun_induction fun_cases grind ',
       literal:
         'true false',
       meta:
-        'noncomputable|10 private protected mutual',
+        'noncomputable|10 private protected mutual scoped local partial ',
       strong:
         'sorry admit',
     };
