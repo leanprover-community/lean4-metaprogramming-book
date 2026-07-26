@@ -22,26 +22,26 @@
   }
 
   @media (max-width: 1179px) {
-    .sidebar-hidden .sidetoc {
+    #sidebar-toggle-anchor:not(:checked) ~ .page-wrapper .sidetoc {
       display: none;
     }
   }
 
   @media (max-width: 1439px) {
-    .sidebar-visible .sidetoc {
+    #sidebar-toggle-anchor:checked ~ .page-wrapper .sidetoc {
       display: none;
     }
   }
 
   @media (1180px <=width <=1439px) {
-    .sidebar-hidden main {
+    #sidebar-toggle-anchor:not(:checked) ~ .page-wrapper main {
       position: relative;
       left: var(--center-content-toc-shift);
     }
   }
 
   @media (1440px <=width <=1700px) {
-    .sidebar-visible main {
+    #sidebar-toggle-anchor:checked ~ .page-wrapper main {
       position: relative;
       left: var(--center-content-toc-shift);
     }
