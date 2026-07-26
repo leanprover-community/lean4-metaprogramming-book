@@ -94,7 +94,9 @@ syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 def mycommand1Impl : CommandElab := fun stx => do -- declare and register the elaborator
   logInfo "Hello World"
 
-#mycommand1 -- Hello World
+/-- info: Hello World -/
+#guard_msgs in --#
+#mycommand1
 
 /-!
 You might think that this is a little boiler-platey and it turns out the Lean
@@ -103,7 +105,9 @@ devs did as well so they added a macro for this!
 elab "#mycommand2" : command =>
   logInfo "Hello World"
 
-#mycommand2 -- Hello World
+/-- info: Hello World -/
+#guard_msgs in --#
+#mycommand2
 
 /-!
 Note that, due to the fact that command elaboration supports multiple
@@ -114,7 +118,9 @@ syntax, if we want to.
 def myNewImpl : CommandElab := fun stx => do
   logInfo "new!"
 
-#mycommand1 -- new!
+/-- info: new! -/
+#guard_msgs in --#
+#mycommand1
 
 /-!
 Furthermore it is also possible to only overload parts of syntax by
@@ -139,9 +145,17 @@ This is actually extending the original `#check`
   else
     throwUnsupportedSyntax
 
-#check mycheck -- Got ya!
-#check "Hello" -- Specially elaborated string literal!: Hello : String
-#check Nat.add -- Nat.add : Nat → Nat → Nat
+/-- info: Got ya! -/
+#guard_msgs in --#
+#check mycheck
+
+/-- info: Specially elaborated string literal!: Hello : String -/
+#guard_msgs in --#
+#check "Hello"
+
+/-- info: Nat.add : Nat → Nat → Nat -/
+#guard_msgs in --#
+#check Nat.add
 
 /-!
 ### Mini project
@@ -163,12 +177,29 @@ elab "#findCElab " c:command : command => do
     | [] => logInfo s!"There is no elaborators for your syntax, looks like its bad :("
     | _ => logInfo s!"Your syntax may be elaborated by: {elabs.map (fun el => el.declName.toString)}"
 
-#findCElab def lala := 12 -- Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration]
-#findCElab abbrev lolo := 12 -- Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration]
-#findCElab #check foo -- even our own syntax!: Your syntax may be elaborated by: [mySpecialCheck, Lean.Elab.Command.elabCheck]
-#findCElab open Hi -- Your syntax may be elaborated by: [Lean.Elab.Command.elabOpen]
-#findCElab namespace Foo -- Your syntax may be elaborated by: [Lean.Elab.Command.elabNamespace]
-#findCElab #findCElab open Bar -- even itself!: Your syntax may be elaborated by: [«_aux_lean_elaboration___elabRules_command#findCElab__1»]
+/-- info: Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration] -/
+#guard_msgs in --#
+#findCElab def lala := 12
+
+/-- info: Your syntax may be elaborated by: [Lean.Elab.Command.elabDeclaration] -/
+#guard_msgs in --#
+#findCElab abbrev lolo := 12
+
+/-- info: Your syntax may be elaborated by: [mySpecialCheck, Lean.Elab.Command.elabCheck] -/
+#guard_msgs in --#
+#findCElab #check foo
+
+/-- info: Your syntax may be elaborated by: [Lean.Elab.Command.elabOpen] -/
+#guard_msgs in --#
+#findCElab open Hi
+
+/-- info: Your syntax may be elaborated by: [Lean.Elab.Command.elabNamespace] -/
+#guard_msgs in --#
+#findCElab namespace Foo
+
+/-- info: Your syntax may be elaborated by: [«_aux_main_07_elaboration___elabRules_command#findCElab__1»] -/
+#guard_msgs in --#
+#findCElab #findCElab open Bar
 
 /-!
 TODO: Maybe we should also add a mini project that demonstrates a
@@ -235,7 +266,16 @@ At some point, execution of postponed metavariables will be resumed by the term 
 in hopes that it can now complete its execution. We can try to see this in
 action with the following example:
 -/
-#check set_option trace.Elab.postpone true in List.foldr .add 0 [1,2,3] -- [Elab.postpone] .add : ?m.5695 → ?m.5696 → ?m.5696
+
+/--
+info: List.foldr Nat.add 0 [1, 2, 3] : Nat
+---
+info: [Elab.postpone] .add : ?m.2639 → ?m.2640 → ?m.2640
+-/
+#guard_msgs in --#
+#check
+  set_option trace.Elab.postpone true in
+  List.foldr .add 0 [1,2,3]
 
 /-!
 What happened here is that the elaborator for function applications started
@@ -260,10 +300,18 @@ this information to complete elaboration.
 We can also easily provoke cases where this does not work out. For example:
 -/
 
-#check_failure set_option trace.Elab.postpone true in List.foldr .add
--- [Elab.postpone] .add : ?m.5808 → ?m.5809 → ?m.5809
--- invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
-  -- ?m.5808 → ?m.5809 → ?m.5809
+/--
+info: invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
+  ?m.2750 → ?m.2751 → ?m.2751
+---
+info: List.foldr sorry : ?m.2751 → List ?m.2750 → ?m.2751
+---
+info: [Elab.postpone] .add : ?m.2750 → ?m.2751 → ?m.2751
+-/
+#guard_msgs in --#
+#check_failure
+  set_option trace.Elab.postpone true in
+  List.foldr .add
 
 /-!
 In this case `.add` first postponed its execution, then got called again
@@ -279,16 +327,16 @@ syntax (name := myterm1) "myterm_1" : term
 def mytermValues := [1, 2]
 
 @[term_elab myterm1]
-def myTerm1Impl : TermElab := fun stx type? => do
+def myTerm1Impl : TermElab := fun _stx _type? => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
-#eval myterm_1 -- 1
+#guard myterm_1 == 1
 
 -- Also works with `elab`
 elab "myterm_2" : term => do
   mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
-#eval myterm_2 -- 2
+#guard myterm_2 == 2
 
 /-!
 ### Mini project
@@ -327,10 +375,21 @@ def myanonImpl : TermElab := fun stx typ? => do
   let stx ← `($(mkIdent ctor) $args*) -- syntax quotations
   elabTerm stx typ -- call term elaboration recursively
 
-#check (⟨⟨1, sorry⟩⟩ : Fin 12) -- { val := 1, isLt := (_ : 1 < 12) } : Fin 12
-#check_failure ⟨⟨1, sorry⟩⟩ -- expected type must be known
-#check_failure (⟨⟨0⟩⟩ : Nat) -- type doesn't have exactly one constructor
-#check_failure (⟨⟨⟩⟩ : Nat → Nat) -- type is not of the expected form: Nat -> Nat
+/-- info: ⟨1, ⋯⟩ : Fin 12 -/
+#guard_msgs in --#
+#check (⟨⟨1, sorry⟩⟩ : Fin 12)
+
+/-- info: expected type must be known -/
+#guard_msgs in --#
+#check_failure ⟨⟨1, sorry⟩⟩
+
+/-- info: type doesn't have exactly one constructor -/
+#guard_msgs in --#
+#check_failure (⟨⟨0⟩⟩ : Nat)
+
+/-- info: type is not of the expected form: Nat -> Nat -/
+#guard_msgs in --#
+#check_failure (⟨⟨⟩⟩ : Nat → Nat)
 
 /-!
 As a final note, we can shorten the postponing act by using an additional

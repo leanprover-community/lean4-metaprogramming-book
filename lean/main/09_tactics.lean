@@ -54,20 +54,22 @@ macro_rules
 | `(tactic| custom_tactic) => `(tactic| rfl)
 
 example : 42 = 42 := by
-   custom_tactic
--- Goals accomplished 🎉
+  custom_tactic
 
 /-
 We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
-#check_failure (by custom_tactic : 43 = 43 ∧ 42 = 42)
--- type mismatch
---   Iff.rfl
--- has type
---   ?m.1437 ↔ ?m.1437 : Prop
--- but is expected to have type
---   43 = 43 ∧ 42 = 42 : Prop
+/--
+error: tactic 'rfl' failed, the left-hand side
+  43 = 43
+is not definitionally equal to the right-hand side
+  42 = 42
+⊢ 43 = 43 ∧ 42 = 42
+-/
+#guard_msgs in --#
+example : 43 = 43 ∧ 42 = 42 := by
+  custom_tactic
 
 /-
 We extend the `custom_tactic` tactic with a tactic that tries to break `And`
@@ -89,7 +91,6 @@ that we dispatch the theorem.
 
 example : 43 = 43 ∧ 42 = 42 := by
   custom_tactic
--- Goals accomplished 🎉
 
 /-
 In summary, we declared an extensible tactic called `custom_tactic`. It
@@ -120,9 +121,12 @@ macro_rules
 theorem test_and_then: 1 = 1 ∧ 2 = 2 := by
   apply And.intro and_then rfl
 
+/--
+info: theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
+⟨Eq.refl 1, Eq.refl 2⟩
+-/
+#guard_msgs in --#
 #print test_and_then
--- theorem test_and_then : 1 = 1 ∧ 2 = 2 :=
--- { left := Eq.refl 1, right := Eq.refl 2 }
 
 /-
 ## Exploring `TacticM`
@@ -144,7 +148,8 @@ elab "custom_sorry_0" : tactic => do
 
 example : 1 = 2 := by
   custom_sorry_0
--- unsolved goals: ⊢ 1 = 2
+  -- unsolved goals: ⊢ 1 = 2
+  guard_target =ₛ 1 = 2
   sorry
 
 /-
@@ -170,12 +175,15 @@ elab "custom_sorry_1" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     let goalDecl ← goal.getDecl
     let goalType := goalDecl.type
-    dbg_trace f!"goal type: {goalType}"
+    Lean.logInfo f!"goal type: {goalType}"
 
 example : 1 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_sorry_1
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals: ⊢ 1 = 2
+
+  -- unsolved goals: ⊢ 1 = 2
+  guard_target =ₛ 1 = 2
+
   sorry
 
 /-
@@ -187,12 +195,17 @@ elab "custom_sorry_2" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     Lean.Elab.admitGoal goal
 
+/-- warning: declaration uses 'sorry' -/
+#guard_msgs in --#
 theorem test_custom_sorry : 1 = 2 := by
   custom_sorry_2
 
+/--
+info: theorem test_custom_sorry : 1 = 2 :=
+sorry
+-/
+#guard_msgs in --#
 #print test_custom_sorry
--- theorem test_custom_sorry : 1 = 2 :=
--- sorryAx (1 = 2) true
 
 /-
 And we no longer have the error `unsolved goals: ⊢ 1 = 2`.
@@ -238,23 +251,32 @@ error messages.
 elab "custom_assump_0" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goalType ← Lean.Elab.Tactic.getMainTarget
-    dbg_trace f!"goal type: {goalType}"
+    Lean.logInfo f!"goal type: {goalType}"
 
 example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals
--- H1 : 1 = 1
--- H2 : 2 = 2
--- ⊢ 2 = 2
+
+  -- unsolved goals
+  -- H1 : 1 = 1
+  -- H2 : 2 = 2
+  -- ⊢ 2 = 2
+  guard_hyp H1 :ₛ 1 = 1
+  guard_hyp H2 :ₛ 2 = 2
+  guard_target =ₛ 2 = 2
+
   sorry
 
 example (H1 : 1 = 1): 2 = 2 := by
+  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
--- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
--- unsolved goals
--- H1 : 1 = 1
--- ⊢ 2 = 2
+
+  -- unsolved goals
+  -- H1 : 1 = 1
+  -- ⊢ 2 = 2
+  guard_hyp H1 :ₛ 1 = 1
+  guard_target =ₛ 2 = 2
+
   sorry
 
 /-
@@ -269,16 +291,21 @@ expression of the declaration (`.toExpr`). Let's write a tactic called
 elab "list_local_decls_1" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    ctx.forM fun decl: Lean.LocalDecl => do
+    for decl in ctx do
       let declExpr := decl.toExpr -- Find the expression of the declaration.
       let declName := decl.userName -- Find the name of the declaration.
-      dbg_trace f!"+ local decl: name: {declName} | expr: {declExpr}"
+      Lean.logInfo f!"+ local decl: name: {declName} | expr: {declExpr}"
 
-example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
+/--
+info: + local decl: name: _example | expr: _uniq.7659
+---
+info: + local decl: name: _H1 | expr: _uniq.7660
+---
+info: + local decl: name: _H2 | expr: _uniq.7661
+-/
+#guard_msgs in --#
+example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
   list_local_decls_1
--- + local decl: name: test_list_local_decls_1 | expr: _uniq.3339
--- + local decl: name: H1 | expr: _uniq.3340
--- + local decl: name: H2 | expr: _uniq.3341
   rfl
 
 /-
@@ -290,17 +317,22 @@ hypothesis. We get the type of `LocalDecl` by calling
 elab "list_local_decls_2" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    ctx.forM fun decl: Lean.LocalDecl => do
+    for decl in ctx do
       let declExpr := decl.toExpr -- Find the expression of the declaration.
       let declName := decl.userName -- Find the name of the declaration.
       let declType ← Lean.Meta.inferType declExpr -- **NEW:** Find the type.
-      dbg_trace f!"+ local decl: name: {declName} | expr: {declExpr} | type: {declType}"
+      Lean.logInfo f!"+ local decl: name: {declName} | expr: {declExpr} | type: {declType}"
 
-example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
+/--
+info: + local decl: name: _example | expr: _uniq.9267 | type: (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)))
+---
+info: + local decl: name: _H1 | expr: _uniq.9268 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+---
+info: + local decl: name: _H2 | expr: _uniq.9269 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+-/
+#guard_msgs in --#
+example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
   list_local_decls_2
-  -- + local decl: name: test_list_local_decls_2 | expr: _uniq.4263 | type: (Eq.{1} Nat ...)
-  -- + local decl: name: H1 | expr: _uniq.4264 | type: Eq.{1} Nat ...)
-  -- + local decl: name: H2 | expr: _uniq.4265 | type: Eq.{1} Nat ...)
   rfl
 
 /-
@@ -315,18 +347,23 @@ elab "list_local_decls_3" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goalType ← Lean.Elab.Tactic.getMainTarget
     let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    ctx.forM fun decl: Lean.LocalDecl => do
+    for decl in ctx do
       let declExpr := decl.toExpr -- Find the expression of the declaration.
       let declName := decl.userName -- Find the name of the declaration.
       let declType ← Lean.Meta.inferType declExpr -- Find the type.
       let eq? ← Lean.Meta.isExprDefEq declType goalType -- **NEW** Check if type equals goal type.
-      dbg_trace f!"+ local decl[EQUAL? {eq?}]: name: {declName}"
+      Lean.logInfo f!"+ local decl[EQUAL? {eq?}]: name: {declName}"
 
-example (H1 : 1 = 1) (H2 : 2 = 2): 1 = 1 := by
+/--
+info: + local decl[EQUAL? false]: name: _example
+---
+info: + local decl[EQUAL? true]: name: _H1
+---
+info: + local decl[EQUAL? false]: name: _H2
+-/
+#guard_msgs in --#
+example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
   list_local_decls_3
--- + local decl[EQUAL? false]: name: test_list_local_decls_3
--- + local decl[EQUAL? true]: name: H1
--- + local decl[EQUAL? false]: name: H2
   rfl
 
 /-
@@ -348,16 +385,18 @@ elab "custom_assump_1" : tactic =>
       if (← Lean.Meta.isExprDefEq declType goalType) -- Check if type equals goal type.
       then return some declExpr -- If equal, success!
       else return none          -- Not found.
-    dbg_trace f!"matching_expr: {option_matching_expr}"
+    Lean.logInfo f!"matching_expr: {option_matching_expr}"
 
-example (H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
+/-- info: matching_expr: some _uniq.12563 -/
+#guard_msgs in --#
+example (_H1 : 1 = 1) (_H2 : 2 = 2) : 2 = 2 := by
   custom_assump_1
--- matching_expr: some _uniq.6241
   rfl
 
-example (H1 : 1 = 1) : 2 = 2 := by
+/-- info: matching_expr: none -/
+#guard_msgs in --#
+example (_H1 : 1 = 1) : 2 = 2 := by
   custom_assump_1
--- matching_expr: none
   rfl
 
 /-
@@ -391,13 +430,17 @@ elab "custom_assump_2" : tactic =>
       Lean.Meta.throwTacticEx `custom_assump_2 goal
         (m!"unable to find matching hypothesis of type ({goalType})")
 
-example (H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
+example (_H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
   custom_assump_2
 
-#check_failure (by custom_assump_2 : (H1 : 1 = 1) → 2 = 2)
--- tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
--- H1 : 1 = 1
--- ⊢ 2 = 2
+/--
+error: tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
+H1 : 1 = 1
+⊢ 2 = 2
+-/
+#guard_msgs in --#
+example (H1 : 1 = 1) : 2 = 2 := by
+  custom_assump_2
 
 /-
 ### Tweaking the context
@@ -439,9 +482,14 @@ elab "custom_have " n:ident " : " t:term " := " v:term : tactic =>
 theorem test_faq_have : True := by
   custom_let n : Nat := 5
   custom_have h : n = n := rfl
--- n : Nat := 5
--- h : n = n
--- ⊢ True
+
+  -- n : Nat := 5
+  -- h : n = n
+  -- ⊢ True
+  guard_hyp n :ₛ Nat := 5
+  guard_hyp h :ₛ n = n
+  guard_target =ₛ True
+
   trivial
 
 /-
@@ -459,20 +507,23 @@ elab "reverse_goals" : tactic =>
 theorem test_reverse_goals : (1 = 2 ∧ 3 = 4) ∧ 5 = 6 := by
   constructor
   constructor
--- case left.left
--- ⊢ 1 = 2
--- case left.right
--- ⊢ 3 = 4
--- case right
--- ⊢ 5 = 6
+  -- case left.left
+  -- ⊢ 1 = 2
+  -- case left.right
+  -- ⊢ 3 = 4
+  -- case right
+  -- ⊢ 5 = 6
+
   reverse_goals
--- case right
--- ⊢ 5 = 6
--- case left.right
--- ⊢ 3 = 4
--- case left.left
--- ⊢ 1 = 2
-  all_goals sorry
+  next =>
+    guard_target =ₛ 5 = 6
+    sorry
+  next =>
+    guard_target =ₛ 3 = 4
+    sorry
+  next =>
+    guard_target =ₛ 1 = 2
+    sorry
 
 /-
 ## FAQ
@@ -493,11 +544,12 @@ A: Use `Lean.Elab.Tactic.getMainGoal`.
 elab "faq_main_goal" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goal ← Lean.Elab.Tactic.getMainGoal
-    dbg_trace f!"goal: {goal.name}"
+    Lean.logInfo f!"goal: {goal.name}"
 
+/-- info: goal: _uniq.18115 -/
+#guard_msgs in --#
 example : 1 = 1 := by
   faq_main_goal
--- goal: _uniq.9298
   rfl
 
 /-
@@ -509,15 +561,19 @@ A: Use `getGoals`.
 elab "faq_get_goals" : tactic =>
   Lean.Elab.Tactic.withMainContext do
     let goals ← Lean.Elab.Tactic.getGoals
-    goals.forM $ fun goal => do
+    for goal in goals do
       let goalType ← goal.getType
-      dbg_trace f!"goal: {goal.name} | type: {goalType}"
+      Lean.logInfo f!"goal: {goal.name} | type: {goalType}"
 
+/--
+info: goal: _uniq.19468 | type: Eq.{1} Bool Bool.false Bool.true
+---
+info: goal: _uniq.19479 | type: Eq.{1} Bool Bool.true Bool.true
+-/
+#guard_msgs (info) in --#
 example (b : Bool) : b = true := by
   cases b
   faq_get_goals
--- goal: _uniq.10067 | type: Eq.{1} Bool Bool.false Bool.true
--- goal: _uniq.10078 | type: Eq.{1} Bool Bool.true Bool.true
   sorry
   rfl
 
@@ -525,25 +581,28 @@ example (b : Bool) : b = true := by
 **Q: How do I get the current hypotheses for a goal?**
 
 A: Use `Lean.MonadLCtx.getLCtx` which provides the local context, and then
-iterate on the `LocalDeclaration`s of the `LocalContext` with accessors such as
-`foldlM` and `forM`.
+iterate on the `LocalDeclaration`s of the `LocalContext`.
 -/
 
 elab "faq_get_hypotheses" : tactic =>
   Lean.Elab.Tactic.withMainContext do
   let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-  ctx.forM (fun (decl : Lean.LocalDecl) => do
+  for decl in ctx do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
     let declType := decl.type -- Find the type of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
-    dbg_trace f!" local decl: name: {declName} | expr: {declExpr} | type: {declType}"
-  )
+    Lean.logInfo f!"local decl: name: {declName} | expr: {declExpr} | type: {declType}"
 
-example (H1 : 1 = 1) (H2 : 2 = 2): 3 = 3 := by
+/--
+info: local decl: name: _example | expr: _uniq.20881 | type: (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 3 (instOfNatNat 3)) (OfNat.ofNat.{0} Nat 3 (instOfNatNat 3)))
+---
+info: local decl: name: _H1 | expr: _uniq.20882 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+---
+info: local decl: name: _H2 | expr: _uniq.20883 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+-/
+#guard_msgs in --#
+example (_H1 : 1 = 1) (_H2 : 2 = 2): 3 = 3 := by
   faq_get_hypotheses
-  -- local decl: name: _example | expr: _uniq.10814 | type: ...
-  -- local decl: name: H1 | expr: _uniq.10815 | type: ...
-  -- local decl: name: H2 | expr: _uniq.10816 | type: ...
   rfl
 
 /-
@@ -564,8 +623,9 @@ Lean.Elab.Tactic.evalTactic (← `(tactic| try rfl))
 A: Use `Lean.Meta.isExprDefEq <expr-1> <expr-2>`.
 -/
 
+/-- info: Lean.Meta.isExprDefEq (t s : Lean.Expr) : Lean.MetaM Bool -/
+#guard_msgs in --#
 #check Lean.Meta.isExprDefEq
--- Lean.Meta.isExprDefEq : Lean.Expr → Lean.Expr → Lean.MetaM Bool
 
 /-
 **Q: How do I throw an error from a tactic?**
@@ -578,9 +638,14 @@ elab "faq_throw_error" : tactic =>
     let goal ← Lean.Elab.Tactic.getMainGoal
     Lean.Meta.throwTacticEx `faq_throw_error goal "throwing an error at the current goal"
 
-#check_failure (by faq_throw_error : (b : Bool) → b = true)
--- tactic 'faq_throw_error' failed, throwing an error at the current goal
--- ⊢ ∀ (b : Bool), b = true
+/--
+error: tactic 'faq_throw_error' failed, throwing an error at the current goal
+b : Bool
+⊢ b = true
+-/
+#guard_msgs in --#
+example (b : Bool) : b = true := by
+  faq_throw_error
 
 /-!
 **Q: What is the difference between `Lean.Elab.Tactic.*` and `Lean.Meta.Tactic.*`?**

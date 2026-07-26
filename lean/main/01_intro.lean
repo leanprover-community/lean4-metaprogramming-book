@@ -101,12 +101,12 @@ import Lean
 macro x:ident ":" t:term " ↦ " y:term : term => do
   `(fun $x : $t => $y)
 
-#eval (x : Nat ↦ x + 2) 2 -- 4
+#guard (x : Nat ↦ x + 2) 2 = 4
 
 macro x:ident " ↦ " y:term : term => do
   `(fun $x  => $y)
 
-#eval (x ↦  x + 2) 2 -- 4
+#guard (x ↦  x + 2) 2 = 4
 /-!
 
 ### Building a command
@@ -207,23 +207,31 @@ macro_rules
   | `(⟪ $x:arith * $y:arith ⟫) => `(Arith.mul ⟪ $x ⟫ ⟪ $y ⟫)
   | `(⟪ ( $x ) ⟫)              => `( ⟪ $x ⟫ )
 
+set_option pp.fieldNotation false
+
+/-- info: Arith.mul (Arith.var "x") (Arith.var "y") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" * "y" ⟫
--- Arith.mul (Arith.var "x") (Arith.var "y") : Arith
 
+/-- info: Arith.add (Arith.var "x") (Arith.var "y") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + "y" ⟫
--- Arith.add (Arith.var "x") (Arith.var "y") : Arith
 
+/-- info: Arith.add (Arith.var "x") (Arith.nat 20) : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + 20 ⟫
--- Arith.add (Arith.var "x") (Arith.nat 20) : Arith
 
+/-- info: Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" + "y" * "z" ⟫ -- precedence
--- Arith.add (Arith.var "x") (Arith.mul (Arith.var "y") (Arith.var "z")) : Arith
 
+/-- info: Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith -/
+#guard_msgs in --#
 #check ⟪ "x" * "y" + "z" ⟫ -- precedence
--- Arith.add (Arith.mul (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith
 
+/-- info: Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z") : Arith -/
+#guard_msgs in --#
 #check ⟪ ("x" + "y") * "z" ⟫ -- brackets
--- Arith.mul (Arith.add (Arith.var "x") (Arith.var "y")) (Arith.var "z")
 
 /-!
 ### Writing our own tactic
@@ -253,8 +261,12 @@ elab "suppose " n:ident " : " t:term : tactic => do
 
 example : 0 + a = a := by
   suppose add_comm : 0 + a = a + 0
-  rw [add_comm]; rfl     -- closes the initial main goal
-  rw [Nat.zero_add]; rfl -- proves `add_comm`
+  focus
+    -- closes the initial main goal
+    rw [add_comm]; rfl
+  case add_comm =>
+    -- proves `add_comm`
+    rw [Nat.zero_add]; rfl
 
 /-! We start by storing the main goal in `mvarId` and using it as a parameter of
 `withMVarContext` to make sure that our elaborations will work with types that

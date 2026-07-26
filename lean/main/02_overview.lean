@@ -118,7 +118,9 @@ syntax (name := zzz) "blue" : command
 @[command_elab zzz] def blueElab : CommandElab := λ stx =>
   Lean.logInfo "finally, blue!"
 
-red -- finally, blue!
+/-- info: finally, blue! -/
+#guard_msgs in --#
+red
 
 /-
 
