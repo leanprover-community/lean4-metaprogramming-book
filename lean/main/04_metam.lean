@@ -245,19 +245,19 @@ sections.
 
 /--
 info: Initially, all metavariables are unassigned:
-  meta1: ?_uniq.1367
-  meta2: ?_uniq.1368
-  meta3: ?_uniq.1369
+  meta1: ?mvar1
+  meta2: ?mvar2
+  meta3: ?mvar3
 After assigning mvar1:
-  meta1: ?_uniq.1369 ?_uniq.1368
-  meta2: ?_uniq.1368
-  meta3: ?_uniq.1369
+  meta1: ?mvar3 ?mvar2
+  meta2: ?mvar2
+  meta3: ?mvar3
 After assigning mvar2:
-  meta1: ?_uniq.1369 Nat.zero
+  meta1: ?mvar3 Nat.zero
   meta2: Nat.zero
-  meta3: ?_uniq.1369
+  meta3: ?mvar3
 After assigning mvar3:
-  meta1: Nat.succ Nat.zero
+  meta1: Nat.zero.succ
   meta2: Nat.zero
   meta3: Nat.succ
 -/
@@ -273,9 +273,12 @@ After assigning mvar3:
 
   -- Define a helper function that prints each metavariable.
   let printMVars : MetaM Unit := do
-    IO.println s!"  meta1: {← instantiateMVars mvar1}"
-    IO.println s!"  meta2: {← instantiateMVars mvar2}"
-    IO.println s!"  meta3: {← instantiateMVars mvar3}"
+    let var1 ← instantiateMVars mvar1
+    let var2 ← instantiateMVars mvar2
+    let var3 ← instantiateMVars mvar3
+    IO.println s!"  meta1: {← ppExpr var1}"
+    IO.println s!"  meta2: {← ppExpr var2}"
+    IO.println s!"  meta3: {← ppExpr var3}"
 
   IO.println "Initially, all metavariables are unassigned:"
   printMVars
