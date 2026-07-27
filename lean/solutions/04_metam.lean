@@ -103,7 +103,8 @@ theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
 
 /- ### 5. -/
 
--- The type of our metavariable `2 + 2`. We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
+-- The type of our metavariable `2 + 2`.
+-- We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
 elab "solve" : tactic => do
   let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
   let metavarDecl : MetavarDecl ← mvarId.getDecl
@@ -113,31 +114,37 @@ elab "solve" : tactic => do
     if ← Lean.Meta.isDefEq localDecl.type metavarDecl.type then
       mvarId.assign localDecl.toExpr
 
-theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
+theorem redSolved (_hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   solve
 
 /- ### 6. -/
 
 def sixA : Bool → Bool := fun x => x
--- .lam `x (.const `Bool []) (.bvar 0) (Lean.BinderInfo.default)
+
+/-- info: Lean.Expr.lam `x (Lean.Expr.const `Bool []) (Lean.Expr.bvar 0) (Lean.BinderInfo.default) -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixA [])
 
 def sixB : Bool := (fun x => x) ((true && false) || true)
--- .const `Bool.true []
+
+/-- info: Lean.Expr.const `Bool.true [] -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixB [])
 
 def sixC : Nat := 800 + 2
--- .lit (Lean.Literal.natVal 802)
+
+/-- info: Lean.Expr.lit (Lean.Literal.natVal 802) -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixC [])
 
 /- ### 7. -/
 
 #eval show MetaM Unit from do
-  let litExpr := Expr.lit (Lean.Literal.natVal 1)
-  let standardExpr := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
+  let «1» := Expr.lit (Lean.Literal.natVal 1)
+  let «Nat.succ Nat.zero» := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
 
-  let isEqual ← Lean.Meta.isDefEq litExpr standardExpr
-  IO.println isEqual -- true
+  let isEqual ← Lean.Meta.isDefEq «1» «Nat.succ Nat.zero»
+  assert! isEqual
 
 /- ### 8. -/
 

@@ -1316,9 +1316,9 @@ Lean parser.
 
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
 6. [**Computation**] What is the normal form of the following expressions:
-  **a)** `fun x => x` of type `Bool → Bool`
-  **b)** `(fun x => x) ((true && false) || true)` of type `Bool`
-  **c)** `800 + 2` of type `Nat`
+   * a) `fun x => x` of type `Bool → Bool`
+   * b) `(fun x => x) ((true && false) || true)` of type `Bool`
+   * c) `800 + 2` of type `Nat`
 7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`.
 8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.
   **a)** `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
