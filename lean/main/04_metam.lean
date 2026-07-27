@@ -1359,14 +1359,12 @@ Lean parser.
       let reducedExpr ← Meta.reduce constantExpr
       dbg_trace (← ppExpr reducedExpr) -- ...
     ```
-10. [**Constructing Expressions**] Create expression `fun x => 1 + x` in two ways:
-  **a)** not idiomatically, with loose bound variables
-  **b)** idiomatically.
+10. [**Constructing Expressions**] Create expression `fun x => Nat.add 1 x` in two ways.
   In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
-11. [**Constructing Expressions**] Create expression `∀ (yellow: Nat), yellow`.
-12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:
-  **a)** not idiomatically, with loose bound variables
-  **b)** idiomatically.
+
+    * a) not idiomatically, with loose bound variables
+    * b) idiomatically.
+11. [**Constructing Expressions**] Create expression `∀ (yellow : Prop), yellow`.
   In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
 13. [**Constructing Expressions**] Create expression `fun (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?

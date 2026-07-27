@@ -241,28 +241,36 @@ def defaultDef                    : Nat := 3
 
 @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
+/--
+info: [1, instanceDef, defaultDef, irreducibleDef]
+[1, 2, defaultDef, irreducibleDef]
+[1, 2, 3, irreducibleDef]
+[1, 2, 3, 4]
+[1, 2, 3, irreducibleDef]
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let constantExpr := Expr.const `sum []
 
   Meta.withTransparency Meta.TransparencyMode.reducible do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, instanceDef, defaultDef, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.instances do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, defaultDef, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.default do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.all do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, 4]
+    dbg_trace (← ppExpr reducedExpr)
 
   -- Note: if we don't set the transparency mode, we get a pretty strong `TransparencyMode.default`.
   let reducedExpr ← Meta.reduce constantExpr
-  dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
+  dbg_trace (← ppExpr reducedExpr)
 
 /- ### 10. -/
 
@@ -279,10 +287,15 @@ def tenB : MetaM Expr := do
     Lean.Meta.mkLambdaFVars #[x] body
   )
 
+/-- info: fun x => Nat.add 1 x -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← tenA) -- fun x => Nat.add 1 x
+  ppExpr (← tenA)
+
+/-- info: fun x => Nat.add 1 x -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← tenB) -- fun x => Nat.add 1 x
+  ppExpr (← tenB)
 
 /- ### 11. -/
 
