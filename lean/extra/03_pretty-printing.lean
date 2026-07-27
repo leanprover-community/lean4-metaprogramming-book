@@ -49,14 +49,19 @@ import Lean
 
 open Lean PrettyPrinter Delaborator SubExpr
 
-def foo : Nat → Nat := fun x => 42
+def foo : Nat → Nat := fun _x => 42
 
 @[delab app.foo]
 def delabFoo : Delab := do
   `(1)
 
-#check (foo) -- 1 : Nat → Nat
-#check foo 13 -- 1 : Nat, full applications are also pretty printed this way
+/-- info: 1 : Nat → Nat -/
+#guard_msgs in --#
+#check (foo)
+
+/-- info: 1 : Nat -/
+#guard_msgs in --#
+#check foo 13 -- full applications are also pretty printed this way
 
 /-!
 This is obviously not a good delaborator since reelaborating this `Syntax`
@@ -68,7 +73,9 @@ attributes we can also overload delaborators:
 def delabfoo2 : Delab := do
   `(2)
 
-#check (foo) -- 2 : Nat → Nat
+/-- info: 2 : Nat → Nat -/
+#guard_msgs in --#
+#check (foo)
 
 /-!
 The mechanism for figuring out which one to use is the same as well. The
@@ -82,7 +89,9 @@ def delabfoo3 : Delab := do
   failure
   `(3)
 
-#check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
+/-- info: 2 : Nat → Nat -/
+#guard_msgs in --#
+#check (foo) -- still 2 since 3 failed
 
 /-!
 In order to write a proper delaborator for `foo`, we will have to use some
@@ -97,8 +106,13 @@ def delabfooFinal : Delab := do
   let arg ← withAppArg delab
   `($fn $arg)
 
-#check foo 42 -- fooSpecial 42 : Nat
-#check (foo) -- 2 : Nat → Nat, still 2 since 3 failed
+/-- info: fooSpecial 42 : Nat -/
+#guard_msgs in --#
+#check foo 42
+
+/-- info: 2 : Nat → Nat -/
+#guard_msgs in --#
+#check (foo) -- still 2 since 3 failed
 
 /-!
 Can you extend `delabFooFinal` to also account for non full applications?
@@ -133,8 +147,14 @@ def unexpMyId : Unexpander
   | `($_myid $arg) => set_option hygiene false in `(id $arg)
   | `($_myid) => pure $ mkIdent `id
 
-#check myid 12 -- id 12 : Nat
-#check (myid) -- id : ?m.3870 → ?m.3870
+/-- info: id 12 : Nat -/
+#guard_msgs in --#
+#check myid 12
+
+set_option pp.mvars false in
+/-- info: id : ?_ → ?_ -/
+#guard_msgs in --#
+#check (myid)
 
 /-!
 For a few nice examples of unexpanders you can take a look at
@@ -154,7 +174,9 @@ def unexpRemoveId : Unexpander
   | `($_removeId (id $arg)) => pure arg
   | _ => throw ()
 
-#check removeId (id 42) -- removeId (id 42) : Nat
+/-- info: removeId (id 42) : Nat -/
+#guard_msgs in --#
+#check removeId (id 42)
 
 /-!
 We can work around this issue with a nested `match`:
@@ -170,7 +192,9 @@ def unexpRemoveId' : Unexpander
       | _ => throw ()
   | _ => throw ()
 
-#check removeId' (id 42) -- 42 : Nat
+/-- info: 42 : Nat -/
+#guard_msgs in --#
+#check removeId' (id 42)
 
 /-!
 ### Mini project
@@ -203,8 +227,11 @@ instance : Coe NumLit (TSyntax `lang) where
 instance : Coe Ident (TSyntax `lang) where
   coe s := ⟨s.raw⟩
 
--- LangExpr.letE "foo" (LangExpr.numConst 12)
---   (LangExpr.letE "bar" (LangExpr.ident "foo") (LangExpr.ident "foo")) : LangExpr
+/--
+info: LangExpr.letE "foo" (LangExpr.numConst 12)
+  (LangExpr.letE "bar" (LangExpr.ident "foo") (LangExpr.ident "foo")) : LangExpr
+-/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in
   let bar := foo in
@@ -237,12 +264,14 @@ def unexpandLet : Unexpander
     `([Lang| let $name := $v in $b])
   | _ => throw ()
 
--- [Lang| let foo := 12 in foo] : LangExpr
+/-- info: [Lang| let foo := 12 in foo] : LangExpr -/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in foo
 ]
 
--- [Lang| let foo := 12 in let bar := foo in foo] : LangExpr
+/-- info: [Lang| let foo := 12 in let bar := foo in foo] : LangExpr -/
+#guard_msgs in --#
 #check [Lang|
   let foo := 12 in
   let bar := foo in
