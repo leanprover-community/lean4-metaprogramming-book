@@ -327,12 +327,21 @@ def twelveB : MetaM Expr := do
     forAll
   )
 
-#eval show MetaM _ from do
-  ppExpr (← twelveA) -- (n : Nat) → Eq Nat n (Nat.add n 1)
+section
 
-#eval show MetaM _ from do
-  ppExpr (← twelveB) -- ∀ (n : Nat), n = Nat.add n 1
+  set_option pp.fieldNotation false
 
+  /-- info: (n : Nat) → Eq Nat n (Nat.add n 1) -/
+  #guard_msgs in --#
+  #eval show MetaM _ from do
+    ppExpr (← twelveA)
+
+  /-- info: ∀ (n : Nat), n = Nat.add n 1 -/
+  #guard_msgs in --#
+  #eval show MetaM _ from do
+    ppExpr (← twelveB)
+
+end
 /- ### 13. -/
 def thirteen : MetaM Expr := do
   withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (fun y => do
@@ -347,26 +356,50 @@ def thirteen : MetaM Expr := do
     lam
   )
 
+/-- info: fun f => (n : Nat) → Eq Nat (f n) (f (n.add 1)) -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← thirteen) -- fun f => (n : Nat) → Eq Nat (f n) (f (Nat.add n 1))
+  ppExpr (← thirteen)
 
 /- ### 14. -/
 
+/--
+info: ?a✝ ∧ ?a✝
+?a✝ ∨ ?b✝ → ?b✝ → ?a✝ ∧ ?a✝
+∀ (a b : Prop), a ∨ b → b → a ∧ a
+-/
+#guard_msgs in --#
 #eval show Lean.Elab.Term.TermElabM _ from do
   let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
   let expr ← Elab.Term.elabTermAndSynthesize stx none
 
   let (_, _, conclusion) ← forallMetaTelescope expr
-  dbg_trace conclusion -- And ?_uniq.10 ?_uniq.10
+  dbg_trace (← ppExpr conclusion)
 
   let (_, _, conclusion) ← forallMetaBoundedTelescope expr 2
-  dbg_trace conclusion -- (Or ?_uniq.14 ?_uniq.15) -> ?_uniq.15 -> (And ?_uniq.14 ?_uniq.14)
+  dbg_trace (← ppExpr conclusion)
 
   let (_, _, conclusion) ← lambdaMetaTelescope expr
-  dbg_trace conclusion -- forall (a.1 : Prop) (b.1 : Prop), (Or a.1 b.1) -> b.1 -> (And a.1 a.1)
+  dbg_trace (← ppExpr conclusion)
 
 /- ### 15. -/
 
+/--
+info: value in c: Nat.add ?a Int
+value in d: Nat.add "hi" ?b
+
+Saved state
+
+true
+value in c: Nat.add "hi" Int
+value in d: Nat.add "hi" Int
+
+Restored state
+
+value in c: Nat.add ?a Int
+value in d: Nat.add "hi" ?b
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
   let b ← Lean.Meta.mkFreshExprMVar (Expr.sort (Nat.toLevel 1)) (userName := `b)
@@ -375,19 +408,19 @@ def thirteen : MetaM Expr := do
   -- "hi" + ?b
   let d := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkStrLit "hi", b]
 
-  IO.println s!"value in c: {← instantiateMVars c}" -- Nat.add ?_uniq.1 Int
-  IO.println s!"value in d: {← instantiateMVars d}" -- Nat.add String ?_uniq.2
+  IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+  IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"
 
   let state : SavedState ← saveState
   IO.println "\nSaved state\n"
 
   if ← Lean.Meta.isDefEq c d then
     IO.println true
-    IO.println s!"value in c: {← instantiateMVars c}"
-    IO.println s!"value in d: {← instantiateMVars d}"
+    IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+    IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"
 
   restoreState state
   IO.println "\nRestored state\n"
 
-  IO.println s!"value in c: {← instantiateMVars c}"
-  IO.println s!"value in d: {← instantiateMVars d}"
+  IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+  IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"

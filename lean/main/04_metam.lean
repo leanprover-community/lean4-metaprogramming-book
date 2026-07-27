@@ -1365,7 +1365,11 @@ Lean parser.
     * a) not idiomatically, with loose bound variables
     * b) idiomatically.
 11. [**Constructing Expressions**] Create expression `∀ (yellow : Prop), yellow`.
+12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways.
   In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
+
+    * a) not idiomatically, with loose bound variables
+    * b) idiomatically.
 13. [**Constructing Expressions**] Create expression `fun (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?
 
