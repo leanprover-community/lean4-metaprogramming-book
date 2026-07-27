@@ -136,12 +136,12 @@ elab "#assertType " termStx:term " : " typeStx:term : command =>
 set_option pp.mvars false in
 
 /--
-error: type mismatch
+error: Type mismatch
   []
 has type
-  List ?_ : Type _
+  List ?_
 but is expected to have type
-  Nat : Type
+  Nat
 -/
 #guard_msgs (error) in --#
 #assertType [] : Nat

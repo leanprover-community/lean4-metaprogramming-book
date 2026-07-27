@@ -270,12 +270,12 @@ action with the following example:
 /--
 info: List.foldr Nat.add 0 [1, 2, 3] : Nat
 ---
-info: [Elab.postpone] .add : ?m.2639 → ?m.2640 → ?m.2640
+trace: [Elab.postpone] .add : ?m.1 → ?m.2 → ?m.2
 -/
 #guard_msgs in --#
 #check
   set_option trace.Elab.postpone true in
-  List.foldr .add 0 [1,2,3]
+  List.foldr .add 0 [1, 2, 3]
 
 /-!
 What happened here is that the elaborator for function applications started
@@ -301,12 +301,13 @@ We can also easily provoke cases where this does not work out. For example:
 -/
 
 /--
-info: invalid dotted identifier notation, expected type is not of the form (... → C ...) where C is a constant
-  ?m.2750 → ?m.2751 → ?m.2751
+info: Invalid dotted identifier notation: The expected type of `.add`
+  ?m.1 → ?m.2 → ?m.2
+is not of the form `C ...` or `... → C ...` where C is a constant
 ---
-info: List.foldr sorry : ?m.2751 → List ?m.2750 → ?m.2751
+info: List.foldr sorry : ?m.2 → List ?m.1 → ?m.2
 ---
-info: [Elab.postpone] .add : ?m.2750 → ?m.2751 → ?m.2751
+trace: [Elab.postpone] .add : ?m.1 → ?m.2 → ?m.2
 -/
 #guard_msgs in --#
 #check_failure
@@ -328,13 +329,13 @@ def mytermValues := [1, 2]
 
 @[term_elab myterm1]
 def myTerm1Impl : TermElab := fun _stx _type? => do
-  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
+  mkAppM ``getElem! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
 #guard myterm_1 == 1
 
 -- Also works with `elab`
 elab "myterm_2" : term => do
-  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
+  mkAppM ``getElem! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
 #guard myterm_2 == 2
 
@@ -395,6 +396,8 @@ def myanonImpl : TermElab := fun stx typ? => do
 As a final note, we can shorten the postponing act by using an additional
 syntax sugar of the `elab` syntax instead:
 -/
+
+set_option warn.sorry false in --#
 
 -- This `t` syntax will effectively perform the first two lines of `myanonImpl`
 elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
