@@ -5,42 +5,69 @@ open Lean Meta
 
 /- ### 1. -/
 
+/--
+info: value in hi: ?hi
+value in hi: 3
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let hi ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
-  IO.println s!"value in hi: {← instantiateMVars hi}" -- ?_uniq.1
+  let hi ← mkFreshExprMVar (Expr.const `Nat []) (userName := `hi)
+  let value ← instantiateMVars hi
+  IO.println s!"value in hi: {← ppExpr value}"
 
-  hi.mvarId!.assign (Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero []))
-  IO.println s!"value in hi: {← instantiateMVars hi}" -- Nat.succ Nat.zero
+  hi.mvarId!.assign (Expr.lit (.natVal 3))
+  let valueAssigned ← instantiateMVars hi
+  IO.println s!"value in hi: {← ppExpr valueAssigned}"
 
 /- ### 2. -/
 
--- It would output the same expression we gave it - there were no metavariables to instantiate.
+-- It would output the same expression we gave it
+-- because there were no metavariables to instantiate.
+/--
+info:
+before: Nat.add 1 2
+after: Nat.add 1 2
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let instantiatedExpr ← instantiateMVars (Expr.lam `x (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default)
-  IO.println instantiatedExpr -- fun (x : Nat) => x
+  let expr := Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2]
+  IO.println s!"before: {← ppExpr expr}"
+
+  let instantiatedExpr ← instantiateMVars expr
+  IO.println s!"after: {← ppExpr instantiatedExpr}"
 
 /- ### 3. -/
 
+open Lean Meta in
+
+set_option pp.fieldNotation false in
+
+/-- info: Nat.add (Nat.add 2 ?mvar2) 1 -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
-  let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+  let «1» := Lean.mkNatLit 1
+  let «2» := Lean.mkNatLit 2
+  let «Nat» := Expr.const `Nat []
+  let «Nat.add» := Expr.const `Nat.add []
 
   -- Create `mvar1` with type `Nat`
-  let mvar1 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar1)
+  let mvar1 ← mkFreshExprMVar «Nat» (userName := `mvar1)
   -- Create `mvar2` with type `Nat`
-  let mvar2 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar2)
+  let mvar2 ← mkFreshExprMVar «Nat» (userName := `mvar2)
   -- Create `mvar3` with type `Nat`
-  let mvar3 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar3)
+  let mvar3 ← mkFreshExprMVar «Nat» (userName := `mvar3)
 
-  -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
-  mvar1.mvarId!.assign (Lean.mkAppN (Expr.const `Nat.add []) #[(Lean.mkAppN (Expr.const `Nat.add []) #[twoExpr, mvar2]), mvar3])
+  -- Assign `mvar1` to `Nat.add (Nat.add 2 ?mvar2) ?mvar3`
+  mvar1.mvarId!.assign <|
+    let «Nat.add 2 ?mvar2» := Lean.mkApp2 (f := «Nat.add») «2» mvar2
+    Lean.mkApp2 (f := «Nat.add») «Nat.add 2 ?mvar2» mvar3
 
   -- Assign `mvar3` to `1`
-  mvar3.mvarId!.assign oneExpr
+  mvar3.mvarId!.assign «1»
 
-  -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
+  -- Instantiate `mvar1`, which should result in expression `Nat.add (Nat.add 2 ?mvar2) 1`
   let instantiatedMvar1 ← instantiateMVars mvar1
-  IO.println instantiatedMvar1 -- Nat.add (Nat.add 2 ?_uniq.2) 1
+  IO.println <| ← ppExpr instantiatedMvar1
 
 /- ### 4. -/
 
@@ -49,27 +76,35 @@ elab "explore" : tactic => do
   let metavarDecl : MetavarDecl ← mvarId.getDecl
 
   IO.println "Our metavariable"
-  -- [anonymous] : 2 = 2
-  IO.println s!"\n{metavarDecl.userName} : {metavarDecl.type}"
+  Lean.logInfo s!"{metavarDecl.userName} : {← ppExpr metavarDecl.type}"
 
-  IO.println "\nAll of its local declarations"
+  IO.println "All of its local declarations"
   let localContext : LocalContext := metavarDecl.lctx
   for (localDecl : LocalDecl) in localContext do
     if localDecl.isImplementationDetail then
-      -- (implementation detail) red : 1 = 1 → 2 = 2 → 2 = 2
-      IO.println s!"\n(implementation detail) {localDecl.userName} : {localDecl.type}"
+      Lean.logInfo s!"(implementation detail) {localDecl.userName} : {← ppExpr localDecl.type}"
     else
-      -- hA : 1 = 1
-      -- hB : 2 = 2
-      IO.println s!"\n{localDecl.userName} : {localDecl.type}"
+      Lean.logInfo s!"{localDecl.userName} : {← ppExpr localDecl.type}"
 
+/--
+info: [anonymous] : 2 = 2
+---
+info: (implementation detail) red : 1 = 1 → 2 = 2 → 2 = 2
+---
+info: hA : 1 = 1
+---
+info: hB : 2 = 2
+-/
+#guard_msgs in --#
 theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   explore
-  sorry
+  cases hA
+  exact hB
 
 /- ### 5. -/
 
--- The type of our metavariable `2 + 2`. We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
+-- The type of our metavariable `2 + 2`.
+-- We want to find a `localDecl` that has the same type, and `assign` our metavariable to that `localDecl`.
 elab "solve" : tactic => do
   let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
   let metavarDecl : MetavarDecl ← mvarId.getDecl
@@ -79,93 +114,124 @@ elab "solve" : tactic => do
     if ← Lean.Meta.isDefEq localDecl.type metavarDecl.type then
       mvarId.assign localDecl.toExpr
 
-theorem redSolved (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
+theorem redSolved (_hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   solve
 
 /- ### 6. -/
 
 def sixA : Bool → Bool := fun x => x
--- .lam `x (.const `Bool []) (.bvar 0) (Lean.BinderInfo.default)
+
+/-- info: Lean.Expr.lam `x (Lean.Expr.const `Bool []) (Lean.Expr.bvar 0) (Lean.BinderInfo.default) -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixA [])
 
 def sixB : Bool := (fun x => x) ((true && false) || true)
--- .const `Bool.true []
+
+/-- info: Lean.Expr.const `Bool.true [] -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixB [])
 
 def sixC : Nat := 800 + 2
--- .lit (Lean.Literal.natVal 802)
+
+/-- info: Lean.Expr.lit (Lean.Literal.natVal 802) -/
+#guard_msgs in --#
 #eval Lean.Meta.reduce (Expr.const `sixC [])
 
 /- ### 7. -/
 
 #eval show MetaM Unit from do
-  let litExpr := Expr.lit (Lean.Literal.natVal 1)
-  let standardExpr := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
+  let «1» := Expr.lit (Lean.Literal.natVal 1)
+  let «Nat.succ Nat.zero» := Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])
 
-  let isEqual ← Lean.Meta.isDefEq litExpr standardExpr
-  IO.println isEqual -- true
+  let isEqual ← Lean.Meta.isDefEq «1» «Nat.succ Nat.zero»
+  assert! isEqual
 
 /- ### 8. -/
 
--- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
--- Definitionally equal.
-def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
-#eval show MetaM Unit from do
-  let expr1 := Lean.mkNatLit 5
-  let expr2 := Expr.const `expr2 []
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+namespace Ex8.a
+  -- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
+  -- Definitionally equal.
 
--- b) `2 + 1 =?= 1 + 2`
+  def rhs := (fun _x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
+
+  /-- info: true -/
+  #guard_msgs in --#
+  #eval show MetaM Unit from do
+    let «5» := Lean.mkNatLit 5
+    let «rhs» : Expr := Expr.const ``Ex8.a.rhs []
+    let isEqual ← Lean.Meta.isDefEq «5» «rhs»
+    IO.println isEqual
+
+end Ex8.a
+
+-- b) `Nat.add 2 1 =?= Nat.add 1 2`
 -- Definitionally equal.
+/-- info: true -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
-  let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Lean.mkNatLit 2]
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  let «Nat.add 2 1» := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
+  let «Nat.add 1 2» := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Lean.mkNatLit 2]
+  let isEqual ← Lean.Meta.isDefEq «Nat.add 2 1» «Nat.add 1 2»
+  IO.println isEqual
 
 -- c) `?a =?= 2`, where `?a` has a type `String`
 -- Not definitionally equal.
+/-- info: false -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let expr1 ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `expr1)
-  let expr2 := Lean.mkNatLit 2
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- false
+  let «?a» ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
+  let «2» := Lean.mkNatLit 2
+  let isEqual ← Lean.Meta.isDefEq «?a» «2»
+  IO.println isEqual
 
--- d) `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
+-- d) `Nat.add ?a Int =?= Nat.add "hi" ?b`, where `?a` and `?b` don't have a type
 -- Definitionally equal.
 -- `?a` is assigned to `"hi"`, `?b` is assigned to `Int`.
+/--
+info: true
+a: "hi"
+b: Int
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let a ← Lean.Meta.mkFreshExprMVar Option.none (userName := `a)
-  let b ← Lean.Meta.mkFreshExprMVar Option.none (userName := `b)
+  let a ← Lean.Meta.mkFreshExprMVar (type? := none) (userName := `a)
+  let b ← Lean.Meta.mkFreshExprMVar (type? := none) (userName := `b)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[a, Expr.const `Int []]
   let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkStrLit "hi", b]
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  IO.println isEqual
 
   IO.println s!"a: {← instantiateMVars a}"
   IO.println s!"b: {← instantiateMVars b}"
 
--- e) `2 + ?a =?= 3`
+-- e) `Nat.add 2 ?a =?= 3`
 -- Not definitionally equal.
+/-- info: false -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
   let expr2 := Lean.mkNatLit 3
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- false
+  IO.println isEqual
 
--- f) `2 + ?a =?= 2 + 1`
+-- f) `Nat.add 2 ?a =?= Nat.add 2 1`
 -- Definitionally equal.
 -- `?a` is assigned to `1`.
+/--
+info: true
+a: 1
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
   let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  IO.println isEqual
 
-  IO.println s!"a: {← instantiateMVars a}"
+  let aValue ← instantiateMVars a
+  IO.println s!"a: {← ppExpr aValue}"
 
 /- ### 9. -/
 @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
@@ -175,28 +241,36 @@ def defaultDef                    : Nat := 3
 
 @[reducible] def sum := [reducibleDef, instanceDef, defaultDef, irreducibleDef]
 
+/--
+info: [1, instanceDef, defaultDef, irreducibleDef]
+[1, 2, defaultDef, irreducibleDef]
+[1, 2, 3, irreducibleDef]
+[1, 2, 3, 4]
+[1, 2, 3, irreducibleDef]
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let constantExpr := Expr.const `sum []
 
   Meta.withTransparency Meta.TransparencyMode.reducible do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, instanceDef, defaultDef, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.instances do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, defaultDef, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.default do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
+    dbg_trace (← ppExpr reducedExpr)
 
   Meta.withTransparency Meta.TransparencyMode.all do
     let reducedExpr ← Meta.reduce constantExpr
-    dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, 4]
+    dbg_trace (← ppExpr reducedExpr)
 
   -- Note: if we don't set the transparency mode, we get a pretty strong `TransparencyMode.default`.
   let reducedExpr ← Meta.reduce constantExpr
-  dbg_trace (← ppExpr reducedExpr) -- [1, 2, 3, irreducibleDef]
+  dbg_trace (← ppExpr reducedExpr)
 
 /- ### 10. -/
 
@@ -213,18 +287,26 @@ def tenB : MetaM Expr := do
     Lean.Meta.mkLambdaFVars #[x] body
   )
 
+/-- info: fun x => Nat.add 1 x -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← tenA) -- fun x => Nat.add 1 x
+  ppExpr (← tenA)
+
+/-- info: fun x => Nat.add 1 x -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← tenB) -- fun x => Nat.add 1 x
+  ppExpr (← tenB)
 
 /- ### 11. -/
 
 def eleven : MetaM Expr :=
-  return Expr.forallE `yellow (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default
+  return Expr.forallE `yellow (Expr.sort Level.zero) (Expr.bvar 0) BinderInfo.default
 
+/-- info: ∀ (yellow : Prop), yellow -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  dbg_trace (← eleven) -- forall (yellow : Nat), yellow
+  let expr ← eleven
+  dbg_trace (← ppExpr expr)
 
 /- ### 12. -/
 
@@ -245,12 +327,21 @@ def twelveB : MetaM Expr := do
     forAll
   )
 
-#eval show MetaM _ from do
-  ppExpr (← twelveA) -- (n : Nat) → Eq Nat n (Nat.add n 1)
+section
 
-#eval show MetaM _ from do
-  ppExpr (← twelveB) -- ∀ (n : Nat), n = Nat.add n 1
+  set_option pp.fieldNotation false
 
+  /-- info: (n : Nat) → Eq Nat n (Nat.add n 1) -/
+  #guard_msgs in --#
+  #eval show MetaM _ from do
+    ppExpr (← twelveA)
+
+  /-- info: ∀ (n : Nat), n = Nat.add n 1 -/
+  #guard_msgs in --#
+  #eval show MetaM _ from do
+    ppExpr (← twelveB)
+
+end
 /- ### 13. -/
 def thirteen : MetaM Expr := do
   withLocalDecl `f BinderInfo.default (Expr.forallE `a (Expr.const `Nat []) (Expr.const `Nat []) .default) (fun y => do
@@ -265,26 +356,50 @@ def thirteen : MetaM Expr := do
     lam
   )
 
+/-- info: fun f => (n : Nat) → Eq Nat (f n) (f (n.add 1)) -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  ppExpr (← thirteen) -- fun f => (n : Nat) → Eq Nat (f n) (f (Nat.add n 1))
+  ppExpr (← thirteen)
 
 /- ### 14. -/
 
+/--
+info: ?a✝ ∧ ?a✝
+?a✝ ∨ ?b✝ → ?b✝ → ?a✝ ∧ ?a✝
+∀ (a b : Prop), a ∨ b → b → a ∧ a
+-/
+#guard_msgs in --#
 #eval show Lean.Elab.Term.TermElabM _ from do
   let stx : Syntax ← `(∀ (a : Prop) (b : Prop), a ∨ b → b → a ∧ a)
   let expr ← Elab.Term.elabTermAndSynthesize stx none
 
   let (_, _, conclusion) ← forallMetaTelescope expr
-  dbg_trace conclusion -- And ?_uniq.10 ?_uniq.10
+  dbg_trace (← ppExpr conclusion)
 
   let (_, _, conclusion) ← forallMetaBoundedTelescope expr 2
-  dbg_trace conclusion -- (Or ?_uniq.14 ?_uniq.15) -> ?_uniq.15 -> (And ?_uniq.14 ?_uniq.14)
+  dbg_trace (← ppExpr conclusion)
 
   let (_, _, conclusion) ← lambdaMetaTelescope expr
-  dbg_trace conclusion -- forall (a.1 : Prop) (b.1 : Prop), (Or a.1 b.1) -> b.1 -> (And a.1 a.1)
+  dbg_trace (← ppExpr conclusion)
 
 /- ### 15. -/
 
+/--
+info: value in c: Nat.add ?a Int
+value in d: Nat.add "hi" ?b
+
+Saved state
+
+true
+value in c: Nat.add "hi" Int
+value in d: Nat.add "hi" Int
+
+Restored state
+
+value in c: Nat.add ?a Int
+value in d: Nat.add "hi" ?b
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
   let b ← Lean.Meta.mkFreshExprMVar (Expr.sort (Nat.toLevel 1)) (userName := `b)
@@ -293,19 +408,19 @@ def thirteen : MetaM Expr := do
   -- "hi" + ?b
   let d := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkStrLit "hi", b]
 
-  IO.println s!"value in c: {← instantiateMVars c}" -- Nat.add ?_uniq.1 Int
-  IO.println s!"value in d: {← instantiateMVars d}" -- Nat.add String ?_uniq.2
+  IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+  IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"
 
   let state : SavedState ← saveState
   IO.println "\nSaved state\n"
 
   if ← Lean.Meta.isDefEq c d then
     IO.println true
-    IO.println s!"value in c: {← instantiateMVars c}"
-    IO.println s!"value in d: {← instantiateMVars d}"
+    IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+    IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"
 
   restoreState state
   IO.println "\nRestored state\n"
 
-  IO.println s!"value in c: {← instantiateMVars c}"
-  IO.println s!"value in d: {← instantiateMVars d}"
+  IO.println s!"value in c: {← ppExpr (← instantiateMVars c)}"
+  IO.println s!"value in d: {← ppExpr (← instantiateMVars d)}"

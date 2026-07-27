@@ -1260,36 +1260,41 @@ Lean parser.
 ## Exercises
 
 1. [**Metavariables**] Create a metavariable with type `Nat`, and assign to it value `3`.
-Notice that changing the type of the metavariable from `Nat` to, for example, `String`, doesn't raise any errors - that's why, as was mentioned, we must make sure *"(a) that `val` must have the target type of `mvarId` and (b) that `val` must only contain `fvars` from the local context of `mvarId`"*.
-2. [**Metavariables**] What would `instantiateMVars (Lean.mkAppN (Expr.const 'Nat.add []) #[mkNatLit 1, mkNatLit 2])` output?
+  Notice that changing the type of the metavariable from `Nat` to, for example, `String`, doesn't raise any errors.
+  That's why, as was mentioned, we must ensure the following.
+   * (a) `val` must have the target type of `mvarId`
+   * (b) `val` must only contain `fvars` from the local context of `mvarId`.
+2. [**Metavariables**] What would the following expression output?
+   ```lean
+   instantiateMVars (Lean.mkAppN (Expr.const `Nat.add []) #[mkNatLit 1, mkNatLit 2])
+   ```
 3. [**Metavariables**] Fill in the missing lines in the following code.
 
     ```lean
     #eval show MetaM Unit from do
-      let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
-      let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+      let «1» := Lean.mkNatLit 1
+      let «2» := Lean.mkNatLit 2
+      let «Nat» := Expr.const `Nat []
+      let «Nat.add» := Expr.const `Nat.add []
 
       -- Create `mvar1` with type `Nat`
-      -- let mvar1 ← ...
+      let mvar1 ← sorry
       -- Create `mvar2` with type `Nat`
-      -- let mvar2 ← ...
+      let mvar2 ← sorry
       -- Create `mvar3` with type `Nat`
-      -- let mvar3 ← ...
+      let mvar3 ← sorry
 
-      -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
-      -- ...
+      -- Assign `mvar1` to `Nat.add (Nat.add 2 ?mvar2) ?mvar3`
+      sorry
 
       -- Assign `mvar3` to `1`
-      -- ...
+      sorry
 
-      -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
-      ...
+      -- Instantiate `mvar1`, which should result in expression `Nat.add (Nat.add 2 ?mvar2) 1`
+      let instantiatedMvar1 ← instantiateMVars mvar1
+      IO.println <| ← ppExpr instantiatedMvar1
     ```
 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.
-  **a)** What would be the `type` and `userName` of metavariable `mvarId`?
-  **b)** What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?
-  Print them all out.
-
     ```lean
     elab "explore" : tactic => do
       let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
@@ -1305,19 +1310,23 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       explore
       sorry
     ```
+   * a) What would be the `type` and `userName` of metavariable `mvarId`?
+   * b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?
+      Print them all out.
+
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
 6. [**Computation**] What is the normal form of the following expressions:
-  **a)** `fun x => x` of type `Bool → Bool`
-  **b)** `(fun x => x) ((true && false) || true)` of type `Bool`
-  **c)** `800 + 2` of type `Nat`
+   * a) `fun x => x` of type `Bool → Bool`
+   * b) `(fun x => x) ((true && false) || true)` of type `Bool`
+   * c) `800 + 2` of type `Nat`
 7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`.
 8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.
-  **a)** `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
-  **b)** `2 + 1 =?= 1 + 2`
-  **c)** `?a =?= 2`, where `?a` has a type `String`
-  **d)** `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
-  **e)** `2 + ?a =?= 3`
-  **f)** `2 + ?a =?= 2 + 1`
+   * a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
+   * b) `Nat.add 2 1 =?= Nat.add 1 2`
+   * c) `?a =?= 2`, where `?a` has a type `String`
+   * d) `Nat.add ?a Int =?= Nat.add "hi" ?b`, where `?a` and `?b` don't have a type
+   * e) `Nat.add 2 ?a =?= 3`
+   * f) `Nat.add 2 ?a =?= Nat.add 2 1`
 9. [**Computation**] Write down what you expect the following code to output.
 
     ```lean
@@ -1350,15 +1359,17 @@ Notice that changing the type of the metavariable from `Nat` to, for example, `S
       let reducedExpr ← Meta.reduce constantExpr
       dbg_trace (← ppExpr reducedExpr) -- ...
     ```
-10. [**Constructing Expressions**] Create expression `fun x => 1 + x` in two ways:
-  **a)** not idiomatically, with loose bound variables
-  **b)** idiomatically.
+10. [**Constructing Expressions**] Create expression `fun x => Nat.add 1 x` in two ways.
   In what version can you use `Lean.mkAppN`? In what version can you use `Lean.Meta.mkAppM`?
-11. [**Constructing Expressions**] Create expression `∀ (yellow: Nat), yellow`.
-12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways:
-  **a)** not idiomatically, with loose bound variables
-  **b)** idiomatically.
+
+    * a) not idiomatically, with loose bound variables
+    * b) idiomatically.
+11. [**Constructing Expressions**] Create expression `∀ (yellow : Prop), yellow`.
+12. [**Constructing Expressions**] Create expression `∀ (n : Nat), n = n + 1` in two ways.
   In what version can you use `Lean.mkApp3`? In what version can you use `Lean.Meta.mkEq`?
+
+    * a) not idiomatically, with loose bound variables
+    * b) idiomatically.
 13. [**Constructing Expressions**] Create expression `fun (f : Nat → Nat), ∀ (n : Nat), f n = f (n + 1)` idiomatically.
 14. [**Constructing Expressions**] What would you expect the output of the following code to be?
 
