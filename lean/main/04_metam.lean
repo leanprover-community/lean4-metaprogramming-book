@@ -571,7 +571,7 @@ Each setting unfolds everything unfolded by the preceding settings, as well as:
   `@[implicit_reducible]`. This mode is used when checking implicit and
   instance-implicit arguments.
 - `default`: unfold all constants except those tagged as `@[irreducible]`.
-- `all`: additionally unfold constants tagged with `@[irreducible]`.
+- `all`: unfold all constants, even those tagged as `@[irreducible]`.
 
 The ambient transparency is usually `default`. To execute an operation with a
 specific transparency, use `Lean.Meta.withTransparency`. There are also
