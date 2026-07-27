@@ -19,11 +19,19 @@ with your program is quite simple with the `set_option` command:
 import Lean
 open Lean
 
-#check 1 + 1 -- 1 + 1 : Nat
+/-- info: 1 + 1 : Nat -/
+#guard_msgs in --#
+#check 1 + 1
 
-set_option pp.explicit true -- No custom syntax in pretty printing
+-- No custom syntax in pretty printing
+set_option pp.explicit true
 
-#check 1 + 1 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) 1 1 : Nat
+/--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+-/
+#guard_msgs in --#
+#check 1 + 1
 
 set_option pp.explicit false
 
@@ -32,11 +40,21 @@ You can furthermore limit an option value to just the next command or term:
 -/
 
 set_option pp.explicit true in
-#check 1 + 1 -- @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) 1 1 : Nat
+/--
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+-/
+#guard_msgs in --#
+#check 1 + 1
 
-#check 1 + 1 -- 1 + 1 : Nat
+/-- info: 1 + 1 : Nat -/
+#guard_msgs in --#
+#check 1 + 1
 
-#check set_option trace.Meta.synthInstance true in 1 + 1 -- the trace of the type class synthesis for `OfNat` and `HAdd`
+#check
+  -- the trace of the type class synthesis for `OfNat` and `HAdd`
+  set_option trace.Meta.synthInstance true in
+  1 + 1
 
 /-!
 If you want to know which options are available out of the Box right now
@@ -62,10 +80,14 @@ elab "#getPPExplicit" : command => do
   let opts ← getOptions
   logInfo s!"pp.explicit : {pp.explicit.get opts}"
 
-#getPPExplicit -- pp.explicit : false
+/-- info: pp.explicit : false -/
+#guard_msgs in --#
+#getPPExplicit
 
 set_option pp.explicit true in
-#getPPExplicit -- pp.explicit : true
+/-- info: pp.explicit : true -/
+#guard_msgs in --#
+#getPPExplicit
 
 /-!
 Note that the real implementation of getting `pp.explicit`, `Lean.getPPExplicit`,
