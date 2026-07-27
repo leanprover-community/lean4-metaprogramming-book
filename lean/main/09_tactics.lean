@@ -326,23 +326,30 @@ elab "list_local_decls_1" : tactic => withMainContext do
   for decl in ctx do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
+
+    -- we drop the number suffix for printing
+    let displayDeclExpr : Expr → Name := fun expr =>
+      match expr.fvarId!.name with
+      | .num parent _ => parent
+      | name => name
+
     Lean.logInfo <|
       f!"local decl:\n" ++
       f!"  name: {declName}\n" ++
-      f!"  expr: {declExpr}"
+      f!"  expr: {displayDeclExpr declExpr}"
 
 /--
 info: local decl:
   name: _example
-  expr: _uniq.9619
+  expr: _uniq
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.9620
+  expr: _uniq
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.9621
+  expr: _uniq
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
@@ -363,26 +370,33 @@ elab "list_local_decls_2" : tactic => withMainContext do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
     let declType ← inferType declExpr -- **NEW:** Find the type.
+
+    -- we drop the number suffix for printing
+    let displayDeclExpr : Expr → Name := fun expr =>
+      match expr.fvarId!.name with
+      | .num parent _ => parent
+      | name => name
+
     Lean.logInfo <|
       f!"local decl:\n" ++
       f!"  name: {declName}\n" ++
-      f!"  expr: {declExpr}\n" ++
+      f!"  expr: {displayDeclExpr declExpr}\n" ++
       f!"  type: {← ppExpr declType}"
 
 /--
 info: local decl:
   name: _example
-  expr: _uniq.11532
+  expr: _uniq
   type: 1 = 1 → 2 = 2 → 1 = 1
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.11533
+  expr: _uniq
   type: 1 = 1
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.11534
+  expr: _uniq
   type: 2 = 2
 -/
 #guard_msgs in --#
@@ -433,22 +447,24 @@ goal with `Lean.Meta.isExprDefEq`:
 open Lean Elab Tactic Meta in
 
 elab "custom_assump_1" : tactic => withMainContext do
-    let goalType ← getMainTarget
-    let lctx ← MonadLCtx.getLCtx
-    -- Iterate over the local declarations...
-    let option_matching_expr ← lctx.findDeclM? fun ldecl: Lean.LocalDecl => do
-      let declExpr := ldecl.toExpr -- Find the expression of the declaration.
-      let declType ← inferType declExpr -- Find the type.
-      -- Check if type equals goal type.
-      if (← isExprDefEq declType goalType) then
-        -- If equal, success!
-        return some declExpr
-      else
-        -- Not found.
-        return none
-    Lean.logInfo f!"matching_expr: {option_matching_expr}"
+  let goalType ← getMainTarget
+  let lctx ← MonadLCtx.getLCtx
+  -- Iterate over the local declarations...
+  let matching_expr? ← lctx.findDeclM? fun ldecl: Lean.LocalDecl => do
+    let declExpr := ldecl.toExpr -- Find the expression of the declaration.
+    let declType ← inferType declExpr -- Find the type.
+    -- Check if type equals goal type.
+    if (← isExprDefEq declType goalType) then
+      -- If equal, success!
+      return some declExpr
+    else
+      -- Not found.
+      return none
+  match matching_expr? with
+  | some matching_expr => Lean.logInfo f!"matching_expr: {← ppExpr matching_expr}"
+  | none => Lean.logInfo f!"matching_expr: none"
 
-/-- info: matching_expr: some _uniq.14440 -/
+/-- info: matching_expr: _H2 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2) : 2 = 2 := by
   custom_assump_1
@@ -611,9 +627,10 @@ open Lean Elab Tactic Meta in
 
 elab "faq_main_goal" : tactic => withMainContext do
   let goal ← getMainGoal
-  Lean.logInfo f!"goal: {goal.name}"
+  let goalType ← goal.getType
+  Lean.logInfo f!"goal: {← ppExpr goalType}"
 
-/-- info: goal: _uniq.19888 -/
+/-- info: goal: 1 = 1 -/
 #guard_msgs in --#
 example : 1 = 1 := by
   faq_main_goal
@@ -631,14 +648,14 @@ elab "faq_get_goals" : tactic => withMainContext do
   let goals ← getGoals
   for goal in goals do
     let goalType ← goal.getType
-    Lean.logInfo f!"goal: {goal.name} | type: {← ppExpr goalType}"
+    Lean.logInfo f!"goal type: {← ppExpr goalType}"
 
 set_option warn.sorry false in --#
 
 /--
-info: goal: _uniq.20782 | type: false = true
+info: goal type: false = true
 ---
-info: goal: _uniq.20793 | type: true = true
+info: goal type: true = true
 -/
 #guard_msgs (info) in --#
 example (b : Bool) : b = true := by
@@ -662,26 +679,33 @@ elab "faq_get_hypotheses" : tactic => withMainContext do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
     let declType := decl.type -- Find the type of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
+
+    -- we drop the number suffix for printing
+    let displayDeclExpr : Expr → Name := fun expr =>
+      match expr.fvarId!.name with
+      | .num parent _ => parent
+      | name => name
+
     Lean.logInfo <|
       f!"local decl:\n" ++
       f!"  name: {declName}\n" ++
-      f!"  expr: {declExpr}\n" ++
+      f!"  expr: {displayDeclExpr declExpr}\n" ++
       f!"  type: {← ppExpr declType}"
 
 /--
 info: local decl:
   name: _example
-  expr: _uniq.22666
+  expr: _uniq
   type: 1 = 1 → 2 = 2 → 3 = 3
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.22667
+  expr: _uniq
   type: 1 = 1
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.22668
+  expr: _uniq
   type: 2 = 2
 -/
 #guard_msgs in --#

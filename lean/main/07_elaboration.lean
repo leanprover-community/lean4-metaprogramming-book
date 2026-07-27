@@ -329,13 +329,13 @@ def mytermValues := [1, 2]
 
 @[term_elab myterm1]
 def myTerm1Impl : TermElab := fun _stx _type? => do
-  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
+  mkAppM ``getElem! #[.const ``mytermValues [], mkNatLit 0] -- `MetaM` code
 
 #guard myterm_1 == 1
 
 -- Also works with `elab`
 elab "myterm_2" : term => do
-  mkAppM ``List.get! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
+  mkAppM ``getElem! #[.const ``mytermValues [], mkNatLit 1] -- `MetaM` code
 
 #guard myterm_2 == 2
 
@@ -396,6 +396,8 @@ def myanonImpl : TermElab := fun stx typ? => do
 As a final note, we can shorten the postponing act by using an additional
 syntax sugar of the `elab` syntax instead:
 -/
+
+set_option warn.sorry false in --#
 
 -- This `t` syntax will effectively perform the first two lines of `myanonImpl`
 elab "⟨⟨" args:term,* "⟩⟩" : term <= t => do
