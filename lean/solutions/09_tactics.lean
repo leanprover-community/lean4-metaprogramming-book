@@ -99,8 +99,13 @@ elab "step_4" : tactic => do
 
 theorem gradual (p q : Prop) : p ∧ q ↔ q ∧ p := by
   step_1
+  guard_target =ₛ p ∧ q → q ∧ p
   step_2
+  guard_hyp hA :ₛ p ∧ q
+  guard_target =ₛ q ∧ p
   step_3
+  guard_hyp hA :ₛ p ∧ q
+  guard_target =ₛ q
   step_4
 
 /- ### 2. -/
@@ -150,9 +155,16 @@ elab "forker_c" : tactic => do
 example (A B C : Prop) : A → B → C → (A ∧ B) ∧ C := by
   intro hA hB hC
   forker_a
+  guard_hyp hA :ₛ A
+  guard_hyp hB :ₛ B
+  guard_hyp hC :ₛ C
+  guard_target =ₛ A ∧ B
   forker_a
+  guard_target =ₛ A
   assumption
+  guard_target =ₛ B
   assumption
+  guard_target =ₛ C
   assumption
 
 /- ### 3. -/
@@ -172,7 +184,7 @@ elab "introductor_b" : tactic => do
 elab "introductor_c" : tactic => do
   withMainContext do
     liftMetaTactic fun mvarId => do
-      let (_, mvarIdNew) ← mvarId.intro `wow
+      let (_, mvarIdNew) ← mvarId.intro `hello
       return [mvarIdNew]
 
 -- So:
@@ -182,8 +194,23 @@ elab "introductor_c" : tactic => do
 -- `introN`  - **intro many**, specify the names manually
 -- `introNP` - **intro many**, preserve the original names
 
-example (a b c : Nat) : (ab: a = b) → (bc: b = c) → (a = c) := by
+example (a b c : Nat) : (ab : a = b) → (bc : b = c) → a = c := by
   introductor_a
-  -- introductor_b
-  -- introductor_c
-  sorry
+  guard_hyp ‹a = b› :ₛ a = b
+  guard_hyp ‹b = c› :ₛ b = c
+  guard_target =ₛ a = c
+  exact Eq.trans ‹a = b› ‹b = c›
+
+example (a b c : Nat) : (ab : a = b) → (bc : b = c) → a = c := by
+  introductor_b
+  guard_hyp ab :ₛ a = b
+  guard_target =ₛ (bc : b = c) → a = c
+  intro bc
+  exact Eq.trans ab bc
+
+example (a b c : Nat) : (ab : a = b) → (bc : b = c) → a = c := by
+  introductor_c
+  guard_hyp hello :ₛ a = b
+  guard_target =ₛ (bc : b = c) → a = c
+  intro bc
+  exact Eq.trans hello bc
