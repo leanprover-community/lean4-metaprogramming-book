@@ -529,22 +529,49 @@ An ugly but important detail of Lean 4 metaprogramming is that any given
 expression does not have a single normal form. Rather, it has a normal form up
 to a given *transparency*.
 
-A transparency is a value of `Lean.Meta.TransparencyMode`, an enumeration with
-four values: `reducible`, `instances`, `default` and `all`. Any `MetaM`
-computation has access to an ambient `TransparencyMode` which can be obtained
-with `Lean.Meta.getTransparency`.
+A transparency is a value of `Lean.Meta.TransparencyMode`, an enumeration with six values:
+`none`, `reducible`, `instances`, `implicit`, `default` and `all`.
+-/
+
+/--
+info: inductive Lean.Meta.TransparencyMode : Type
+number of parameters: 0
+constructors:
+Lean.Meta.TransparencyMode.all : TransparencyMode
+Lean.Meta.TransparencyMode.default : TransparencyMode
+Lean.Meta.TransparencyMode.reducible : TransparencyMode
+Lean.Meta.TransparencyMode.instances : TransparencyMode
+Lean.Meta.TransparencyMode.none : TransparencyMode
+Lean.Meta.TransparencyMode.implicit : TransparencyMode
+-/
+#guard_msgs in --#
+#print TransparencyMode
+
+/-
+Any `MetaM` computation has access to an ambient `TransparencyMode` which can be
+obtained with `Lean.Meta.getTransparency`.
 
 The current transparency determines which constants get unfolded during
 normalisation, e.g. by `reduce`. (To unfold a constant means to replace it with
-its definition.) The four settings unfold progressively more constants:
+its definition.) The six settings form the following hierarchy:
 
-- `reducible`: unfold only constants tagged with the `@[reducible]` attribute.
+```
+none < reducible < instances < implicit < default < all
+```
+
+Each setting unfolds everything unfolded by the preceding settings, as well as:
+
+- `none`: do not unfold constants.
+- `reducible`: unfold constants tagged with the `@[reducible]` attribute.
   Note that `abbrev` is a shorthand for `@[reducible] def`.
-- `instances`: unfold reducible constants and constants tagged with the
-  `@[instance]` attribute. Again, the `instance` command is a shorthand for
-  `@[instance] def`.
+- `instances`: additionally unfold constants tagged with
+  `@[instance_reducible]`. The `instance` command applies this reducibility
+  status automatically to type class instances.
+- `implicit`: additionally unfold constants tagged with
+  `@[implicit_reducible]`. This mode is used when checking implicit and
+  instance-implicit arguments.
 - `default`: unfold all constants except those tagged as `@[irreducible]`.
-- `all`: unfold all constants, even those tagged as `@[irreducible]`.
+- `all`: additionally unfold constants tagged with `@[irreducible]`.
 
 The ambient transparency is usually `default`. To execute an operation with a
 specific transparency, use `Lean.Meta.withTransparency`. There are also
@@ -557,9 +584,9 @@ def traceConstWithTransparency (md : TransparencyMode) (c : Name) :
     MetaM Format := do
   ppExpr (← withTransparency md $ reduce (.const c []))
 
-@[irreducible] def irreducibleDef : Nat      := 1
-def                defaultDef     : Nat      := irreducibleDef + 1
-abbrev             reducibleDef   : Nat      := defaultDef + 1
+@[irreducible] def irreducibleDef : Nat := 1
+def defaultDef : Nat := irreducibleDef + 1
+abbrev reducibleDef : Nat := defaultDef + 1
 
 /-!
 We start with `reducible` transparency, which only unfolds `reducibleDef`:
@@ -584,18 +611,27 @@ info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef (@OfNat.ofNat
 #eval traceConstWithTransparency .reducible ``reducibleDef
 
 /-!
-When we reduce with `instances` transparency, this applications is unfolded and
-replaced by `Nat.add`:
+With `instances` transparency, Lean unfolds the type-class plumbing behind `+`.
+Moreover, `Nat.add` is itself tagged with `@[instance_reducible]`, so it is unfolded as well:
 -/
 
 set_option pp.fieldNotation false in
 
-/-- info: Nat.add defaultDef 1 -/
+/-- info: Nat.succ defaultDef -/
 #guard_msgs in --#
 #eval traceConstWithTransparency .instances ``reducibleDef
 
+-- Note: `Nat.add` is tagged with `[instance_reducible]`
+/--
+info: @[instance_reducible] protected def Nat.add : Nat → Nat → Nat :=
+fun x x_1 => Nat.brecOn (motive := fun x => Nat → Nat) x_1 Nat.add._f x
+-/
+#guard_msgs in --#
+#print Nat.add
+
 /-!
-With `default` transparency, `Nat.add` is unfolded as well:
+With `default` transparency, the unannotated definition `defaultDef` is also unfolded.
+The definition `irreducibleDef` remains opaque:
 -/
 
 set_option pp.fieldNotation false in
@@ -613,7 +649,7 @@ And with `TransparencyMode.all`, we're finally able to unfold `irreducibleDef`:
 #eval traceConstWithTransparency .all ``reducibleDef
 
 /-!
-The `#eval` commands illustrate that the same term, `reducibleDef`, can have a
+The `#eval` commands illustrate that the same term, `reducibleDef`, can have
 different normal form for each transparency.
 
 Why all this ceremony? Essentially for performance: if we allowed normalisation
@@ -1335,7 +1371,7 @@ Lean parser.
 
     ```lean
     @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`
-    @[instance] def instanceDef       : Nat := 2 -- same as `instance`
+    @[instance_reducible] def instanceDef : Nat := 2
     def defaultDef                    : Nat := 3
     @[irreducible] def irreducibleDef : Nat := 4
 
