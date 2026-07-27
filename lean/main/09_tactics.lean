@@ -170,15 +170,22 @@ But first we need to start our tactic with `Lean.Elab.Tactic.withMainContext`,
 which computes in `TacticM` with an updated context.
 -/
 
-elab "custom_sorry_1" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
-    let goalDecl ← goal.getDecl
-    let goalType := goalDecl.type
-    Lean.logInfo f!"goal type: {goalType}"
+open Lean Elab Tactic Meta in
 
+elab "custom_sorry_1" : tactic => withMainContext do
+  let goal ← getMainGoal
+  let goalDecl ← goal.getDecl
+  let goalType := goalDecl.type
+  Lean.logInfo f!"raw goal type: {goalType}"
+  Lean.logInfo f!"goal type: {← ppExpr goalType}"
+
+/--
+info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+---
+info: goal type: 1 = 2
+-/
+#guard_msgs (info) in --#
 example : 1 = 2 := by
-  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_sorry_1
 
   -- unsolved goals: ⊢ 1 = 2
@@ -190,10 +197,11 @@ example : 1 = 2 := by
 To `sorry` the goal, we can use the helper `Lean.Elab.admitGoal`:
 -/
 
-elab "custom_sorry_2" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
-    Lean.Elab.admitGoal goal
+open Lean Elab Tactic in
+
+elab "custom_sorry_2" : tactic => withMainContext do
+  let goal ← getMainGoal
+  admitGoal goal
 
 /-- warning: declaration uses 'sorry' -/
 #guard_msgs in --#
@@ -248,13 +256,20 @@ are trying to prove. The `goal` variable will soon be used to help us create
 error messages.
 -/
 
-elab "custom_assump_0" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goalType ← Lean.Elab.Tactic.getMainTarget
-    Lean.logInfo f!"goal type: {goalType}"
+open Lean Elab Tactic Meta in
 
+elab "custom_assump_0" : tactic => withMainContext do
+    let goalType ← getMainTarget
+    Lean.logInfo f!"raw goal type: {goalType}"
+    Lean.logInfo f!"goal type: {← ppExpr goalType}"
+
+/--
+info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+---
+info: goal type: 2 = 2
+-/
+#guard_msgs (info) in --#
 example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
-  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
 
   -- unsolved goals
@@ -267,8 +282,13 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
 
   sorry
 
+/--
+info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+---
+info: goal type: 2 = 2
+-/
+#guard_msgs (info) in --#
 example (H1 : 1 = 1): 2 = 2 := by
-  -- goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
   custom_assump_0
 
   -- unsolved goals
@@ -288,20 +308,30 @@ expression of the declaration (`.toExpr`). Let's write a tactic called
 `list_local_decls` that prints the local declarations:
 -/
 
-elab "list_local_decls_1" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    for decl in ctx do
-      let declExpr := decl.toExpr -- Find the expression of the declaration.
-      let declName := decl.userName -- Find the name of the declaration.
-      Lean.logInfo f!"+ local decl: name: {declName} | expr: {declExpr}"
+open Lean Elab Tactic Meta in
+
+elab "list_local_decls_1" : tactic => withMainContext do
+  let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
+  for decl in ctx do
+    let declExpr := decl.toExpr -- Find the expression of the declaration.
+    let declName := decl.userName -- Find the name of the declaration.
+    Lean.logInfo <|
+      f!"local decl:\n" ++
+      f!"  name: {declName}\n" ++
+      f!"  expr: {declExpr}"
 
 /--
-info: + local decl: name: _example | expr: _uniq.7659
+info: local decl:
+  name: _example
+  expr: _uniq.8686
 ---
-info: + local decl: name: _H1 | expr: _uniq.7660
+info: local decl:
+  name: _H1
+  expr: _uniq.8687
 ---
-info: + local decl: name: _H2 | expr: _uniq.7661
+info: local decl:
+  name: _H2
+  expr: _uniq.8688
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
@@ -314,21 +344,35 @@ hypothesis. We get the type of `LocalDecl` by calling
 `Lean.Meta.inferType` on the local declaration's expression.
 -/
 
-elab "list_local_decls_2" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    for decl in ctx do
-      let declExpr := decl.toExpr -- Find the expression of the declaration.
-      let declName := decl.userName -- Find the name of the declaration.
-      let declType ← Lean.Meta.inferType declExpr -- **NEW:** Find the type.
-      Lean.logInfo f!"+ local decl: name: {declName} | expr: {declExpr} | type: {declType}"
+open Lean Elab Tactic Meta in
+
+elab "list_local_decls_2" : tactic => withMainContext do
+  let ctx ← MonadLCtx.getLCtx -- get the local context.
+  for decl in ctx do
+    let declExpr := decl.toExpr -- Find the expression of the declaration.
+    let declName := decl.userName -- Find the name of the declaration.
+    let declType ← inferType declExpr -- **NEW:** Find the type.
+    Lean.logInfo <|
+      f!"local decl:\n" ++
+      f!"  name: {declName}\n" ++
+      f!"  expr: {declExpr}\n" ++
+      f!"  type: {← ppExpr declType}"
 
 /--
-info: + local decl: name: _example | expr: _uniq.9267 | type: (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)))
+info: local decl:
+  name: _example
+  expr: _uniq.10849
+  type: 1 = 1 → 2 = 2 → 1 = 1
 ---
-info: + local decl: name: _H1 | expr: _uniq.9268 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+info: local decl:
+  name: _H1
+  expr: _uniq.10850
+  type: 1 = 1
 ---
-info: + local decl: name: _H2 | expr: _uniq.9269 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+info: local decl:
+  name: _H2
+  expr: _uniq.10851
+  type: 2 = 2
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
@@ -343,23 +387,24 @@ we print that `H1` has the same type as the goal
 same type (`local decl[EQUAL? false]: name: H2 `):
 -/
 
-elab "list_local_decls_3" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goalType ← Lean.Elab.Tactic.getMainTarget
-    let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
-    for decl in ctx do
-      let declExpr := decl.toExpr -- Find the expression of the declaration.
-      let declName := decl.userName -- Find the name of the declaration.
-      let declType ← Lean.Meta.inferType declExpr -- Find the type.
-      let eq? ← Lean.Meta.isExprDefEq declType goalType -- **NEW** Check if type equals goal type.
-      Lean.logInfo f!"+ local decl[EQUAL? {eq?}]: name: {declName}"
+open Lean Elab Tactic Meta in
+
+elab "list_local_decls_3" : tactic => withMainContext do
+  let goalType ← getMainTarget
+  let ctx ← MonadLCtx.getLCtx -- get the local context.
+  for decl in ctx do
+    let declExpr := decl.toExpr -- Find the expression of the declaration.
+    let declName := decl.userName -- Find the name of the declaration.
+    let declType ← inferType declExpr -- Find the type.
+    let eq? ← isExprDefEq declType goalType -- **NEW** Check if type equals goal type.
+    Lean.logInfo f!"local decl[EQUAL? {eq?}]: name: {declName}"
 
 /--
-info: + local decl[EQUAL? false]: name: _example
+info: local decl[EQUAL? false]: name: _example
 ---
-info: + local decl[EQUAL? true]: name: _H1
+info: local decl[EQUAL? true]: name: _H1
 ---
-info: + local decl[EQUAL? false]: name: _H2
+info: local decl[EQUAL? false]: name: _H2
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
@@ -374,20 +419,25 @@ with `lctx.findDeclM?`. We infer the type of declarations with
 goal with `Lean.Meta.isExprDefEq`:
 -/
 
-elab "custom_assump_1" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goalType ← Lean.Elab.Tactic.getMainTarget
-    let lctx ← Lean.MonadLCtx.getLCtx
+open Lean Elab Tactic Meta in
+
+elab "custom_assump_1" : tactic => withMainContext do
+    let goalType ← getMainTarget
+    let lctx ← MonadLCtx.getLCtx
     -- Iterate over the local declarations...
     let option_matching_expr ← lctx.findDeclM? fun ldecl: Lean.LocalDecl => do
       let declExpr := ldecl.toExpr -- Find the expression of the declaration.
-      let declType ← Lean.Meta.inferType declExpr -- Find the type.
-      if (← Lean.Meta.isExprDefEq declType goalType) -- Check if type equals goal type.
-      then return some declExpr -- If equal, success!
-      else return none          -- Not found.
+      let declType ← inferType declExpr -- Find the type.
+      -- Check if type equals goal type.
+      if (← isExprDefEq declType goalType) then
+        -- If equal, success!
+        return some declExpr
+      else
+        -- Not found.
+        return none
     Lean.logInfo f!"matching_expr: {option_matching_expr}"
 
-/-- info: matching_expr: some _uniq.12563 -/
+/-- info: matching_expr: some _uniq.14145 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2) : 2 = 2 := by
   custom_assump_1
@@ -413,22 +463,24 @@ into readable strings like`(2 = 2)`. The full code listing given below shows how
 to do this:
 -/
 
-elab "custom_assump_2" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
-    let goalType ← Lean.Elab.Tactic.getMainTarget
-    let ctx ← Lean.MonadLCtx.getLCtx
-    let option_matching_expr ← ctx.findDeclM? fun decl: Lean.LocalDecl => do
-      let declExpr := decl.toExpr
-      let declType ← Lean.Meta.inferType declExpr
-      if ← Lean.Meta.isExprDefEq declType goalType
-        then return Option.some declExpr
-        else return Option.none
-    match option_matching_expr with
-    | some e => Lean.Elab.Tactic.closeMainGoal `custom_assump_2 e
-    | none =>
-      Lean.Meta.throwTacticEx `custom_assump_2 goal
-        (m!"unable to find matching hypothesis of type ({goalType})")
+open Lean Elab Tactic Meta in
+
+elab "custom_assump_2" : tactic => withMainContext do
+  let goal ← getMainGoal
+  let goalType ← getMainTarget
+  let ctx ← Lean.MonadLCtx.getLCtx
+  let option_matching_expr ← ctx.findDeclM? fun decl: Lean.LocalDecl => do
+    let declExpr := decl.toExpr
+    let declType ← inferType declExpr
+    if ← isExprDefEq declType goalType then
+      return Option.some declExpr
+    else
+      return Option.none
+  match option_matching_expr with
+  | some e => closeMainGoal `custom_assump_2 e
+  | none =>
+    throwTacticEx `custom_assump_2 goal
+      (m!"unable to find matching hypothesis of type ({goalType})")
 
 example (_H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
   custom_assump_2
@@ -460,24 +512,24 @@ the former uses `Lean.MVarId.define` and the later uses `Lean.MVarId.assert`:
 -/
 
 open Lean.Elab.Tactic in
-elab "custom_let " n:ident " : " t:term " := " v:term : tactic =>
-  withMainContext do
-    let t ← elabTerm t none
-    let v ← elabTermEnsuringType v t
-    liftMetaTactic fun mvarId => do
-      let mvarIdNew ← mvarId.define n.getId t v
-      let (_, mvarIdNew) ← mvarIdNew.intro1P
-      return [mvarIdNew]
+
+elab "custom_let " n:ident " : " t:term " := " v:term : tactic => withMainContext do
+  let t ← elabTerm t none
+  let v ← elabTermEnsuringType v t
+  liftMetaTactic fun mvarId => do
+    let mvarIdNew ← mvarId.define n.getId t v
+    let (_, mvarIdNew) ← mvarIdNew.intro1P
+    return [mvarIdNew]
 
 open Lean.Elab.Tactic in
-elab "custom_have " n:ident " : " t:term " := " v:term : tactic =>
-  withMainContext do
-    let t ← elabTerm t none
-    let v ← elabTermEnsuringType v t
-    liftMetaTactic fun mvarId => do
-      let mvarIdNew ← mvarId.assert n.getId t v
-      let (_, mvarIdNew) ← mvarIdNew.intro1P
-      return [mvarIdNew]
+
+elab "custom_have " n:ident " : " t:term " := " v:term : tactic => withMainContext do
+  let t ← elabTerm t none
+  let v ← elabTermEnsuringType v t
+  liftMetaTactic fun mvarId => do
+    let mvarIdNew ← mvarId.assert n.getId t v
+    let (_, mvarIdNew) ← mvarIdNew.intro1P
+    return [mvarIdNew]
 
 theorem test_faq_have : True := by
   custom_let n : Nat := 5
@@ -541,12 +593,13 @@ has many functions to add new goals, switch goals, etc.
 A: Use `Lean.Elab.Tactic.getMainGoal`.
 -/
 
-elab "faq_main_goal" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goal ← Lean.Elab.Tactic.getMainGoal
-    Lean.logInfo f!"goal: {goal.name}"
+open Lean Elab Tactic Meta in
 
-/-- info: goal: _uniq.18115 -/
+elab "faq_main_goal" : tactic => withMainContext do
+  let goal ← getMainGoal
+  Lean.logInfo f!"goal: {goal.name}"
+
+/-- info: goal: _uniq.19697 -/
 #guard_msgs in --#
 example : 1 = 1 := by
   faq_main_goal
@@ -558,24 +611,25 @@ example : 1 = 1 := by
 A: Use `getGoals`.
 -/
 
-elab "faq_get_goals" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-    let goals ← Lean.Elab.Tactic.getGoals
-    for goal in goals do
-      let goalType ← goal.getType
-      Lean.logInfo f!"goal: {goal.name} | type: {goalType}"
+open Lean Elab Tactic Meta in
+
+elab "faq_get_goals" : tactic => withMainContext do
+  let goals ← getGoals
+  for goal in goals do
+    let goalType ← goal.getType
+    Lean.logInfo f!"goal: {goal.name} | type: {← ppExpr goalType}"
 
 /--
-info: goal: _uniq.19468 | type: Eq.{1} Bool Bool.false Bool.true
+info: goal: _uniq.21112 | type: false = true
 ---
-info: goal: _uniq.19479 | type: Eq.{1} Bool Bool.true Bool.true
+info: goal: _uniq.21123 | type: true = true
 -/
 #guard_msgs (info) in --#
 example (b : Bool) : b = true := by
   cases b
   faq_get_goals
-  sorry
-  rfl
+  · sorry
+  · rfl
 
 /-
 **Q: How do I get the current hypotheses for a goal?**
@@ -584,21 +638,35 @@ A: Use `Lean.MonadLCtx.getLCtx` which provides the local context, and then
 iterate on the `LocalDeclaration`s of the `LocalContext`.
 -/
 
-elab "faq_get_hypotheses" : tactic =>
-  Lean.Elab.Tactic.withMainContext do
-  let ctx ← Lean.MonadLCtx.getLCtx -- get the local context.
+open Lean Elab Tactic Meta in
+
+elab "faq_get_hypotheses" : tactic => withMainContext do
+  let ctx ← MonadLCtx.getLCtx -- get the local context.
   for decl in ctx do
     let declExpr := decl.toExpr -- Find the expression of the declaration.
     let declType := decl.type -- Find the type of the declaration.
     let declName := decl.userName -- Find the name of the declaration.
-    Lean.logInfo f!"local decl: name: {declName} | expr: {declExpr} | type: {declType}"
+    Lean.logInfo <|
+      f!"local decl:\n" ++
+      f!"  name: {declName}\n" ++
+      f!"  expr: {declExpr}\n" ++
+      f!"  type: {← ppExpr declType}"
 
 /--
-info: local decl: name: _example | expr: _uniq.20881 | type: (Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))) -> (Eq.{1} Nat (OfNat.ofNat.{0} Nat 3 (instOfNatNat 3)) (OfNat.ofNat.{0} Nat 3 (instOfNatNat 3)))
+info: local decl:
+  name: _example
+  expr: _uniq.23228
+  type: 1 = 1 → 2 = 2 → 3 = 3
 ---
-info: local decl: name: _H1 | expr: _uniq.20882 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))
+info: local decl:
+  name: _H1
+  expr: _uniq.23229
+  type: 1 = 1
 ---
-info: local decl: name: _H2 | expr: _uniq.20883 | type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
+info: local decl:
+  name: _H2
+  expr: _uniq.23230
+  type: 2 = 2
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 3 = 3 := by
