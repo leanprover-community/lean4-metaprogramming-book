@@ -38,26 +38,36 @@ after: Nat.add 1 2
 
 /- ### 3. -/
 
+open Lean Meta in
+
+set_option pp.fieldNotation false in
+
+/-- info: Nat.add (Nat.add 2 ?mvar2) 1 -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
-  let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+  let «1» := Lean.mkNatLit 1
+  let «2» := Lean.mkNatLit 2
+  let «Nat» := Expr.const `Nat []
+  let «Nat.add» := Expr.const `Nat.add []
 
   -- Create `mvar1` with type `Nat`
-  let mvar1 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar1)
+  let mvar1 ← mkFreshExprMVar «Nat» (userName := `mvar1)
   -- Create `mvar2` with type `Nat`
-  let mvar2 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar2)
+  let mvar2 ← mkFreshExprMVar «Nat» (userName := `mvar2)
   -- Create `mvar3` with type `Nat`
-  let mvar3 ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `mvar3)
+  let mvar3 ← mkFreshExprMVar «Nat» (userName := `mvar3)
 
-  -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
-  mvar1.mvarId!.assign (Lean.mkAppN (Expr.const `Nat.add []) #[(Lean.mkAppN (Expr.const `Nat.add []) #[twoExpr, mvar2]), mvar3])
+  -- Assign `mvar1` to `Nat.add (Nat.add 2 ?mvar2) ?mvar3`
+  mvar1.mvarId!.assign <|
+    let «Nat.add 2 ?mvar2» := Lean.mkApp2 (f := «Nat.add») «2» mvar2
+    Lean.mkApp2 (f := «Nat.add») «Nat.add 2 ?mvar2» mvar3
 
   -- Assign `mvar3` to `1`
-  mvar3.mvarId!.assign oneExpr
+  mvar3.mvarId!.assign «1»
 
-  -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
+  -- Instantiate `mvar1`, which should result in expression `Nat.add (Nat.add 2 ?mvar2) 1`
   let instantiatedMvar1 ← instantiateMVars mvar1
-  IO.println instantiatedMvar1 -- Nat.add (Nat.add 2 ?_uniq.2) 1
+  IO.println <| ← ppExpr instantiatedMvar1
 
 /- ### 4. -/
 

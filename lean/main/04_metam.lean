@@ -1272,24 +1272,27 @@ Lean parser.
 
     ```lean
     #eval show MetaM Unit from do
-      let oneExpr := Expr.app (Expr.const `Nat.succ []) (Expr.const ``Nat.zero [])
-      let twoExpr := Expr.app (Expr.const `Nat.succ []) oneExpr
+      let «1» := Lean.mkNatLit 1
+      let «2» := Lean.mkNatLit 2
+      let «Nat» := Expr.const `Nat []
+      let «Nat.add» := Expr.const `Nat.add []
 
       -- Create `mvar1` with type `Nat`
-      -- let mvar1 ← ...
+      let mvar1 ← sorry
       -- Create `mvar2` with type `Nat`
-      -- let mvar2 ← ...
+      let mvar2 ← sorry
       -- Create `mvar3` with type `Nat`
-      -- let mvar3 ← ...
+      let mvar3 ← sorry
 
-      -- Assign `mvar1` to `2 + ?mvar2 + ?mvar3`
-      -- ...
+      -- Assign `mvar1` to `Nat.add (Nat.add 2 ?mvar2) ?mvar3`
+      sorry
 
       -- Assign `mvar3` to `1`
-      -- ...
+      sorry
 
-      -- Instantiate `mvar1`, which should result in expression `2 + ?mvar2 + 1`
-      ...
+      -- Instantiate `mvar1`, which should result in expression `Nat.add (Nat.add 2 ?mvar2) 1`
+      let instantiatedMvar1 ← instantiateMVars mvar1
+      IO.println <| ← ppExpr instantiatedMvar1
     ```
 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.
   **a)** What would be the `type` and `userName` of metavariable `mvarId`?
