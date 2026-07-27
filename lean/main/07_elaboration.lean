@@ -91,7 +91,7 @@ open Lean Elab Command Term Meta
 syntax (name := mycommand1) "#mycommand1" : command -- declare the syntax
 
 @[command_elab mycommand1]
-def mycommand1Impl : CommandElab := fun stx => do -- declare and register the elaborator
+def mycommand1Impl : CommandElab := fun _stx => do -- declare and register the elaborator
   logInfo "Hello World"
 
 /-- info: Hello World -/
@@ -115,7 +115,7 @@ registered elaborators for the same syntax, we can in fact overload
 syntax, if we want to.
 -/
 @[command_elab mycommand1]
-def myNewImpl : CommandElab := fun stx => do
+def myNewImpl : CommandElab := fun _stx => do
   logInfo "new!"
 
 /-- info: new! -/
