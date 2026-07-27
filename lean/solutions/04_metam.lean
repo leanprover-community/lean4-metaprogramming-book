@@ -148,65 +148,90 @@ def sixC : Nat := 800 + 2
 
 /- ### 8. -/
 
--- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
--- Definitionally equal.
-def expr2 := (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
-#eval show MetaM Unit from do
-  let expr1 := Lean.mkNatLit 5
-  let expr2 := Expr.const `expr2 []
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+namespace Ex8.a
+  -- a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
+  -- Definitionally equal.
 
--- b) `2 + 1 =?= 1 + 2`
+  def rhs := (fun _x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))
+
+  /-- info: true -/
+  #guard_msgs in --#
+  #eval show MetaM Unit from do
+    let «5» := Lean.mkNatLit 5
+    let «rhs» : Expr := Expr.const ``Ex8.a.rhs []
+    let isEqual ← Lean.Meta.isDefEq «5» «rhs»
+    IO.println isEqual
+
+end Ex8.a
+
+-- b) `Nat.add 2 1 =?= Nat.add 1 2`
 -- Definitionally equal.
+/-- info: true -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
-  let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Lean.mkNatLit 2]
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  let «Nat.add 2 1» := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
+  let «Nat.add 1 2» := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 1, Lean.mkNatLit 2]
+  let isEqual ← Lean.Meta.isDefEq «Nat.add 2 1» «Nat.add 1 2»
+  IO.println isEqual
 
 -- c) `?a =?= 2`, where `?a` has a type `String`
 -- Not definitionally equal.
+/-- info: false -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let expr1 ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `expr1)
-  let expr2 := Lean.mkNatLit 2
-  let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- false
+  let «?a» ← Lean.Meta.mkFreshExprMVar (Expr.const `String []) (userName := `a)
+  let «2» := Lean.mkNatLit 2
+  let isEqual ← Lean.Meta.isDefEq «?a» «2»
+  IO.println isEqual
 
--- d) `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
+-- d) `Nat.add ?a Int =?= Nat.add "hi" ?b`, where `?a` and `?b` don't have a type
 -- Definitionally equal.
 -- `?a` is assigned to `"hi"`, `?b` is assigned to `Int`.
+/--
+info: true
+a: "hi"
+b: Int
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
-  let a ← Lean.Meta.mkFreshExprMVar Option.none (userName := `a)
-  let b ← Lean.Meta.mkFreshExprMVar Option.none (userName := `b)
+  let a ← Lean.Meta.mkFreshExprMVar (type? := none) (userName := `a)
+  let b ← Lean.Meta.mkFreshExprMVar (type? := none) (userName := `b)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[a, Expr.const `Int []]
   let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkStrLit "hi", b]
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  IO.println isEqual
 
   IO.println s!"a: {← instantiateMVars a}"
   IO.println s!"b: {← instantiateMVars b}"
 
--- e) `2 + ?a =?= 3`
+-- e) `Nat.add 2 ?a =?= 3`
 -- Not definitionally equal.
+/-- info: false -/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
   let expr2 := Lean.mkNatLit 3
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- false
+  IO.println isEqual
 
--- f) `2 + ?a =?= 2 + 1`
+-- f) `Nat.add 2 ?a =?= Nat.add 2 1`
 -- Definitionally equal.
 -- `?a` is assigned to `1`.
+/--
+info: true
+a: 1
+-/
+#guard_msgs in --#
 #eval show MetaM Unit from do
   let a ← Lean.Meta.mkFreshExprMVar (Expr.const `Nat []) (userName := `a)
   let expr1 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, a]
   let expr2 := Lean.mkAppN (Expr.const `Nat.add []) #[Lean.mkNatLit 2, Lean.mkNatLit 1]
   let isEqual ← Lean.Meta.isDefEq expr1 expr2
-  IO.println isEqual -- true
+  IO.println isEqual
 
-  IO.println s!"a: {← instantiateMVars a}"
+  let aValue ← instantiateMVars a
+  IO.println s!"a: {← ppExpr aValue}"
 
 /- ### 9. -/
 @[reducible] def reducibleDef     : Nat := 1 -- same as `abbrev`

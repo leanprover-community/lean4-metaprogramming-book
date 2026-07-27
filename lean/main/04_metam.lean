@@ -1321,12 +1321,12 @@ Lean parser.
    * c) `800 + 2` of type `Nat`
 7. [**Computation**] Show that `1` created with `Expr.lit (Lean.Literal.natVal 1)` is definitionally equal to an expression created with `Expr.app (Expr.const ``Nat.succ []) (Expr.const ``Nat.zero [])`.
 8. [**Computation**] Determine whether the following expressions are definitionally equal. If `Lean.Meta.isDefEq` succeeds, and it leads to metavariable assignment, write down the assignments.
-  **a)** `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
-  **b)** `2 + 1 =?= 1 + 2`
-  **c)** `?a =?= 2`, where `?a` has a type `String`
-  **d)** `?a + Int =?= "hi" + ?b`, where `?a` and `?b` don't have a type
-  **e)** `2 + ?a =?= 3`
-  **f)** `2 + ?a =?= 2 + 1`
+   * a) `5 =?= (fun x => 5) ((fun y : Nat → Nat => y) (fun z : Nat => z))`
+   * b) `Nat.add 2 1 =?= Nat.add 1 2`
+   * c) `?a =?= 2`, where `?a` has a type `String`
+   * d) `Nat.add ?a Int =?= Nat.add "hi" ?b`, where `?a` and `?b` don't have a type
+   * e) `Nat.add 2 ?a =?= 3`
+   * f) `Nat.add 2 ?a =?= Nat.add 2 1`
 9. [**Computation**] Write down what you expect the following code to output.
 
     ```lean
