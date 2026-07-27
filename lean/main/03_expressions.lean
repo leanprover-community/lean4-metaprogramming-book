@@ -320,6 +320,7 @@ def addOne : Expr :=
     BinderInfo.default
 
 def mapAddOneNil : Expr :=
+  let levelZero := Lean.Level.zero
   mkAppN (.const ``List.map [levelZero, levelZero])
     #[nat, nat, addOne, .app (.const ``List.nil [levelZero]) nat]
 
@@ -338,7 +339,8 @@ set_option pp.universes true in
 set_option pp.explicit true in
 
 /--
-info: @List.map.{0, 0} Nat Nat (fun x => x.add (@OfNat.ofNat.{0} Nat 1 (instOfNatNat 1))) (@List.nil.{0} Nat) : List.{0} Nat
+info: @List.map.{0, 0} Nat Nat (fun x => x.add (@OfNat.ofNat.{0} Nat (nat_lit 1) (instOfNatNat (nat_lit 1))))
+  (@List.nil.{0} Nat) : List.{0} Nat
 -/
 #guard_msgs in --#
 #check mapAddOneNil

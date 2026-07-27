@@ -245,17 +245,17 @@ sections.
 
 /--
 info: Initially, all metavariables are unassigned:
-  meta1: ?_uniq.2172
-  meta2: ?_uniq.2173
-  meta3: ?_uniq.2174
+  meta1: ?_uniq.1367
+  meta2: ?_uniq.1368
+  meta3: ?_uniq.1369
 After assigning mvar1:
-  meta1: ?_uniq.2174 ?_uniq.2173
-  meta2: ?_uniq.2173
-  meta3: ?_uniq.2174
+  meta1: ?_uniq.1369 ?_uniq.1368
+  meta2: ?_uniq.1368
+  meta3: ?_uniq.1369
 After assigning mvar2:
-  meta1: ?_uniq.2174 Nat.zero
+  meta1: ?_uniq.1369 Nat.zero
   meta2: Nat.zero
-  meta3: ?_uniq.2174
+  meta3: ?_uniq.1369
 After assigning mvar3:
   meta1: Nat.succ Nat.zero
   meta2: Nat.zero
@@ -575,7 +575,7 @@ function, which is a member of the `HAdd` typeclass:
 set_option pp.explicit true in
 
 /--
-info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef (@OfNat.ofNat Nat 1 (instOfNatNat 1))
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) defaultDef (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1)))
 -/
 #guard_msgs in --#
 #eval traceConstWithTransparency .reducible ``reducibleDef
@@ -855,7 +855,7 @@ set_option pp.all true in
 set_option pp.explicit true in
 
 /--
-info: def appendAppend.{u_1} : {α : Type u_1} → List.{u_1} α → List.{u_1} α → List.{u_1} α :=
+info: def appendAppend.{u_1} : {α : Type u_1} → (xs ys : List.{u_1} α) → List.{u_1} α :=
 fun {α : Type u_1} (xs ys : List.{u_1} α) => @List.append.{u_1} α (@List.append.{u_1} α xs ys) xs
 -/
 #guard_msgs in --#
@@ -915,6 +915,7 @@ instances explicitly, which we use in the following example to give a
 non-standard `Ord` instance.
 -/
 
+@[instance_reducible]
 def revOrd : Ord Nat where
   compare x y := compare y x
 

@@ -9,8 +9,7 @@ lean_lib «lean4-metaprogramming-book» where
   roots := #[`cover, `extra, `main, `solutions]
   globs := #[Glob.one `cover, Glob.submodules `extra, Glob.submodules `main, Glob.submodules `solutions]
 
-require mdgen from git
-  "https://github.com/Seasawher/mdgen" @ "v1.11.1"
+require "Seasawher" / "mdgen" @ git "main"
 
 require "leanprover-community" / "batteries" @ git "main"
 

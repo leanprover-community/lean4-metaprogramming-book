@@ -158,7 +158,7 @@ it just means that the Lean parser can understand it:
 -/
 
 /--
-info: elaboration function for 'termMyTerm' has not been implemented
+info: elaboration function for `termMyTerm` has not been implemented
   MyTerm
 -/
 #guard_msgs in --#

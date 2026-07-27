@@ -7,4 +7,12 @@
     ],
     "description": "hidden #guard_msgs line for message checking"
   },
+  "dropsorry": {
+    "scope": "lean,lean4",
+    "prefix": "dropsorry",
+    "body": [
+      "set_option warn.sorry false in --#"
+    ],
+    "description": "drop sorry warning"
+  }
 }

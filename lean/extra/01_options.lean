@@ -27,8 +27,8 @@ open Lean
 set_option pp.explicit true
 
 /--
-info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
-  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1)))
+  (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1))) : Nat
 -/
 #guard_msgs in --#
 #check 1 + 1
@@ -41,8 +41,8 @@ You can furthermore limit an option value to just the next command or term:
 
 set_option pp.explicit true in
 /--
-info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (instOfNatNat 1))
-  (@OfNat.ofNat Nat 1 (instOfNatNat 1)) : Nat
+info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1)))
+  (@OfNat.ofNat Nat (nat_lit 1) (instOfNatNat (nat_lit 1))) : Nat
 -/
 #guard_msgs in --#
 #check 1 + 1
@@ -100,7 +100,6 @@ a macro `register_option` for this. Let's see it in action:
 
 register_option book.myGreeting : String := {
   defValue := "Hello World"
-  group := "pp"
   descr := "just a friendly greeting"
 }
 

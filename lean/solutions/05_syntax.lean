@@ -40,22 +40,22 @@ syntax "yellow" : tactic
 -- Note: the following are highlighted in red, however that's just because we haven't implemented the semantics ("elaboration function") yet - the syntax parsing stage works.
 
 /--
-info: elaboration function for 'termGoodMorning' has not been implemented
+info: elaboration function for `termGoodMorning` has not been implemented
   good morning
 -/
 #guard_msgs in --#
 #check_failure good morning
 
-/-- error: elaboration function for 'commandHello' has not been implemented -/
+/-- error: elaboration function for `commandHello` has not been implemented -/
 #guard_msgs in --#
 hello -- the syntax parsing stage works
 
-/-- error: tactic 'tacticYellow' has not been implemented -/
+/-- error: Tactic `tacticYellow` has not been implemented -/
 #guard_msgs in --#
 example : 2 + 2 = 4 := by
   yellow -- the syntax parsing stage works
 
-/-- info: unknown identifier 'yellow' -/
+/-- info: Unknown identifier `yellow` -/
 #guard_msgs in --#
 #check_failure yellow
 

@@ -26,6 +26,8 @@ import Lean.Elab.Tactic
 
 macro "custom_sorry_macro" : tactic => `(tactic| sorry)
 
+set_option warn.sorry false in --#
+
 example : 1 = 42 := by
   custom_sorry_macro
 
@@ -39,7 +41,7 @@ We start by simply declaring the tactic with no implementation:
 
 syntax "custom_tactic" : tactic
 
-/-- error: tactic 'tacticCustom_tactic' has not been implemented -/
+/-- error: Tactic `tacticCustom_tactic` has not been implemented -/
 #guard_msgs in --#
 example : 42 = 42 := by
   custom_tactic
@@ -61,10 +63,11 @@ We can now try a harder problem, that cannot be immediately dispatched by `rfl`:
 -/
 
 /--
-error: tactic 'rfl' failed, the left-hand side
+error: Tactic `rfl` failed: The left-hand side
   43 = 43
 is not definitionally equal to the right-hand side
   42 = 42
+
 ⊢ 43 = 43 ∧ 42 = 42
 -/
 #guard_msgs in --#
@@ -146,6 +149,8 @@ We begin by declaring such a tactic:
 elab "custom_sorry_0" : tactic => do
   return
 
+set_option warn.sorry false in --#
+
 example : 1 = 2 := by
   custom_sorry_0
   -- unsolved goals: ⊢ 1 = 2
@@ -179,6 +184,8 @@ elab "custom_sorry_1" : tactic => withMainContext do
   Lean.logInfo f!"raw goal type: {goalType}"
   Lean.logInfo f!"goal type: {← ppExpr goalType}"
 
+set_option warn.sorry false in --#
+
 /--
 info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 1 (instOfNatNat 1)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
 ---
@@ -203,7 +210,7 @@ elab "custom_sorry_2" : tactic => withMainContext do
   let goal ← getMainGoal
   admitGoal goal
 
-/-- warning: declaration uses 'sorry' -/
+/-- warning: declaration uses `sorry` -/
 #guard_msgs in --#
 theorem test_custom_sorry : 1 = 2 := by
   custom_sorry_2
@@ -263,6 +270,8 @@ elab "custom_assump_0" : tactic => withMainContext do
     Lean.logInfo f!"raw goal type: {goalType}"
     Lean.logInfo f!"goal type: {← ppExpr goalType}"
 
+set_option warn.sorry false in --#
+
 /--
 info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
 ---
@@ -281,6 +290,8 @@ example (H1 : 1 = 1) (H2 : 2 = 2): 2 = 2 := by
   guard_target =ₛ 2 = 2
 
   sorry
+
+set_option warn.sorry false in --#
 
 /--
 info: raw goal type: Eq.{1} Nat (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2)) (OfNat.ofNat.{0} Nat 2 (instOfNatNat 2))
@@ -323,15 +334,15 @@ elab "list_local_decls_1" : tactic => withMainContext do
 /--
 info: local decl:
   name: _example
-  expr: _uniq.8686
+  expr: _uniq.9619
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.8687
+  expr: _uniq.9620
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.8688
+  expr: _uniq.9621
 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2): 1 = 1 := by
@@ -361,17 +372,17 @@ elab "list_local_decls_2" : tactic => withMainContext do
 /--
 info: local decl:
   name: _example
-  expr: _uniq.10849
+  expr: _uniq.11532
   type: 1 = 1 → 2 = 2 → 1 = 1
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.10850
+  expr: _uniq.11533
   type: 1 = 1
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.10851
+  expr: _uniq.11534
   type: 2 = 2
 -/
 #guard_msgs in --#
@@ -437,7 +448,7 @@ elab "custom_assump_1" : tactic => withMainContext do
         return none
     Lean.logInfo f!"matching_expr: {option_matching_expr}"
 
-/-- info: matching_expr: some _uniq.14145 -/
+/-- info: matching_expr: some _uniq.14440 -/
 #guard_msgs in --#
 example (_H1 : 1 = 1) (_H2 : 2 = 2) : 2 = 2 := by
   custom_assump_1
@@ -486,7 +497,8 @@ example (_H1 : 1 = 1) (H2 : 2 = 2) : 2 = 2 := by
   custom_assump_2
 
 /--
-error: tactic 'custom_assump_2' failed, unable to find matching hypothesis of type (2 = 2)
+error: Tactic `custom_assump_2` failed: unable to find matching hypothesis of type (2 = 2)
+
 H1 : 1 = 1
 ⊢ 2 = 2
 -/
@@ -556,6 +568,8 @@ elab "reverse_goals" : tactic =>
     let goals : List Lean.MVarId ← Lean.Elab.Tactic.getGoals
     Lean.Elab.Tactic.setGoals goals.reverse
 
+set_option warn.sorry false in --#
+
 theorem test_reverse_goals : (1 = 2 ∧ 3 = 4) ∧ 5 = 6 := by
   constructor
   constructor
@@ -599,7 +613,7 @@ elab "faq_main_goal" : tactic => withMainContext do
   let goal ← getMainGoal
   Lean.logInfo f!"goal: {goal.name}"
 
-/-- info: goal: _uniq.19697 -/
+/-- info: goal: _uniq.19888 -/
 #guard_msgs in --#
 example : 1 = 1 := by
   faq_main_goal
@@ -619,10 +633,12 @@ elab "faq_get_goals" : tactic => withMainContext do
     let goalType ← goal.getType
     Lean.logInfo f!"goal: {goal.name} | type: {← ppExpr goalType}"
 
+set_option warn.sorry false in --#
+
 /--
-info: goal: _uniq.21112 | type: false = true
+info: goal: _uniq.20782 | type: false = true
 ---
-info: goal: _uniq.21123 | type: true = true
+info: goal: _uniq.20793 | type: true = true
 -/
 #guard_msgs (info) in --#
 example (b : Bool) : b = true := by
@@ -655,17 +671,17 @@ elab "faq_get_hypotheses" : tactic => withMainContext do
 /--
 info: local decl:
   name: _example
-  expr: _uniq.23228
+  expr: _uniq.22666
   type: 1 = 1 → 2 = 2 → 3 = 3
 ---
 info: local decl:
   name: _H1
-  expr: _uniq.23229
+  expr: _uniq.22667
   type: 1 = 1
 ---
 info: local decl:
   name: _H2
-  expr: _uniq.23230
+  expr: _uniq.22668
   type: 2 = 2
 -/
 #guard_msgs in --#
@@ -707,7 +723,8 @@ elab "faq_throw_error" : tactic =>
     Lean.Meta.throwTacticEx `faq_throw_error goal "throwing an error at the current goal"
 
 /--
-error: tactic 'faq_throw_error' failed, throwing an error at the current goal
+error: Tactic `faq_throw_error` failed: throwing an error at the current goal
+
 b : Bool
 ⊢ b = true
 -/
