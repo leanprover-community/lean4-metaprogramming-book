@@ -1295,10 +1295,6 @@ Lean parser.
       IO.println <| ← ppExpr instantiatedMvar1
     ```
 4. [**Metavariables**] Consider the theorem `red`, and tactic `explore` below.
-  **a)** What would be the `type` and `userName` of metavariable `mvarId`?
-  **b)** What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?
-  Print them all out.
-
     ```lean
     elab "explore" : tactic => do
       let mvarId : MVarId ← Lean.Elab.Tactic.getMainGoal
@@ -1314,6 +1310,10 @@ Lean parser.
       explore
       sorry
     ```
+   * a) What would be the `type` and `userName` of metavariable `mvarId`?
+   * b) What would be the `type`s and `userName`s of all local declarations in this metavariable's local context?
+      Print them all out.
+
 5. [**Metavariables**] Write a tactic `solve` that proves the theorem `red`.
 6. [**Computation**] What is the normal form of the following expressions:
   **a)** `fun x => x` of type `Bool → Bool`

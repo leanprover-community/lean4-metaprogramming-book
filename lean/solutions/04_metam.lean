@@ -76,23 +76,30 @@ elab "explore" : tactic => do
   let metavarDecl : MetavarDecl ← mvarId.getDecl
 
   IO.println "Our metavariable"
-  -- [anonymous] : 2 = 2
-  IO.println s!"\n{metavarDecl.userName} : {metavarDecl.type}"
+  Lean.logInfo s!"{metavarDecl.userName} : {← ppExpr metavarDecl.type}"
 
-  IO.println "\nAll of its local declarations"
+  IO.println "All of its local declarations"
   let localContext : LocalContext := metavarDecl.lctx
   for (localDecl : LocalDecl) in localContext do
     if localDecl.isImplementationDetail then
-      -- (implementation detail) red : 1 = 1 → 2 = 2 → 2 = 2
-      IO.println s!"\n(implementation detail) {localDecl.userName} : {localDecl.type}"
+      Lean.logInfo s!"(implementation detail) {localDecl.userName} : {← ppExpr localDecl.type}"
     else
-      -- hA : 1 = 1
-      -- hB : 2 = 2
-      IO.println s!"\n{localDecl.userName} : {localDecl.type}"
+      Lean.logInfo s!"{localDecl.userName} : {← ppExpr localDecl.type}"
 
+/--
+info: [anonymous] : 2 = 2
+---
+info: (implementation detail) red : 1 = 1 → 2 = 2 → 2 = 2
+---
+info: hA : 1 = 1
+---
+info: hB : 2 = 2
+-/
+#guard_msgs in --#
 theorem red (hA : 1 = 1) (hB : 2 = 2) : 2 = 2 := by
   explore
-  sorry
+  cases hA
+  exact hB
 
 /- ### 5. -/
 
