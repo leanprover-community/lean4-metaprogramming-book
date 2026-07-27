@@ -51,10 +51,10 @@ info: @HAdd.hAdd Nat Nat Nat (@instHAdd Nat instAddNat) (@OfNat.ofNat Nat 1 (ins
 #guard_msgs in --#
 #check 1 + 1
 
-#guard_msgs (drop info) in --#
 #check
+  -- the trace of the type class synthesis for `OfNat` and `HAdd`
   set_option trace.Meta.synthInstance true in
-  (inferInstance : Add Nat)
+  1 + 1
 
 /-!
 If you want to know which options are available out of the Box right now
