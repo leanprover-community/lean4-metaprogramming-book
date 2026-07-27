@@ -300,10 +300,13 @@ def tenB : MetaM Expr := do
 /- ### 11. -/
 
 def eleven : MetaM Expr :=
-  return Expr.forallE `yellow (Expr.const `Nat []) (Expr.bvar 0) BinderInfo.default
+  return Expr.forallE `yellow (Expr.sort Level.zero) (Expr.bvar 0) BinderInfo.default
 
+/-- info: ∀ (yellow : Prop), yellow -/
+#guard_msgs in --#
 #eval show MetaM _ from do
-  dbg_trace (← eleven) -- forall (yellow : Nat), yellow
+  let expr ← eleven
+  dbg_trace (← ppExpr expr)
 
 /- ### 12. -/
 
