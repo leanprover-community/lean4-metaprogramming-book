@@ -1,0 +1,24 @@
+name: Update Lean
+
+on:
+  schedule:
+    # 毎日実行
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  update_lean:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Update Lean project
+        uses: leanprover-community/lean-update@main
+        with:
+          update_if_modified: lean-toolchain
+          build_args: "--log-level=warning --fail-level=warning"
