@@ -312,7 +312,7 @@ def eleven : MetaM Expr :=
 -- Non-idiomatic: we can only use `Lean.mkApp3`.
 def twelveA : MetaM Expr := do
   let nPlusOne := Expr.app (Expr.app (Expr.const `Nat.add []) (Expr.bvar 0)) (Lean.mkNatLit 1)
-  let forAllBody := Lean.mkApp3 (Expr.const ``Eq []) (Expr.const `Nat []) (Expr.bvar 0) nPlusOne
+  let forAllBody := Lean.mkApp3 (Expr.const ``Eq [1]) (Expr.const `Nat []) (Expr.bvar 0) nPlusOne
   let forAll := Expr.forallE `n (Expr.const `Nat []) forAllBody BinderInfo.default
   return forAll
 
@@ -330,7 +330,7 @@ section
 
   set_option pp.fieldNotation false
 
-  /-- info: (n : Nat) → Eq Nat n (Nat.add n 1) -/
+  /-- info: ∀ (n : Nat), n = Nat.add n 1 -/
   #guard_msgs in --#
   #eval show MetaM _ from do
     ppExpr (← twelveA)
