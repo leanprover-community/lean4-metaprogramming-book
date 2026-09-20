@@ -171,8 +171,8 @@ Its arguments are:
   is `Sort ?u`, where `?u` is a universe level metavariable. (This is a special
   class of metavariables for universe levels, distinct from the expression
   metavariables which we have been calling simply "metavariables".)
-- `kind`: the metavariable kind. See the [Metavariable Kinds
-  section](#metavariable-kinds) (but the default is usually correct).
+- `kind`: the metavariable kind. See the discussion of metavariable kinds in the
+  [Definitional Equality section](#definitional-equality) (but the default is usually correct).
 - `userName`: the new metavariable's user-facing name. This is what gets printed
   when the metavariable appears in a goal. Unlike the `MVarId`, this name does
   not need to be unique.
