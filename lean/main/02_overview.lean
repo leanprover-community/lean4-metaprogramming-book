@@ -49,7 +49,7 @@ Elaboration is an overloaded term in Lean. For example, you might encounter the 
 >
 > When Lean is parsing an expression, it first enters a preprocessing phase. First, Lean inserts "holes" for implicit arguments. If term t has type `Π {x : A}, P x`, then t is replaced by `@t _` everywhere. Then, the holes — either the ones inserted in the previous step or the ones explicitly written by the user — in a term are instantiated by metavariables `?M1`, `?M2`, `?M3`, .... Each overloaded notation is associated with a list of choices, that is, the possible interpretations. Similarly, Lean tries to detect the points where a coercion may need to be inserted in an application `s t`, to make the inferred type of t match the argument type of `s`. These become choice points too. If one possible outcome of the elaboration procedure is that no coercion is needed, then one of the choices on the list is the identity.
 >
-> ([Theorem Proving in Lean 2](http://leanprover.github.io/tutorial/08_Building_Theories_and_Proofs.html))
+> ([Theorem Proving in Lean 2](https://github.com/leanprover/tutorial/blob/master/08_Building_Theories_and_Proofs.org#elaboration-and-unification))
 
 We, on the other hand, just defined elaboration as the process of turning `Syntax` objects into `Expr` objects.
 
