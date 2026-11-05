@@ -168,9 +168,11 @@ mkFreshExprMVar (type? : Option Expr) (kind := MetavarKind.natural)
 Its arguments are:
 
 - `type?`: the target type of the new metavariable. If `none`, the target type
-  is `Sort ?u`, where `?u` is a universe level metavariable. (This is a special
-  class of metavariables for universe levels, distinct from the expression
-  metavariables which we have been calling simply "metavariables".)
+  is itself a fresh metavariable `?α : Sort ?u`, so the new metavariable can
+  stand for a term of any type. Here `?u` is a universe level metavariable.
+  (This is a special class of metavariables for universe levels, distinct from
+  the expression metavariables which we have been calling simply
+  "metavariables".)
 - `kind`: the metavariable kind. See the discussion of metavariable kinds in the
   [Definitional Equality section](#definitional-equality) (but the default is usually correct).
 - `userName`: the new metavariable's user-facing name. This is what gets printed
